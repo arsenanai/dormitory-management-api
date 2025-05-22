@@ -18,9 +18,24 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'iin',
         'name',
+        'faculty',
+        'specialist',
+        'enrollment_year',
+        'gender',
         'email',
+        'phone_numbers',
+        'dormitory',
+        'room',
         'password',
+        'deal_number',
+        'country',
+        'region',
+        'city',
+        'files',
+        'agree_to_dormitory_rules',
+        'add_to_reserve_list',
     ];
 
     /**
@@ -34,7 +49,7 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -43,6 +58,11 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'phone_numbers' => 'array',
+            'files' => 'array',
+            'agree_to_dormitory_rules' => 'boolean',
+            'add_to_reserve_list' => 'boolean',
+            'enrollment_year' => 'string',
         ];
     }
 }
