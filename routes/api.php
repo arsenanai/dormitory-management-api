@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DormitoryController;
+use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTypeController;
 use App\Http\Controllers\UserController;
 
@@ -18,5 +19,8 @@ Route::middleware( [ 'auth:sanctum', 'role:sudo' ] )->group( function () {
 	Route::post( 'dormitories/{dormitory}/assign-admin', [ DormitoryController::class, 'assignAdmin' ] );
 
 	Route::apiResource( 'room-types', RoomTypeController::class);
+
+	// CRUD Rooms
+	Route::apiResource( 'rooms', RoomController::class );
 
 } );
