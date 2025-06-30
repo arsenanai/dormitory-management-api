@@ -4,8 +4,10 @@ use App\Http\Controllers\DormitoryController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTypeController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\StudentController;
 
 Route::post( '/login', [ UserController::class, 'login' ] );
+Route::post( '/register', [ UserController::class, 'register' ] );
 
 // Sudo-only routes for managing dormitories and admins
 Route::middleware( [ 'auth:sanctum', 'role:sudo' ] )->group( function () {
@@ -24,3 +26,7 @@ Route::middleware( [ 'auth:sanctum', 'role:sudo' ] )->group( function () {
 	Route::apiResource( 'rooms', RoomController::class );
 
 } );
+Route::middleware( [ 'auth:sanctum', 'role:sudo' ] )->group( function () {
+	// Route::apiResource('students', StudentController::class);
+	Route::patch( '/students/{id}/approve', [ StudentController::class, 'approve' ] );
+});

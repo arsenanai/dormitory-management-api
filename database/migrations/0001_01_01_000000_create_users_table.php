@@ -24,12 +24,12 @@ return new class extends Migration {
 			$table->unsignedBigInteger( 'room_id' )->nullable();
 			$table->string( 'password' );
 			$table->string( 'deal_number' )->nullable();
-			$table->unsignedBigInteger( 'city_id' )->nullable();
 			$table->json( 'files' )->nullable();
 			$table->boolean( 'agree_to_dormitory_rules' )->default( false );
 			$table->enum( 'status', [ 'pending', 'active', 'passive' ] )->default( 'pending' );
 			$table->unsignedBigInteger( 'role_id' )->nullable();
 			$table->foreign( 'role_id' )->references( 'id' )->on( 'roles' )->onDelete( 'set null' );
+			$table->foreignId( 'city_id' )->nullable()->constrained( 'cities' )->onDelete( 'set null' );
 			$table->rememberToken();
 			$table->timestamps();
 		} );
