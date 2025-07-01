@@ -24,15 +24,20 @@ class RoomTypeCrudTest extends TestCase {
 			'name'    => 'standard',
 			'minimap' => UploadedFile::fake()->image( 'minimap.jpg' ),
 			'beds'    => [ 
-					[ 'x' => 10, 'y' => 20, 'width' => 30, 'height' => 40 ],
-					[ 'x' => 50, 'y' => 60, 'width' => 30, 'height' => 40 ],
-				],
+				[ 'x' => 10, 'y' => 20, 'width' => 30, 'height' => 40 ],
+				[ 'x' => 50, 'y' => 60, 'width' => 30, 'height' => 40 ],
+			],
+			'photos'  => [ 
+				UploadedFile::fake()->image( 'photo1.jpg' ),
+				UploadedFile::fake()->image( 'photo2.jpg' ),
+			],
 		];
 
 		$response = $this->postJson( '/api/room-types', [ 
 			'name'    => $payload['name'],
 			'minimap' => $payload['minimap'],
 			'beds'    => json_encode( $payload['beds'] ),
+			'photos'  => $payload['photos'],
 		], [ 
 			'Authorization' => "Bearer $token",
 		] );
@@ -42,12 +47,14 @@ class RoomTypeCrudTest extends TestCase {
 			'name' => 'standard',
 		] );
 		Storage::disk( 'public' )->assertExists( 'minimaps/' . $payload['minimap']->hashName() );
+		Storage::disk( 'public' )->assertExists( 'photos/' . $payload['photos'][0]->hashName() );
+		Storage::disk( 'public' )->assertExists( 'photos/' . $payload['photos'][1]->hashName() );
 	}
 
 	public function test_can_update_room_type() {
 		$token = $this->loginAsSudo();
 		$roomType = RoomType::factory()->create();
-
+		
 		$response = $this->putJson( "/api/room-types/{$roomType->id}", [ 
 			'name' => 'lux',
 			'beds' => json_encode( [ 
@@ -62,6 +69,27 @@ class RoomTypeCrudTest extends TestCase {
 			'id'   => $roomType->id,
 			'name' => 'lux',
 		] );
+	}
+
+	public function test_can_update_room_type_photos() {
+		Storage::fake( 'public' );
+		$token = $this->loginAsSudo();
+		$roomType = RoomType::factory()->create();
+
+		$newPhotos = [ 
+			UploadedFile::fake()->image( 'newphoto1.jpg' ),
+			UploadedFile::fake()->image( 'newphoto2.jpg' ),
+		];
+
+		$response = $this->putJson( "/api/room-types/{$roomType->id}", [ 
+			'photos' => $newPhotos,
+		], [ 
+			'Authorization' => "Bearer $token",
+		] );
+
+		$response->assertStatus( 200 );
+		Storage::disk( 'public' )->assertExists( 'photos/' . $newPhotos[0]->hashName() );
+		Storage::disk( 'public' )->assertExists( 'photos/' . $newPhotos[1]->hashName() );
 	}
 
 	public function test_can_delete_room_type() {

@@ -12,9 +12,11 @@ class RoomType extends Model {
 		'name',
 		'minimap',
 		'beds',
+		'photos',
 	];
 
 	protected $casts = [ 
 		'beds' => 'array',
+		'photos' => 'array',
 	];
 }

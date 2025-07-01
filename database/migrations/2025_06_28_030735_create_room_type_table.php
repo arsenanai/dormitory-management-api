@@ -16,6 +16,7 @@ return new class extends Migration
 			$table->string( 'name' ); // "standard room" or "lux"
 			$table->string( 'minimap' )->nullable(); // image path
 			$table->json( 'beds' )->nullable(); // array of rectangles [{x, y, width, height}]
+			$table->json( 'photos' )->nullable();
 			$table->timestamps();
 		} );
     }

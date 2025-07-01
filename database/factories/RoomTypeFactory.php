@@ -22,6 +22,10 @@ class RoomTypeFactory extends Factory
 			'beds'    => [ 
 					[ 'x' => 10, 'y' => 20, 'width' => 30, 'height' => 40 ],
 				],
+      'photos'  => [ 
+          $this->faker->imageUrl( 640, 480, 'room', true ),
+          $this->faker->imageUrl( 640, 480, 'room', true ),
+        ],
 		];
     }
 }
