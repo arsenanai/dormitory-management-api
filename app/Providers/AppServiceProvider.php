@@ -4,21 +4,32 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 
-class AppServiceProvider extends ServiceProvider
-{
-    /**
-     * Register any application services.
-     */
-    public function register(): void
-    {
-        //
-    }
+class AppServiceProvider extends ServiceProvider {
+	/**
+	 * Register any application services.
+	 */
+	public function register(): void {
+		//
+	}
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+	/**
+	 * Bootstrap any application services.
+	 */
+	public function boot(): void {
+		// Log all database queries in non-production environments
+		if ( ! app()->environment( 'production' ) ) {
+			\DB::listen( function ($query) {
+				\Log::info( 'Database Query', [ 
+					'sql'      => $query->sql,
+					'bindings' => $query->bindings,
+					'time'     => $query->time
+				] );
+			} );
+		}
+
+		// Force HTTPS in production
+		if ( app()->environment( 'production' ) ) {
+			\URL::forceScheme( 'https' );
+		}
+	}
 }

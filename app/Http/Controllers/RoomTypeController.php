@@ -8,13 +8,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class RoomTypeController extends Controller {
-	private $rules = [
-		'name'    => 'required|in:standard,lux',
-		'minimap' => 'sometimes|image',
-		'beds'    => 'sometimes|json',
+	private $rules = [ 
+		'name'     => 'sometimes|in:standard,lux',
+		'minimap'  => 'sometimes|image',
+		'beds'     => 'sometimes|json',
+		'photos'   => 'sometimes|array',
+		'photos.*' => 'image',
 	];
-	
-	public function __construct( private RoomTypeService $service ) {}
+
+	public function __construct( private RoomTypeService $service ) {
+	}
 
 	public function index( Request $request ) {
 		$roomTypes = $this->service->listRoomTypes();
@@ -22,13 +25,26 @@ class RoomTypeController extends Controller {
 	}
 
 	public function store( Request $request ) {
-		$validated = $request->validate( $this->rules );
+		// For creation, name is required
+		$rules = $this->rules;
+		$rules['name'] = 'required|in:standard,lux';
+
+		$validated = $request->validate( $rules );
+
 		if ( $request->hasFile( 'minimap' ) ) {
 			$validated['minimap'] = $request->file( 'minimap' )->store( 'minimaps', 'public' );
 		}
 
 		if ( isset( $validated['beds'] ) ) {
 			$validated['beds'] = json_decode( $validated['beds'], true );
+		}
+
+		if ( $request->hasFile( 'photos' ) ) {
+			$photoPaths = [];
+			foreach ( $request->file( 'photos' ) as $photo ) {
+				$photoPaths[] = $photo->store( 'photos', 'public' );
+			}
+			$validated['photos'] = $photoPaths;
 		}
 
 		$roomType = $this->service->createRoomType( $validated );
@@ -37,6 +53,8 @@ class RoomTypeController extends Controller {
 
 	public function update( Request $request, $id ) {
 		$roomType = $this->service->findRoomType( $id );
+
+		// Use global rules for update - all fields are optional with 'sometimes'
 		$validated = $request->validate( $this->rules );
 
 		if ( $request->hasFile( 'minimap' ) ) {
@@ -45,6 +63,14 @@ class RoomTypeController extends Controller {
 
 		if ( isset( $validated['beds'] ) ) {
 			$validated['beds'] = json_decode( $validated['beds'], true );
+		}
+
+		if ( $request->hasFile( 'photos' ) ) {
+			$photoPaths = [];
+			foreach ( $request->file( 'photos' ) as $photo ) {
+				$photoPaths[] = $photo->store( 'photos', 'public' );
+			}
+			$validated['photos'] = $photoPaths;
 		}
 
 		$roomType = $this->service->updateRoomType( $roomType, $validated );

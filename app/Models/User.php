@@ -13,9 +13,11 @@ class User extends Authenticatable {
 	use HasFactory, Notifiable, HasApiTokens;
 
 	protected $fillable = [ 
-		'iin', 'name', 'faculty', 'specialist', 'enrollment_year', 'gender', 'email',
-		'phone_numbers', 'room_id', 'password', 'deal_number', 'city_id', 'files',
-		'agree_to_dormitory_rules', 'status', 'role_id'
+		'iin', 'student_id', 'name', 'first_name', 'last_name', 'date_of_birth', 'faculty', 'specialist',
+		'course', 'year_of_study', 'enrollment_year', 'gender', 'blood_type', 'violations', 'parent_name',
+		'parent_phone', 'mentor_name', 'mentor_email', 'email', 'phone', 'emergency_contact', 'phone_numbers',
+		'room_id', 'password', 'deal_number', 'city_id', 'files', 'agree_to_dormitory_rules', 'status',
+		'has_meal_plan', 'role_id'
 	];
 
 	protected $casts = [ 
@@ -56,5 +58,17 @@ class User extends Authenticatable {
 	// for admins
 	public function dormitory() {
 		return $this->hasOne( Dormitory::class, 'admin_id' );
+	}
+
+	public function payments() {
+		return $this->hasMany( Payment::class);
+	}
+
+	public function room() {
+		return $this->belongsTo( Room::class);
+	}
+
+	public function city() {
+		return $this->belongsTo( City::class);
 	}
 }
