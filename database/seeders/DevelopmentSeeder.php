@@ -11,7 +11,7 @@ use App\Models\Bed;
 use App\Models\Country;
 use App\Models\Region;
 use App\Models\City;
-use App\Models\Payment;
+use App\Models\SemesterPayment;
 use App\Models\Message;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -38,35 +38,29 @@ class DevelopmentSeeder extends Seeder {
 		$sudo = User::firstOrCreate(
 			[ 'email' => 'sudo@dormitory.local' ],
 			[ 
-				'name'            => 'Super Administrator',
-				'email'           => 'sudo@dormitory.local',
-				'password'        => Hash::make( 'password' ),
-				'role_id'         => $sudoRole->id,
-				'iin'             => '123456789012',
-				'faculty'         => 'Administration',
-				'specialist'      => 'System Admin',
-				'enrollment_year' => 2024,
-				'gender'          => 'male',
-				'status'          => 'active',
-				'city_id'         => $almaty_city->id,
+				'name'     => 'Super Administrator',
+				'email'    => 'sudo@dormitory.local',
+				'password' => Hash::make( 'password' ),
+				'role_id'  => $sudoRole->id,
+				'status'   => 'active',
 			]
 		);
 
 		// Create room types
-		$standardRoomType = RoomType::firstOrCreate( [ 
-			'name' => 'standard',
-			'beds' => [ 
+		$standardRoomType = RoomType::firstOrCreate(
+			[ 'name' => 'standard' ],
+			[ 'beds' => [ 
 				[ 'id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false ],
 				[ 'id' => 2, 'x' => 150, 'y' => 50, 'occupied' => false ],
-			]
-		] );
+			] ]
+		);
 
-		$luxRoomType = RoomType::firstOrCreate( [ 
-			'name' => 'lux',
-			'beds' => [ 
+		$luxRoomType = RoomType::firstOrCreate(
+			[ 'name' => 'lux' ],
+			[ 'beds' => [ 
 				[ 'id' => 1, 'x' => 100, 'y' => 100, 'occupied' => false ],
-			]
-		] );
+			] ]
+		);
 
 		// Create dormitories
 		$dormitory1 = Dormitory::firstOrCreate( [ 
@@ -75,6 +69,7 @@ class DevelopmentSeeder extends Seeder {
 			'description' => 'Main student dormitory',
 			'gender'      => 'mixed',
 			'quota'       => 200,
+			'capacity'    => 200,
 		] );
 
 		$dormitory2 = Dormitory::firstOrCreate( [ 
@@ -83,40 +78,29 @@ class DevelopmentSeeder extends Seeder {
 			'description' => 'Second student dormitory',
 			'gender'      => 'male',
 			'quota'       => 150,
+			'capacity'    => 200,
 		] );
 
 		// Create admin users
 		$admin1 = User::firstOrCreate(
 			[ 'email' => 'admin1@dormitory.local' ],
 			[ 
-				'name'            => 'John Admin',
-				'email'           => 'admin1@dormitory.local',
-				'password'        => Hash::make( 'password' ),
-				'role_id'         => $adminRole->id,
-				'iin'             => '123456789013',
-				'faculty'         => 'Administration',
-				'specialist'      => 'Dormitory Admin',
-				'enrollment_year' => 2024,
-				'gender'          => 'male',
-				'status'          => 'active',
-				'city_id'         => $almaty_city->id,
+				'name'     => 'John Admin',
+				'email'    => 'admin1@dormitory.local',
+				'password' => Hash::make( 'password' ),
+				'role_id'  => $adminRole->id,
+				'status'   => 'active',
 			]
 		);
 
 		$admin2 = User::firstOrCreate(
 			[ 'email' => 'admin2@dormitory.local' ],
 			[ 
-				'name'            => 'Jane Admin',
-				'email'           => 'admin2@dormitory.local',
-				'password'        => Hash::make( 'password' ),
-				'role_id'         => $adminRole->id,
-				'iin'             => '123456789014',
-				'faculty'         => 'Administration',
-				'specialist'      => 'Dormitory Admin',
-				'enrollment_year' => 2024,
-				'gender'          => 'female',
-				'status'          => 'active',
-				'city_id'         => $almaty_city->id,
+				'name'     => 'Jane Admin',
+				'email'    => 'admin2@dormitory.local',
+				'password' => Hash::make( 'password' ),
+				'role_id'  => $adminRole->id,
+				'status'   => 'active',
 			]
 		);
 
@@ -140,8 +124,8 @@ class DevelopmentSeeder extends Seeder {
 				$bedCount = $roomNum <= 8 ? 2 : 1;
 				for ( $bedNum = 1; $bedNum <= $bedCount; $bedNum++ ) {
 					Bed::firstOrCreate( [ 
-						'number'  => $bedNum,
-						'room_id' => $room->id,
+						'bed_number' => $bedNum,
+						'room_id'    => $room->id,
 					] );
 				}
 			}
@@ -150,49 +134,79 @@ class DevelopmentSeeder extends Seeder {
 		// Create sample students
 		$students = [ 
 			[ 
-				'name'       => 'Alice Student',
-				'email'      => 'alice@student.local',
-				'iin'        => '123456789015',
-				'faculty'    => 'Computer Science',
-				'specialist' => 'Software Engineering',
-				'gender'     => 'female',
+				'name'  => 'Alice Student',
+				'email' => 'alice@student.local',
+				// ...student-specific fields removed, handled in StudentProfile...
 			],
 			[ 
-				'name'       => 'Bob Student',
-				'email'      => 'bob@student.local',
-				'iin'        => '123456789016',
-				'faculty'    => 'Business',
-				'specialist' => 'Marketing',
-				'gender'     => 'male',
+				'name'  => 'Bob Student',
+				'email' => 'bob@student.local',
+				// ...student-specific fields removed, handled in StudentProfile...
 			],
 			[ 
-				'name'       => 'Charlie Student',
-				'email'      => 'charlie@student.local',
-				'iin'        => '123456789017',
-				'faculty'    => 'Engineering',
-				'specialist' => 'Mechanical Engineering',
-				'gender'     => 'male',
+				'name'  => 'Charlie Student',
+				'email' => 'charlie@student.local',
+				// ...student-specific fields removed, handled in StudentProfile...
 			],
 		];
 
 		foreach ( $students as $index => $studentData ) {
 			$room = Room::where( 'dormitory_id', $dormitory1->id )->skip( $index )->first();
 			$bed = $room->beds()->whereNull( 'user_id' )->first();
-
 			$student = User::firstOrCreate(
 				[ 'email' => $studentData['email'] ],
-				array_merge( $studentData, [ 
-					'password'        => Hash::make( 'password' ),
-					'role_id'         => $studentRole->id,
-					'enrollment_year' => 2024,
-					'status'          => 'active',
-					'city_id'         => $almaty_city->id,
-					'room_id'         => $room->id,
-					'blood_type'      => 'O+',
-					'parent_name'     => 'Parent ' . $studentData['name'],
-					'parent_phone'    => '+77012345' . str_pad( $index, 3, '0', STR_PAD_LEFT ),
-					'has_meal_plan'   => $index % 2 == 0,
-				] )
+				[
+					'name'          => $studentData['name'],
+					'email'         => $studentData['email'],
+					'password'      => Hash::make('password'),
+					'role_id'       => $studentRole->id,
+					'status'        => 'active',
+					'room_id'       => $room->id,
+					'first_name'    => $studentData['name'],
+					'last_name'     => 'Student',
+					'phone_numbers' => json_encode(['+77001234567']),
+				]
+			);
+			// Create StudentProfile for student-specific fields
+			\App\Models\StudentProfile::firstOrCreate(
+				[
+					'user_id'    => $student->id,
+					'student_id' => 'STU' . str_pad($student->id, 5, '0', STR_PAD_LEFT),
+					'iin'        => '1234567890' . str_pad($student->id, 2, '0', STR_PAD_LEFT),
+				],
+				[
+					'gender'                         => $studentData['gender'] ?? 'male',
+					'faculty'                        => $studentData['faculty'] ?? 'Engineering',
+					'specialist'                     => $studentData['specialist'] ?? 'Software Engineering',
+					'course'                         => 1,
+					'year_of_study'                  => 1,
+					'enrollment_year'                => '2024',
+					'enrollment_date'                => now()->subYears(1),
+					'blood_type'                     => 'O+',
+					'parent_name'                    => 'Parent ' . $studentData['name'],
+					'parent_phone'                   => '+77012345678',
+					'parent_email'                   => 'parent_' . $studentData['email'],
+					'guardian_name'                  => 'Guardian ' . $studentData['name'],
+					'guardian_phone'                 => '+77012345679',
+					'mentor_name'                    => 'Mentor ' . $studentData['name'],
+					'mentor_email'                   => 'mentor_' . $studentData['email'],
+					'emergency_contact_name'         => 'Emergency ' . $studentData['name'],
+					'emergency_contact_phone'        => '+77012345680',
+					'emergency_contact_relationship' => 'Father',
+					'medical_conditions'             => null,
+					'dietary_restrictions'           => null,
+					'program'                        => 'Computer Science',
+					'year_level'                     => 1,
+					'nationality'                    => 'Kazakh',
+					'deal_number'                    => 'DEAL' . str_pad($student->id, 5, '0', STR_PAD_LEFT),
+					'agree_to_dormitory_rules'       => true,
+					'has_meal_plan'                  => true,
+					'registration_limit_reached'     => false,
+					'is_backup_list'                 => false,
+					'date_of_birth'                  => now()->subYears(18),
+					'files'                          => json_encode([]),
+					'city_id'                        => $almaty_city->id,
+				]
 			);
 
 			// Assign bed to student
@@ -201,17 +215,30 @@ class DevelopmentSeeder extends Seeder {
 			}
 
 			// Create sample payments
-			Payment::firstOrCreate( [ 
-				'user_id'         => $student->id,
-				'contract_number' => 'CONTRACT-2024-' . str_pad( $student->id, 4, '0', STR_PAD_LEFT ),
-				'contract_date'   => now()->subDays( 30 ),
-				'payment_date'    => now()->subDays( 20 ),
-				'amount'          => 50000 + ( $index * 5000 ),
-				'payment_method'  => 'Bank Transfer',
-				'status'          => 'completed',
-				'name'            => $student->name,
-				'surname'         => '',
-			] );
+			SemesterPayment::firstOrCreate(
+				[
+					'user_id'        => $student->id,
+					'semester'       => '2025-fall',
+				],
+				[
+					'year'                     => 2025,
+					'semester_type'            => 'fall',
+					'amount'                   => 50000 + ($index * 5000),
+					'payment_approved'         => true,
+					'dormitory_access_approved'=> true,
+					'payment_approved_at'      => now()->subDays(10),
+					'dormitory_approved_at'    => now()->subDays(5),
+					'payment_approved_by'      => $admin1->id,
+					'dormitory_approved_by'    => $admin1->id,
+					'due_date'                 => now()->addDays(30),
+					'paid_date'                => now(),
+					'payment_notes'            => 'Paid in full',
+					'dormitory_notes'          => 'Access granted',
+					'payment_status'           => 'approved',
+					'dormitory_status'         => 'approved',
+					'receipt_file'             => null,
+				]
+			);
 		}
 
 		// Create sample messages

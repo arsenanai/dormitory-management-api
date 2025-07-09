@@ -11,11 +11,15 @@ return new class extends Migration {
 	public function up(): void {
 		Schema::create( 'messages', function (Blueprint $table) {
 			$table->id();
-			$table->string( 'from' );
-			$table->string( 'to' );
-			$table->string( 'subject' );
+			$table->foreignId( 'sender_id' )->constrained( 'users' );
+			$table->string( 'title' );
 			$table->text( 'content' );
-			$table->datetime( 'date_time' );
+			$table->enum( 'recipient_type', [ 'all', 'dormitory', 'room', 'individual' ] );
+			$table->foreignId( 'dormitory_id' )->nullable()->constrained( 'dormitories' );
+			$table->foreignId( 'room_id' )->nullable()->constrained( 'rooms' );
+			$table->json( 'recipient_ids' )->nullable();
+			$table->string( 'status' )->default( 'draft' );
+			$table->datetime( 'sent_at' )->nullable();
 			$table->softDeletes();
 			$table->timestamps();
 		} );

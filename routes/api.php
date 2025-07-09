@@ -2,10 +2,12 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
+use App\Http\Controllers\GuestController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTypeController;
+use App\Http\Controllers\SemesterPaymentController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
 
@@ -38,9 +40,25 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::apiResource( 'students', StudentController::class);
 		Route::patch( '/students/{id}/approve', [ StudentController::class, 'approve' ] );
 
+		// Guest management
+		Route::get( '/guests/export', [ GuestController::class, 'export' ] );
+		Route::get( '/guests/available-rooms', [ GuestController::class, 'availableRooms' ] );
+		Route::post( '/guests/{id}/check-out', [ GuestController::class, 'checkOut' ] );
+		Route::apiResource( 'guests', GuestController::class);
+
 		// Payment management
 		Route::get( '/payments/export', [ PaymentController::class, 'export' ] );
 		Route::apiResource( 'payments', PaymentController::class);
+
+		// Semester payment management
+		Route::get( '/semester-payments/stats', [ SemesterPaymentController::class, 'getStats' ] );
+		Route::get( '/semester-payments/users-with-access', [ SemesterPaymentController::class, 'getUsersWithAccess' ] );
+		Route::post( '/semester-payments/create-for-all-students', [ SemesterPaymentController::class, 'createForAllStudents' ] );
+		Route::post( '/semester-payments/{semesterPayment}/approve-payment', [ SemesterPaymentController::class, 'approvePayment' ] );
+		Route::post( '/semester-payments/{semesterPayment}/reject-payment', [ SemesterPaymentController::class, 'rejectPayment' ] );
+		Route::post( '/semester-payments/{semesterPayment}/approve-dormitory', [ SemesterPaymentController::class, 'approveDormitoryAccess' ] );
+		Route::post( '/semester-payments/{semesterPayment}/reject-dormitory', [ SemesterPaymentController::class, 'rejectDormitoryAccess' ] );
+		Route::apiResource( 'semester-payments', SemesterPaymentController::class);
 
 		// Message management
 		Route::apiResource( 'messages', MessageController::class);

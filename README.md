@@ -15,74 +15,43 @@ This is a Laravel-based API for managing dormitories, users, rooms, room types, 
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-- PHP 8.1+
-- Composer
-- MySQL or PostgreSQL
-- Node.js & npm (for frontend, if needed)
-- [Docker](https://www.docker.com/) (optional, for containerized setup)
-
----
-
-### Installation
-
-1. **Clone the repository:**
-   ```sh
-   git clone <your-repo-url>
-   cd dormitory-management-api
-   ```
-
-2. **Install dependencies:**
-   ```sh
-   composer install
-   ```
-
-3. **Copy and configure your environment:**
-   ```sh
-   cp .env.example .env
-   # Edit .env to set your DB and other settings
-   ```
-
-4. **Generate application key:**
-   ```sh
-   php artisan key:generate
-   ```
-
-5. **Run migrations and seeders:**
-   ```sh
-   php artisan migrate --seed
-   ```
-
-6. **(Optional) Link storage for file uploads:**
-   ```sh
-   php artisan storage:link
-   ```
-
----
-
-### Running the API Locally
-
-Start the Laravel development server:
-
-```sh
-php artisan serve
-```
-
-The API will be available at [http://localhost:8000](http://localhost:8000).
-
----
-
 ### Running with Docker
 
-You can use Docker Compose profiles for different environments:
+You can use Docker Compose for different environments and tasks:
 
+**Install Composer dependencies:**
 ```sh
-docker-compose --profile dev up --build
-docker-compose --profile prod up --build
-docker-compose --profile test up -d --build
+docker compose run --rm composer
+```
+
+**Run migrations:**
+```sh
+docker compose run --rm migrate
+```
+
+**Run seeders:**
+```sh
+docker compose run --rm seed
+```
+
+**Generate application key (run once if .env does not have APP_KEY):**
+```sh
+docker compose run --rm app php artisan key:generate
+```
+
+**Run tests (SQLite in-memory):**
+```sh
+docker compose run --rm test
+```
+
+**Start the development server:**
+```sh
+docker compose up dev db redis
+```
+
+**Start the production server (with Nginx, PHP-FPM, and SSL via nginx-proxy):**
+```sh
+docker compose up -d app nginx-proxy letsencrypt db redis
 ```
 
 ---
@@ -90,7 +59,7 @@ docker-compose --profile test up -d --build
 ### Running Tests
 
 ```sh
-php artisan test
+docker compose run --rm test
 ```
 or
 ```sh

@@ -13,18 +13,12 @@ class User extends Authenticatable {
 	use HasFactory, Notifiable, HasApiTokens;
 
 	protected $fillable = [ 
-		'iin', 'student_id', 'name', 'first_name', 'last_name', 'date_of_birth', 'faculty', 'specialist',
-		'course', 'year_of_study', 'enrollment_year', 'gender', 'blood_type', 'violations', 'parent_name',
-		'parent_phone', 'mentor_name', 'mentor_email', 'email', 'phone', 'emergency_contact', 'phone_numbers',
-		'room_id', 'password', 'deal_number', 'city_id', 'files', 'agree_to_dormitory_rules', 'status',
-		'has_meal_plan', 'role_id'
+		'name', 'first_name', 'last_name', 'email', 'phone_numbers', 'room_id', 'password', 'status', 'role_id'
 	];
 
 	protected $casts = [ 
-		'phone_numbers'            => 'array',
-		'files'                    => 'array',
-		'role_id'                  => 'integer',
-		'agree_to_dormitory_rules' => 'boolean',
+		'phone_numbers' => 'array',
+		'role_id'       => 'integer',
 	];
 
 	protected $hidden = [ 
@@ -37,31 +31,22 @@ class User extends Authenticatable {
 	 *
 	 * @return array<string, string>
 	 */
-	protected function casts(): array {
-		return [ 
-			'email_verified_at' => 'datetime',
-			'password'          => 'hashed',
-			'phone_numbers'     => 'array',
-			'files'             => 'array',
-			'enrollment_year'   => 'integer',
-		];
-	}
+	// ...existing code...
 
 	public function role() {
 		return $this->belongsTo( Role::class);
 	}
 
 	public function hasRole( string $roleName ): bool {
-		return $this->role?->name === $roleName;
+		return $this->role && $this->role->name === $roleName;
 	}
 
-	// for admins
 	public function dormitory() {
 		return $this->hasOne( Dormitory::class, 'admin_id' );
 	}
 
 	public function payments() {
-		return $this->hasMany( Payment::class);
+		return $this->hasMany( \App\Models\SemesterPayment::class, 'user_id' );
 	}
 
 	public function room() {
@@ -70,5 +55,36 @@ class User extends Authenticatable {
 
 	public function city() {
 		return $this->belongsTo( City::class);
+	}
+
+	public function studentProfile() {
+		return $this->hasOne( StudentProfile::class);
+	}
+
+	public function guestProfile() {
+		return $this->hasOne( GuestProfile::class);
+	}
+
+	public function semesterPayments() {
+		return $this->hasMany( SemesterPayment::class);
+	}
+
+	public function currentSemesterPayment() {
+		return $this->hasOne( SemesterPayment::class)
+			->where( 'semester', SemesterPayment::getCurrentSemester() );
+	}
+
+	public function canAccessDormitory() {
+		if ( $this->hasRole( 'student' ) ) {
+			$currentPayment = $this->currentSemesterPayment;
+			return $currentPayment && $currentPayment->canAccessDormitory();
+		}
+
+		if ( $this->hasRole( 'guest' ) ) {
+			$guestProfile = $this->guestProfile;
+			return $guestProfile && $guestProfile->isCurrentlyAuthorized();
+		}
+
+		return true; // Admin, sudo, visitor roles have access
 	}
 }

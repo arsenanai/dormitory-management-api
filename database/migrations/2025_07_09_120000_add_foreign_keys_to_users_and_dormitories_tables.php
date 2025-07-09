@@ -10,11 +10,10 @@ return new class extends Migration {
 	 */
 	public function up(): void {
 		Schema::table( 'dormitories', function (Blueprint $table) {
-			$table->string( 'address' )->nullable();
-			$table->string( 'description' )->nullable();
-			$table->enum( 'gender', [ 'male', 'female', 'mixed' ] )->default( 'mixed' );
-			$table->integer( 'quota' )->nullable();
-			$table->string( 'phone' )->nullable();
+			$table->foreign( 'admin_id' )->references( 'id' )->on( 'users' )->onDelete( 'set null' );
+		} );
+		Schema::table( 'users', function (Blueprint $table) {
+			$table->foreign( 'room_id' )->references( 'id' )->on( 'rooms' )->onDelete( 'set null' );
 		} );
 	}
 
@@ -23,7 +22,10 @@ return new class extends Migration {
 	 */
 	public function down(): void {
 		Schema::table( 'dormitories', function (Blueprint $table) {
-			$table->dropColumn( [ 'address', 'description', 'gender', 'quota', 'phone' ] );
+			$table->dropForeign( [ 'admin_id' ] );
+		} );
+		Schema::table( 'users', function (Blueprint $table) {
+			$table->dropForeign( [ 'room_id' ] );
 		} );
 	}
 };

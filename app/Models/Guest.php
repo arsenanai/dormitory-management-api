@@ -10,16 +10,26 @@ class Guest extends Model {
 
 	protected $fillable = [ 
 		'name',
-		'surname',
-		'enter_date',
-		'exit_date',
-		'telephone',
-		'room',
-		'payment',
+		'email',
+		'phone',
+		'room_id',
+		'check_in_date',
+		'check_out_date',
+		'payment_status',
+		'total_amount',
+		'notes',
 	];
 
 	protected $casts = [ 
-		'enter_date' => 'datetime',
-		'exit_date'  => 'datetime',
+		'check_in_date'  => 'date',
+		'check_out_date' => 'date',
+		'total_amount'   => 'decimal:2',
 	];
+
+	/**
+	 * Get the room that the guest is staying in.
+	 */
+	public function room() {
+		return $this->belongsTo( Room::class);
+	}
 }
