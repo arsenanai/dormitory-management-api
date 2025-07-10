@@ -20,11 +20,11 @@ class BedFactory extends Factory {
 	 * Define the model's default state.
 	 */
 	public function definition(): array {
-		return [ 
-			'room_id'    => Room::factory(),
-			'bed_number' => $this->faker->numberBetween( 1, 4 ),
-			'user_id'    => $this->faker->optional( 0.7 )->randomElement( [ null, User::factory() ] ),
-		];
+	   return [
+		   'room_id'    => Room::factory(),
+		   'bed_number' => $this->faker->numberBetween(1, 4),
+		   'user_id'    => null,
+	   ];
 	}
 
 	/**

@@ -17,7 +17,7 @@ class GuestProfileFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            // Add fields if GuestProfile table has any, else leave empty
         ];
     }
 }

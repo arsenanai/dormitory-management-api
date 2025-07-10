@@ -16,9 +16,9 @@ class CountryFactory extends Factory
      */
     public function definition(): array
     {
-        return [ 
-			'name'     => $this->faker->unique()->country,
-			'language' => $this->faker->randomElement( [ 'en', 'ru', 'kk' ] ),
+        return [
+           'name'     => $this->faker->unique()->country,
+           'language' => $this->faker->randomElement(['en', 'ru', 'kk']),
         ];
     }
 }

@@ -21,23 +21,26 @@ class SemesterPaymentFactory extends Factory {
 		$year = fake()->numberBetween( 2024, 2026 );
 		$semesterType = fake()->randomElement( [ 'fall', 'spring', 'summer' ] );
 
-		return [ 
-			'user_id'                   => User::factory(),
-			'semester'                  => $year . '-' . $semesterType,
-			'year'                      => $year,
-			'semester_type'             => $semesterType,
-			'amount'                    => fake()->randomFloat( 2, 500, 5000 ),
-			'payment_approved'          => fake()->boolean(),
-			'dormitory_access_approved' => fake()->boolean(),
-			'payment_approved_at'       => fake()->optional()->dateTimeBetween( '-1 month', 'now' ),
-			'dormitory_approved_at'     => fake()->optional()->dateTimeBetween( '-1 month', 'now' ),
-			'payment_approved_by'       => fake()->optional()->randomElement( [ User::factory(), null ] ),
-			'dormitory_approved_by'     => fake()->optional()->randomElement( [ User::factory(), null ] ),
-			'due_date'                  => fake()->dateTimeBetween( 'now', '+3 months' ),
-			'paid_date'                 => fake()->optional()->dateTimeBetween( '-1 month', 'now' ),
-			'payment_notes'             => fake()->optional()->sentence(),
-			'dormitory_notes'           => fake()->optional()->sentence(),
-			'payment_status'            => fake()->randomElement( [ 'pending', 'approved', 'rejected', 'expired' ] ),
+	   return [
+		   'user_id'                   => User::factory(),
+		   'semester'                  => $year . '-' . $semesterType,
+		   'year'                      => $year,
+		   'semester_type'             => $semesterType,
+		   'amount'                    => fake()->randomFloat(2, 500, 5000),
+		   'payment_approved'          => fake()->boolean(),
+		   'dormitory_access_approved' => fake()->boolean(),
+		   'payment_approved_at'       => null,
+		   'dormitory_approved_at'     => null,
+		   'payment_approved_by'       => null,
+		   'dormitory_approved_by'     => null,
+		   'due_date'                  => fake()->dateTimeBetween('now', '+3 months')->format('Y-m-d'),
+		   'paid_date'                 => null,
+		   'payment_notes'             => null,
+		   'dormitory_notes'           => null,
+		   'payment_status'            => 'pending',
+		   'dormitory_status'          => 'pending',
+		   'receipt_file'              => null,
+	   ];
 			'dormitory_status'          => fake()->randomElement( [ 'pending', 'approved', 'rejected', 'expired' ] ),
 		];
 	}

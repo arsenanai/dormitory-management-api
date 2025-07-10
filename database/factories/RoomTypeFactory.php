@@ -16,16 +16,16 @@ class RoomTypeFactory extends Factory
      */
     public function definition(): array
     {
-		return [ 
-			'name'    => $this->faker->randomElement( [ 'standard', 'lux' ] ),
-			'minimap' => null,
-			'beds'    => [ 
-					[ 'x' => 10, 'y' => 20, 'width' => 30, 'height' => 40 ],
-				],
-      'photos'  => [ 
-          $this->faker->imageUrl( 640, 480, 'room', true ),
-          $this->faker->imageUrl( 640, 480, 'room', true ),
-        ],
-		];
+       return [
+           'name'    => $this->faker->randomElement(['standard', 'lux']),
+           'minimap' => null,
+           'beds'    => json_encode([
+               ['x' => 10, 'y' => 20, 'width' => 30, 'height' => 40],
+           ]),
+           'photos'  => json_encode([
+               $this->faker->imageUrl(640, 480, 'room', true),
+               $this->faker->imageUrl(640, 480, 'room', true),
+           ]),
+       ];
     }
 }

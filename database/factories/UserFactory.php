@@ -22,17 +22,19 @@ class UserFactory extends Factory {
 	 * @return array<string, mixed>
 	 */
 	public function definition(): array {
-		return [ 
-			'name'          => $this->faker->name,
-			'first_name'    => $this->faker->firstName,
-			'last_name'     => $this->faker->lastName,
-			'email'         => $this->faker->unique()->safeEmail,
-			'phone_numbers' => json_encode( [ $this->faker->phoneNumber ] ),
-			'room_id'       => null,
-			'password'      => static::$password ??= Hash::make( 'password' ),
-			'status'        => 'pending',
-			'role_id'       => 1, // default role, adjust as needed
-		];
+	   return [
+		   'name'              => $this->faker->name,
+		   'first_name'        => $this->faker->firstName,
+		   'last_name'         => $this->faker->lastName,
+		   'email'             => $this->faker->unique()->safeEmail,
+		   'email_verified_at' => null,
+		   'phone_numbers'     => json_encode([$this->faker->phoneNumber]),
+		   'room_id'           => null, // Foreign key, can be set in test as needed
+		   'password'          => static::$password ??= Hash::make('password'),
+		   'status'            => 'pending',
+		   'role_id'           => null, // Foreign key, can be set in test as needed
+		   'remember_token'    => Str::random(10),
+	   ];
 	}
 
 	/**

@@ -8,7 +8,7 @@ use App\Models\Role;
 use App\Models\Dormitory;
 use App\Models\Room;
 use App\Models\RoomType;
-use App\Models\Payment;
+use App\Models\SemesterPayment;
 use App\Models\Message;
 use App\Models\Bed;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -86,20 +86,24 @@ class DashboardControllerTest extends TestCase {
 		$student3 = User::factory()->create( [ 'role_id' => $this->student->role_id ] );
 
 		// Create payments
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_date'   => now()->subDays( 5 ),
-			'payment_method' => 'bank_transfer',
-			'status'         => 'paid',
+			'payment_approved' => true,
+			'payment_status'   => 'approved',
 		] );
 
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $student2->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_date'   => now()->subDays( 10 ),
-			'payment_method' => 'cash',
-			'status'         => 'pending',
+			'payment_approved' => false,
+			'payment_status'   => 'pending',
 		] );
 
 		// Create messages
@@ -147,20 +151,24 @@ class DashboardControllerTest extends TestCase {
 
 	public function test_student_can_view_personal_dashboard() {
 		// Create payments for the student
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_date'   => now()->subDays( 5 ),
-			'payment_method' => 'bank_transfer',
-			'status'         => 'paid',
+			'payment_approved' => true,
+			'payment_status'   => 'approved',
 		] );
 
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_date'   => now()->addDays( 25 ),
-			'payment_method' => 'cash',
-			'status'         => 'pending',
+			'payment_approved' => false,
+			'payment_status'   => 'pending',
 		] );
 
 		// Create messages for the student
@@ -224,18 +232,24 @@ class DashboardControllerTest extends TestCase {
 
 	public function test_admin_can_view_monthly_stats() {
 		// Create payments for different months
-		Payment::factory()->create( [ 
-			'user_id'      => $this->student->id,
-			'amount'       => 50000,
-			'payment_date' => now()->startOfMonth(),
-			'status'       => 'paid',
+		SemesterPayment::factory()->create( [ 
+			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
+			'amount'         => 50000,
+			'payment_approved' => true,
+			'payment_status'   => 'approved',
 		] );
 
-		Payment::factory()->create( [ 
-			'user_id'      => $this->student->id,
-			'amount'       => 50000,
-			'payment_date' => now()->subMonth()->startOfMonth(),
-			'status'       => 'paid',
+		SemesterPayment::factory()->create( [ 
+			'user_id'        => $this->student->id,
+			'semester'       => '2025-spring',
+			'year'           => 2025,
+			'semester_type'  => 'spring',
+			'amount'         => 50000,
+			'payment_approved' => true,
+			'payment_status'   => 'approved',
 		] );
 
 		$response = $this->actingAs( $this->admin )
@@ -268,25 +282,34 @@ class DashboardControllerTest extends TestCase {
 
 	public function test_admin_can_view_payment_analytics() {
 		// Create payments with different statuses and methods
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_method' => 'bank_transfer',
-			'status'         => 'paid',
+			'payment_approved' => true,
+			'payment_status'   => 'approved',
 		] );
 
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_method' => 'cash',
-			'status'         => 'pending',
+			'payment_approved' => false,
+			'payment_status'   => 'pending',
 		] );
 
-		Payment::factory()->create( [ 
+		SemesterPayment::factory()->create( [ 
 			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
 			'amount'         => 50000,
-			'payment_method' => 'card',
-			'status'         => 'failed',
+			'payment_approved' => false,
+			'payment_status'   => 'rejected',
 		] );
 
 		$response = $this->actingAs( $this->admin )
@@ -382,18 +405,14 @@ class DashboardControllerTest extends TestCase {
 
 	public function test_dashboard_stats_with_filters() {
 		// Create payments for different date ranges
-		Payment::factory()->create( [ 
-			'user_id'      => $this->student->id,
-			'amount'       => 50000,
-			'payment_date' => now()->subDays( 5 ),
-			'status'       => 'paid',
-		] );
-
-		Payment::factory()->create( [ 
-			'user_id'      => $this->student->id,
-			'amount'       => 30000,
-			'payment_date' => now()->subDays( 15 ),
-			'status'       => 'paid',
+		SemesterPayment::factory()->create( [ 
+			'user_id'        => $this->student->id,
+			'semester'       => '2025-fall',
+			'year'           => 2025,
+			'semester_type'  => 'fall',
+			'amount'         => 50000,
+			'payment_approved' => true,
+			'payment_status'   => 'approved',
 		] );
 
 		$response = $this->actingAs( $this->admin )

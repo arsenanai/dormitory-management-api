@@ -17,10 +17,10 @@ class RegionFactory extends Factory
      */
     public function definition(): array
     {
-        return [ 
-			'name'       => $this->faker->state,
-			'language'   => $this->faker->randomElement( [ 'en', 'ru', 'kk' ] ),
-			'country_id' => Country::factory(),
+        return [
+           'name'       => $this->faker->state,
+           'language'   => $this->faker->randomElement(['en', 'ru', 'kk']),
+           'country_id' => \App\Models\Country::factory(),
         ];
     }
 }
