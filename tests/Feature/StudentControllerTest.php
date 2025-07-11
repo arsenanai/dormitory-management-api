@@ -50,6 +50,7 @@ class StudentControllerTest extends TestCase {
 			'address'  => 'Test Address',
 			'admin_id' => $this->admin->id,
 			'gender'   => 'mixed',
+			'capacity' => 200,
 			'quota'    => 100,
 		] );
 
@@ -180,7 +181,8 @@ class StudentControllerTest extends TestCase {
 			->deleteJson( "/api/students/{$testStudent->id}" );
 
 		$response->assertStatus( 204 );
-		$this->assertDatabaseMissing( 'users', [ 'id' => $testStudent->id ] );
+		// Check that the student is soft deleted
+		$this->assertSoftDeleted( 'users', [ 'id' => $testStudent->id ] );
 	}
 
 	/** @test */

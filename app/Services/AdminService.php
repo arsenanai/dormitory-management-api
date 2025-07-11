@@ -34,6 +34,6 @@ class AdminService {
 
 	public function deleteAdmin( $id ) {
 		$admin = User::findOrFail( $id );
-		$admin->delete();
+		$admin->forceDelete(); // Hard delete instead of soft delete
 	}
 }

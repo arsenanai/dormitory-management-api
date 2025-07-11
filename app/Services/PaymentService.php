@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Payment;
+use App\Models\SemesterPayment;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,7 +11,7 @@ class PaymentService {
 	 * Get payments with filters and pagination
 	 */
 	public function getPaymentsWithFilters( array $filters = [] ) {
-		$query = Payment::with( [ 'user' ] );
+		$query = SemesterPayment::with( [ 'user' ] );
 
 		// Apply filters
 		if ( isset( $filters['user_id'] ) ) {
@@ -48,18 +48,19 @@ class PaymentService {
 			$data['receipt_file'] = $data['receipt_file']->store( 'payment_receipts', 'public' );
 		}
 
-		// Set default status if not provided
-		$data['status'] = $data['status'] ?? 'pending';
+		// Set default values for required fields
+		$data['payment_status'] = $data['payment_status'] ?? 'pending';
+		$data['dormitory_status'] = $data['dormitory_status'] ?? 'pending';
+		$data['payment_approved'] = $data['payment_approved'] ?? false;
+		$data['dormitory_access_approved'] = $data['dormitory_access_approved'] ?? false;
+		
+		// Set due date if not provided (3 months from contract date or today)
+		if (!isset($data['due_date'])) {
+			$contractDate = isset($data['contract_date']) ? new \DateTime($data['contract_date']) : new \DateTime();
+			$data['due_date'] = $contractDate->modify('+3 months')->format('Y-m-d');
+		}
 
-		// Generate transaction ID if not provided
-		$data['transaction_id'] = $data['transaction_id'] ?? 'TXN-' . time() . '-' . rand( 1000, 9999 );
-
-		// Get user name from user record if not provided
-		$user = User::findOrFail( $data['user_id'] );
-		$data['name'] = $data['name'] ?? $user->name;
-		$data['surname'] = $data['surname'] ?? '';
-
-		$payment = Payment::create( $data );
+		$payment = SemesterPayment::create( $data );
 
 		return response()->json( $payment->load( 'user' ), 201 );
 	}
@@ -68,7 +69,7 @@ class PaymentService {
 	 * Get payment details
 	 */
 	public function getPaymentDetails( $id ) {
-		$payment = Payment::with( [ 'user' ] )->findOrFail( $id );
+		$payment = SemesterPayment::with( [ 'user' ] )->findOrFail( $id );
 		return response()->json( $payment );
 	}
 
@@ -76,7 +77,7 @@ class PaymentService {
 	 * Update payment
 	 */
 	public function updatePayment( $id, array $data ) {
-		$payment = Payment::findOrFail( $id );
+		$payment = SemesterPayment::findOrFail( $id );
 
 		// Handle receipt file upload
 		if ( isset( $data['receipt_file'] ) ) {
@@ -96,7 +97,7 @@ class PaymentService {
 	 * Delete payment
 	 */
 	public function deletePayment( $id ) {
-		$payment = Payment::findOrFail( $id );
+		$payment = SemesterPayment::findOrFail( $id );
 
 		// Delete associated receipt file
 		if ( $payment->receipt_file ) {
@@ -110,7 +111,7 @@ class PaymentService {
 	 * Export payments to CSV
 	 */
 	public function exportPayments( array $filters = [] ) {
-		$query = Payment::with( [ 'user' ] );
+		$query = SemesterPayment::with( [ 'user' ] );
 
 		// Apply same filters as getPaymentsWithFilters
 		if ( isset( $filters['user_id'] ) ) {

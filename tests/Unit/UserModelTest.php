@@ -113,7 +113,9 @@ class UserModelTest extends TestCase {
 		$user = new User();
 		$expectedFillable = [ 
 			'iin', 'name', 'first_name', 'last_name', 'date_of_birth', 'gender', 'email', 'phone',
-			'phone_numbers', 'room_id', 'password', 'city_id', 'files', 'status', 'card_number', 'role_id'
+			'phone_numbers', 'room_id', 'password', 'city_id', 'files', 'status', 'card_number', 'role_id',
+			'blood_type', 'emergency_contact', 'emergency_phone', 'course', 'year_of_study', 'faculty',
+			'specialty', 'enrollment_year', 'graduation_year', 'student_id', 'dormitory_id', 'has_meal_plan'
 		];
 
 		$this->assertEquals( $expectedFillable, $user->getFillable() );

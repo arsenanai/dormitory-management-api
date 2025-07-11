@@ -124,12 +124,14 @@ class UserController extends Controller {
 			// Student-specific fields
 			'student_id'        => 'nullable|string|max:20|unique:users,student_id',
 			'birth_date'        => 'nullable|date',
+			'date_of_birth'     => 'nullable|date',
 			'blood_type'        => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
 			'course'            => 'nullable|string|max:100',
 			'faculty'           => 'nullable|string|max:100',
 			'specialty'         => 'nullable|string|max:100',
 			'enrollment_year'   => 'nullable|integer|min:1900|max:' . date( 'Y' ),
 			'graduation_year'   => 'nullable|integer|min:1900|max:' . ( date( 'Y' ) + 10 ),
+			'year_of_study'     => 'nullable|integer|min:1|max:6',
 			'gender'            => 'nullable|in:male,female',
 			'emergency_contact' => 'nullable|string|max:100',
 			'emergency_phone'   => 'nullable|string|max:20',
@@ -138,6 +140,21 @@ class UserController extends Controller {
 
 		$validated = $request->validate( $rules );
 		$validated['password'] = Hash::make( $validated['password'] );
+
+		// Generate name from first_name and last_name
+		$validated['name'] = $validated['first_name'] . ' ' . $validated['last_name'];
+
+		// Handle phone numbers as array and also store in phone column
+		if (isset($validated['phone'])) {
+			$validated['phone_numbers'] = [$validated['phone']];
+			// Keep phone in the phone column as well
+		}
+
+		// Handle date_of_birth mapping to birth_date
+		if (isset($validated['date_of_birth'])) {
+			$validated['birth_date'] = $validated['date_of_birth'];
+			unset($validated['date_of_birth']);
+		}
 
 		if ( ! isset( $validated['status'] ) ) {
 			$validated['status'] = 'approved';
@@ -181,12 +198,14 @@ class UserController extends Controller {
 					Rule::unique( 'users' )->ignore( $user->id ),
 				],
 			'birth_date'        => 'nullable|date',
+			'date_of_birth'     => 'nullable|date',
 			'blood_type'        => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
 			'course'            => 'nullable|string|max:100',
 			'faculty'           => 'nullable|string|max:100',
 			'specialty'         => 'nullable|string|max:100',
 			'enrollment_year'   => 'nullable|integer|min:1900|max:' . date( 'Y' ),
 			'graduation_year'   => 'nullable|integer|min:1900|max:' . ( date( 'Y' ) + 10 ),
+			'year_of_study'     => 'nullable|integer|min:1|max:6',
 			'gender'            => 'nullable|in:male,female',
 			'emergency_contact' => 'nullable|string|max:100',
 			'emergency_phone'   => 'nullable|string|max:20',
@@ -197,6 +216,25 @@ class UserController extends Controller {
 
 		if ( isset( $validated['password'] ) ) {
 			$validated['password'] = Hash::make( $validated['password'] );
+		}
+
+		// Update name if first_name or last_name changed
+		if (isset($validated['first_name']) || isset($validated['last_name'])) {
+			$firstName = $validated['first_name'] ?? $user->first_name;
+			$lastName = $validated['last_name'] ?? $user->last_name;
+			$validated['name'] = $firstName . ' ' . $lastName;
+		}
+
+		// Handle phone numbers as array and also store in phone column
+		if (isset($validated['phone'])) {
+			$validated['phone_numbers'] = [$validated['phone']];
+			// Keep phone in the phone column as well
+		}
+
+		// Handle date_of_birth mapping to birth_date
+		if (isset($validated['date_of_birth'])) {
+			$validated['birth_date'] = $validated['date_of_birth'];
+			unset($validated['date_of_birth']);
 		}
 
 		$user->update( $validated );
@@ -218,7 +256,74 @@ class UserController extends Controller {
 	 */
 	public function profile( Request $request ) {
 		$user = $request->user()->load( [ 'role', 'dormitory', 'room' ] );
-		return response()->json( $user );
+		
+		// Return role-specific profile data
+		if ($user->hasRole('student')) {
+			// For students, return extended student profile information
+			return response()->json([
+				'id' => $user->id,
+				'name' => $user->name,
+				'first_name' => $user->first_name,
+				'last_name' => $user->last_name,
+				'email' => $user->email,
+				'phone' => $user->phone,
+				'phone_numbers' => $user->phone_numbers,
+				'role' => $user->role,
+				'room' => $user->room,
+				'dormitory' => $user->dormitory,
+				// Student-specific fields
+				'student_id' => $user->student_id,
+				'faculty' => $user->faculty,
+				'specialty' => $user->specialty,
+				'course' => $user->course,
+				'year_of_study' => $user->year_of_study,
+				'enrollment_year' => $user->enrollment_year,
+				'graduation_year' => $user->graduation_year,
+				'blood_type' => $user->blood_type,
+				'emergency_contact' => $user->emergency_contact,
+				'emergency_phone' => $user->emergency_phone,
+				'has_meal_plan' => $user->has_meal_plan,
+				'violations' => $user->violations,
+				'status' => $user->status,
+				'created_at' => $user->created_at,
+				'updated_at' => $user->updated_at,
+			]);
+		} elseif ($user->hasRole('guest')) {
+			// For guests, return guest-specific profile information
+			return response()->json([
+				'id' => $user->id,
+				'name' => $user->name,
+				'first_name' => $user->first_name,
+				'last_name' => $user->last_name,
+				'email' => $user->email,
+				'phone' => $user->phone,
+				'phone_numbers' => $user->phone_numbers,
+				'role' => $user->role,
+				'room' => $user->room,
+				// Guest-specific fields would go here
+				// Note: Currently using User model directly, but could extend for guest profile
+				'emergency_contact' => $user->emergency_contact,
+				'emergency_phone' => $user->emergency_phone,
+				'status' => $user->status,
+				'created_at' => $user->created_at,
+				'updated_at' => $user->updated_at,
+			]);
+		} else {
+			// For admin and other roles, return basic user information
+			return response()->json([
+				'id' => $user->id,
+				'name' => $user->name,
+				'first_name' => $user->first_name,
+				'last_name' => $user->last_name,
+				'email' => $user->email,
+				'phone' => $user->phone,
+				'role' => $user->role,
+				'dormitory' => $user->dormitory,
+				'status' => $user->status,
+				'created_at' => $user->created_at,
+				'updated_at' => $user->updated_at,
+			]);
+		}
 	}
 
 	/**
@@ -239,6 +344,19 @@ class UserController extends Controller {
 
 		// Users cannot update their own role or status
 		unset( $validated['role_id'], $validated['status'] );
+
+		// Update name if first_name or last_name changed
+		if (isset($validated['first_name']) || isset($validated['last_name'])) {
+			$firstName = $validated['first_name'] ?? $user->first_name;
+			$lastName = $validated['last_name'] ?? $user->last_name;
+			$validated['name'] = $firstName . ' ' . $lastName;
+		}
+
+		// Handle phone numbers as array and also store in phone column
+		if (isset($validated['phone'])) {
+			$validated['phone_numbers'] = [$validated['phone']];
+			// Keep phone in the phone column as well
+		}
 
 		$user->update( $validated );
 

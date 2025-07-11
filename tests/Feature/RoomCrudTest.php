@@ -74,6 +74,9 @@ class RoomCrudTest extends TestCase {
 
 	public function test_can_list_rooms() {
 		$token = $this->loginAsSudo();
+		
+		// Clear existing rooms to ensure clean test environment
+		Room::query()->delete();
 
 		Room::factory()->create( [ 'number' => 'A101' ] );
 		Room::factory()->create( [ 'number' => 'B202' ] );

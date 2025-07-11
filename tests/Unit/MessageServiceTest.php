@@ -195,7 +195,7 @@ class MessageServiceTest extends TestCase {
 
 		$this->messageService->deleteMessage( $message->id );
 
-		$this->assertDatabaseMissing( 'messages', [ 
+		$this->assertSoftDeleted( 'messages', [ 
 			'id' => $message->id,
 		] );
 	}

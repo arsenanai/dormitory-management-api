@@ -255,7 +255,7 @@ class MessageControllerTest extends TestCase {
 	}
 
 	public function test_admin_can_update_message() {
-		$message = Message::factory()->create( [ 
+		$message = Message::factory()->draft()->create( [ 
 			'sender_id'   => $this->admin->id,
 			'receiver_id' => $this->student->id,
 			'title'       => 'Original Title',
@@ -294,6 +294,7 @@ class MessageControllerTest extends TestCase {
 			'title'       => 'Message to Delete',
 			'content'     => 'This message will be deleted',
 			'type'        => 'general',
+			'status'      => 'draft', // Ensure it's a draft so it can be deleted
 		] );
 
 		$response = $this->actingAs( $this->admin )

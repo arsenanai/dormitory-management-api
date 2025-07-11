@@ -13,6 +13,8 @@ class RoomType extends Model {
 		'minimap',
 		'beds',
 		'photos',
+		'capacity',
+		'price',
 	];
 
 	protected $casts = [ 

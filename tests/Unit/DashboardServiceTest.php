@@ -132,7 +132,7 @@ class DashboardServiceTest extends TestCase {
 			'status'         => 'draft',
 		] );
 
-		$response = $this->dashboardService->getDashboardStats();
+		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );
@@ -235,14 +235,14 @@ class DashboardServiceTest extends TestCase {
 			'number'       => '201',
 		] );
 
-		$otherStudent = User::factory()->create( [ 
+		$otherStudent =		User::factory()->create( [ 
 			'role_id'       => $this->student->role_id,
 			'room_id'       => $otherRoom->id,
 			'status'        => 'active',
 			'has_meal_plan' => false,
 		] );
 
-		$response = $this->dashboardService->getDashboardStats();
+		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );
@@ -262,7 +262,7 @@ class DashboardServiceTest extends TestCase {
 		Bed::truncate();
 		Room::truncate();
 
-		$response = $this->dashboardService->getDashboardStats();
+		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );
@@ -300,7 +300,7 @@ class DashboardServiceTest extends TestCase {
 		   'created_at'       => now()->subMonth(),
 	   ] );
 
-		$response = $this->dashboardService->getDashboardStats();
+		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );
@@ -333,7 +333,7 @@ class DashboardServiceTest extends TestCase {
 			'created_at'     => now()->subDays( 10 ),
 		] );
 
-		$response = $this->dashboardService->getDashboardStats();
+		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );
@@ -359,7 +359,7 @@ class DashboardServiceTest extends TestCase {
 			'user_id'    => null,
 		] );
 
-		$response = $this->dashboardService->getDashboardStats();
+		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );

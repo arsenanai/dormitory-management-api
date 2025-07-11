@@ -15,10 +15,12 @@ class Bed extends Model {
 		'status',
 		'user_id',
 		'room_id',
+		'is_occupied',
 	];
 
 	protected $casts = [ 
 		'status' => 'string',
+		'is_occupied' => 'boolean',
 	];
 
 	/**

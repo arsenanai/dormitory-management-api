@@ -21,7 +21,8 @@ class RoomTypeService {
 	public function updateRoomType( RoomType $roomType, array $data ) {
 		// Handle photo cleanup if new photos are provided
 		if ( isset( $data['photos'] ) && $roomType->photos ) {
-			$this->deletePhotos( $roomType->photos );
+			$photos = is_string($roomType->photos) ? json_decode($roomType->photos, true) : $roomType->photos;
+			$this->deletePhotos( $photos ?? [] );
 		}
 
 		$roomType->update( $data );
@@ -37,7 +38,8 @@ class RoomTypeService {
 		}
 
 		if ( $roomType->photos ) {
-			$this->deletePhotos( $roomType->photos );
+			$photos = is_string($roomType->photos) ? json_decode($roomType->photos, true) : $roomType->photos;
+			$this->deletePhotos( $photos ?? [] );
 		}
 
 		$roomType->delete();

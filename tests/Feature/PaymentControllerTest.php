@@ -74,6 +74,12 @@ class PaymentControllerTest extends TestCase {
 			'amount' => 50000,
 			'payment_approved' => true,
 			'payment_status' => 'approved',
+			'contract_number' => 'CONTRACT-2024-001',
+			'contract_date' => '2024-08-15',
+			'payment_date' => '2024-09-01',
+			'payment_method' => 'bank_transfer',
+			'year' => 2025,
+			'semester_type' => 'fall',
 		];
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
@@ -81,7 +87,7 @@ class PaymentControllerTest extends TestCase {
 
 		$response->assertStatus( 201 )
 			->assertJsonFragment( [ 
-				'amount'          => 50000,
+				'amount'          => '50000.00',
 				'contract_number' => 'CONTRACT-2024-001',
 				'status'          => 'completed'
 			] );
@@ -116,7 +122,7 @@ class PaymentControllerTest extends TestCase {
 
 		$response->assertStatus( 200 )
 			->assertJsonFragment( [ 
-				'amount' => 60000,
+				'amount' => '60000.00',
 				'payment_status' => 'approved',
 				'payment_approved' => true,
 			] );
@@ -173,12 +179,33 @@ class PaymentControllerTest extends TestCase {
 
 	/** @test */
 	public function admin_can_export_payments() {
-		SemesterPayment::factory()->count( 3 )->create( [ 
+		// Create payments for different semesters to avoid unique constraint violation
+		SemesterPayment::factory()->create( [ 
 			'user_id' => $this->student->id,
 			'semester' => '2025-fall',
 			'year' => 2025,
 			'semester_type' => 'fall',
 			'amount' => 50000,
+			'payment_approved' => true,
+			'payment_status' => 'approved',
+		] );
+		
+		SemesterPayment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'semester' => '2025-spring',
+			'year' => 2025,
+			'semester_type' => 'spring',
+			'amount' => 45000,
+			'payment_approved' => true,
+			'payment_status' => 'approved',
+		] );
+		
+		SemesterPayment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'semester' => '2024-fall',
+			'year' => 2024,
+			'semester_type' => 'fall',
+			'amount' => 48000,
 			'payment_approved' => true,
 			'payment_status' => 'approved',
 		] );
