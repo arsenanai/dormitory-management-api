@@ -14,6 +14,8 @@ use App\Http\Controllers\UserController;
 // Public routes
 Route::post( '/login', [ UserController::class, 'login' ] );
 Route::post( '/register', [ UserController::class, 'register' ] );
+Route::post( '/password/reset-link', [ UserController::class, 'sendPasswordResetLink' ] );
+Route::post( '/password/reset', [ UserController::class, 'resetPassword' ] );
 
 // Protected routes
 Route::middleware( [ 'auth:sanctum' ] )->group( function () {
@@ -82,6 +84,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	Route::get( '/users/profile', [ UserController::class, 'profile' ] );
 	Route::put( '/users/profile', [ UserController::class, 'updateProfile' ] );
 	Route::put( '/users/change-password', [ UserController::class, 'changePassword' ] );
+	Route::post( '/logout', [ UserController::class, 'logout' ] );
 
 	// Admin and sudo routes
 	Route::middleware( [ 'role:admin,sudo' ] )->group( function () {

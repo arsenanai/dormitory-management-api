@@ -255,11 +255,12 @@ class UserController extends Controller {
 	 * Get current user profile
 	 */
 	public function profile( Request $request ) {
-		$user = $request->user()->load( [ 'role', 'dormitory', 'room' ] );
+		$user = $request->user()->load( [ 'role', 'dormitory', 'room', 'studentProfile', 'guestProfile' ] );
 		
 		// Return role-specific profile data
 		if ($user->hasRole('student')) {
 			// For students, return extended student profile information
+			$studentProfile = $user->studentProfile;
 			return response()->json([
 				'id' => $user->id,
 				'name' => $user->name,
@@ -271,17 +272,18 @@ class UserController extends Controller {
 				'role' => $user->role,
 				'room' => $user->room,
 				'dormitory' => $user->dormitory,
-				// Student-specific fields
-				'student_id' => $user->student_id,
-				'faculty' => $user->faculty,
-				'specialty' => $user->specialty,
-				'course' => $user->course,
-				'year_of_study' => $user->year_of_study,
-				'enrollment_year' => $user->enrollment_year,
-				'graduation_year' => $user->graduation_year,
-				'blood_type' => $user->blood_type,
-				'emergency_contact' => $user->emergency_contact,
-				'emergency_phone' => $user->emergency_phone,
+				'dormitory_id' => $user->dormitory_id,
+				// Student-specific fields from StudentProfile
+				'student_id' => $studentProfile?->student_id,
+				'faculty' => $studentProfile?->faculty,
+				'specialty' => $studentProfile?->specialist, // Note: field name difference
+				'course' => $studentProfile?->course,
+				'year_of_study' => $studentProfile?->year_of_study,
+				'enrollment_year' => $studentProfile?->enrollment_year,
+				'graduation_year' => $user->graduation_year, // This might be on User model
+				'blood_type' => $studentProfile?->blood_type,
+				'emergency_contact' => $studentProfile?->emergency_contact_name,
+				'emergency_phone' => $studentProfile?->emergency_contact_phone,
 				'has_meal_plan' => $user->has_meal_plan,
 				'violations' => $user->violations,
 				'status' => $user->status,
@@ -290,6 +292,7 @@ class UserController extends Controller {
 			]);
 		} elseif ($user->hasRole('guest')) {
 			// For guests, return guest-specific profile information
+			$guestProfile = $user->guestProfile;
 			return response()->json([
 				'id' => $user->id,
 				'name' => $user->name,
@@ -300,10 +303,9 @@ class UserController extends Controller {
 				'phone_numbers' => $user->phone_numbers,
 				'role' => $user->role,
 				'room' => $user->room,
-				// Guest-specific fields would go here
-				// Note: Currently using User model directly, but could extend for guest profile
-				'emergency_contact' => $user->emergency_contact,
-				'emergency_phone' => $user->emergency_phone,
+				// Guest-specific fields from GuestProfile
+				'emergency_contact' => $guestProfile?->emergency_contact_name,
+				'emergency_phone' => $guestProfile?->emergency_contact_phone,
 				'status' => $user->status,
 				'created_at' => $user->created_at,
 				'updated_at' => $user->updated_at,
@@ -319,6 +321,7 @@ class UserController extends Controller {
 				'phone' => $user->phone,
 				'role' => $user->role,
 				'dormitory' => $user->dormitory,
+				'dormitory_id' => $user->dormitory_id,
 				'status' => $user->status,
 				'created_at' => $user->created_at,
 				'updated_at' => $user->updated_at,
@@ -335,7 +338,9 @@ class UserController extends Controller {
 		$rules = [ 
 			'first_name'        => 'sometimes|string|max:255',
 			'last_name'         => 'sometimes|string|max:255',
+			'email'             => 'sometimes|email|max:255|unique:users,email,' . $user->id,
 			'phone'             => 'nullable|string|max:20',
+			'dormitory_id'      => 'nullable|exists:dormitories,id',
 			'emergency_contact' => 'nullable|string|max:100',
 			'emergency_phone'   => 'nullable|string|max:20',
 		];
@@ -386,5 +391,102 @@ class UserController extends Controller {
 		] );
 
 		return response()->json( [ 'message' => 'Password updated successfully' ] );
+	}
+
+	/**
+	 * Logout user (revoke current token)
+	 */
+	public function logout( Request $request ) {
+		$request->user()->currentAccessToken()->delete();
+
+		return response()->json( [ 'message' => 'Logged out successfully' ] );
+	}
+
+	/**
+	 * Send password reset link to user's email
+	 */
+	public function sendPasswordResetLink( Request $request ) {
+		$request->validate([
+			'email' => 'required|email'
+		]);
+
+		$user = User::where('email', $request->email)->first();
+		
+		if (!$user) {
+			// Don't reveal if email exists or not for security
+			return response()->json([
+				'message' => 'If this email exists in our system, you will receive a password reset link.'
+			]);
+		}
+
+		// Generate a password reset token
+		$token = \Str::random(64);
+		
+		// Store in password_resets table (create migration if needed)
+		\DB::table('password_resets')->updateOrInsert(
+			['email' => $user->email],
+			[
+				'email' => $user->email,
+				'token' => Hash::make($token),
+				'created_at' => now()
+			]
+		);
+
+		// In a real app, send email here
+		// For now, we'll just return success
+		// Mail::to($user->email)->send(new PasswordResetMail($token));
+		
+		return response()->json([
+			'message' => 'If this email exists in our system, you will receive a password reset link.',
+			'debug_token' => $token // Remove this in production
+		]);
+	}
+
+	/**
+	 * Reset password using token
+	 */
+	public function resetPassword( Request $request ) {
+		$request->validate([
+			'email' => 'required|email',
+			'token' => 'required|string',
+			'password' => 'required|string|min:6|confirmed'
+		]);
+
+		$passwordReset = \DB::table('password_resets')
+			->where('email', $request->email)
+			->first();
+
+		if (!$passwordReset || !Hash::check($request->token, $passwordReset->token)) {
+			return response()->json([
+				'message' => 'Invalid or expired password reset token.'
+			], 422);
+		}
+
+		// Check if token is not older than 60 minutes
+		if (now()->diffInMinutes($passwordReset->created_at) > 60) {
+			return response()->json([
+				'message' => 'Password reset token has expired.'
+			], 422);
+		}
+
+		$user = User::where('email', $request->email)->first();
+		
+		if (!$user) {
+			return response()->json([
+				'message' => 'User not found.'
+			], 404);
+		}
+
+		// Update password
+		$user->update([
+			'password' => Hash::make($request->password)
+		]);
+
+		// Delete the used token
+		\DB::table('password_resets')->where('email', $request->email)->delete();
+
+		return response()->json([
+			'message' => 'Password has been reset successfully.'
+		]);
 	}
 }
