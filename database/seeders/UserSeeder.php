@@ -12,9 +12,8 @@ class UserSeeder extends Seeder {
 	 * Run the database seeds.
 	 */
 	public function run(): void {
-		$role = Role::firstOrCreate( [ 
-			'name' => 'sudo'
-		] );
+		$role = Role::firstOrCreate( [ 'name' => 'sudo' ] );
+		$studentRole = Role::firstOrCreate( [ 'name' => 'student' ] );
 		User::create( [ 
 			'name'          => env( 'ADMIN_NAME', 'Admin' ),
 			'first_name'    => env( 'ADMIN_FIRST_NAME', 'Admin' ),
@@ -26,5 +25,16 @@ class UserSeeder extends Seeder {
 			'status'        => 'active',
 			'role_id'       => $role->id,
 		] );
+		User::create([
+			'name' => 'Alice Student',
+			'first_name' => 'Alice',
+			'last_name' => 'Student',
+			'email' => 'alice@student.local',
+			'phone_numbers' => json_encode(['+77001234568']),
+			'room_id' => null,
+			'password' => bcrypt('password'),
+			'status' => 'active',
+			'role_id' => $studentRole->id,
+		]);
 	}
 }

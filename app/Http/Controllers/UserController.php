@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Role;
@@ -8,28 +9,43 @@ use App\Services\UserAuthService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Response;
 
 class UserController extends Controller {
 	protected $authService;
 
-	private array $registerRules = [ 
-		'iin'                      => 'required|digits:12|unique:users,iin',
-		'name'                     => 'required|string|max:255',
-		'faculty'                  => 'required|string|max:255',
-		'specialist'               => 'required|string|max:255',
-		'enrollment_year'          => 'required|integer|digits:4',
-		'gender'                   => 'required|in:male,female',
-		'email'                    => 'required|email|max:255|unique:users,email',
-		'phone_numbers'            => 'nullable|array',
-		'phone_numbers.*'          => 'string',
-		'room_id'                  => 'nullable|exists:rooms,id',
-		'password'                 => 'required|string|min:6|confirmed',
-		'deal_number'              => 'nullable|string|max:255',
-		'city_id'                  => 'nullable|integer|exists:cities,id',
-		'files'                    => 'nullable|array|max:4',
-		'files.*'                  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-		'agree_to_dormitory_rules' => 'required|accepted',
-	];
+   private array $studentRegisterRules = [ 
+	   'iin'                      => 'required|digits:12|unique:users,iin',
+	   'name'                     => 'required|string|max:255',
+	   'faculty'                  => 'required|string|max:255',
+	   'specialist'               => 'required|string|max:255',
+	   'enrollment_year'          => 'required|integer|digits:4',
+	   'gender'                   => 'required|in:male,female',
+	   'email'                    => 'required|email|max:255|unique:users,email',
+	   'phone_numbers'            => 'nullable|array',
+	   'phone_numbers.*'          => 'string',
+	   'room_id'                  => 'nullable|exists:rooms,id',
+	   'password'                 => 'required|string|min:6|confirmed',
+	   'deal_number'              => 'nullable|string|max:255',
+	   'city_id'                  => 'nullable|integer|exists:cities,id',
+	   'files'                    => 'nullable|array|max:4',
+	   'files.*'                  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+	   'agree_to_dormitory_rules' => 'required|accepted',
+   ];
+
+   private array $adminRegisterRules = [
+	   'name'     => 'required|string|max:255',
+	   'email'    => 'required|email|max:255|unique:users,email',
+	   'password' => 'required|string|min:6|confirmed',
+   ];
+
+   private array $guestRegisterRules = [
+	   'name'     => 'required|string|max:255',
+	   'room_type'=> 'required|string',
+	   'files'    => 'nullable|array|max:4',
+	   'files.*'  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+	   'email'    => 'nullable|email|max:255|unique:users,email',
+   ];
 
 	public function __construct( UserAuthService $authService ) {
 		$this->authService = $authService;
@@ -59,26 +75,42 @@ class UserController extends Controller {
 		] );
 	}
 
-	public function register( Request $request ) {
-		$validated = $request->validate( $this->registerRules );
+   public function register( Request $request ) {
+	   $userType = $request->input('user_type', 'student');
+	   if ($userType === 'admin') {
+		   $rules = $this->adminRegisterRules;
+	   } elseif ($userType === 'guest') {
+		   $rules = $this->guestRegisterRules;
+	   } else {
+		   $rules = $this->studentRegisterRules;
+	   }
 
-		// Handle file uploads
-		$filePaths = [];
-		if ( $request->hasFile( 'files' ) ) {
-			foreach ( $request->file( 'files' ) as $file ) {
-				$filePaths[] = $file->store( 'user_files', 'public' );
-			}
-			$validated['files'] = $filePaths;
-		}
+	   $validated = $request->validate($rules);
 
-		$validated['password'] = bcrypt( $validated['password'] );
-		$validated['status'] = 'pending';
-		$validated['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 3;
+	   // Handle file uploads
+	   $filePaths = [];
+	   if ($request->hasFile('files')) {
+		   foreach ($request->file('files') as $file) {
+			   $filePaths[] = $file->store('user_files', 'public');
+		   }
+		   $validated['files'] = $filePaths;
+	   }
 
-		$user = User::create( $validated );
+	   $validated['password'] = Hash::make($validated['password']);
+	   $validated['status'] = 'pending';
 
-		return response()->json( $user, 201 );
-	}
+	   if ($userType === 'admin') {
+		   $validated['role_id'] = Role::where('name', 'admin')->first()->id ?? 1;
+	   } elseif ($userType === 'guest') {
+		   $validated['role_id'] = Role::where('name', 'guest')->first()->id ?? 4;
+	   } else {
+		   $validated['role_id'] = Role::where('name', 'student')->first()->id ?? 3;
+	   }
+
+	   $user = User::create($validated);
+
+	   return response()->json($user, 201);
+   }
 
 	/**
 	 * Display a listing of users (admin only)
