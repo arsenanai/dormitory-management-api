@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PasswordResetMail;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class UserController extends Controller {
 	protected $authService;
@@ -464,9 +468,8 @@ class UserController extends Controller {
 			]
 		);
 
-		// In a real app, send email here
-		// For now, we'll just return success
-		// Mail::to($user->email)->send(new PasswordResetMail($token));
+	   // Send password reset email
+	   \Mail::to($user->email)->send(new \App\Mail\PasswordResetMail($token, $user->email));
 		
 		return response()->json([
 			'message' => 'If this email exists in our system, you will receive a password reset link.',
