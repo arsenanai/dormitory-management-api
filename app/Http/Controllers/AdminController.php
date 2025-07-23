@@ -5,18 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Services\AdminService;
 use Illuminate\Http\Request;
+use function response;
 
-class AdminController extends Controller
-{
+class AdminController extends Controller {
 	private int $adminRoleId;
 	private array $rules;
 
 	// admin not need student-related fields, but we set defaults for consistency
 	private array $defaults = [ 
-		'iin'             => 'N/A',
+		'iin'             => null,
 		'faculty'         => 'N/A',
 		'specialist'      => 'N/A',
-		'enrollment_year' => 'N/A',
+		'enrollment_year' => null,
 	];
 
 	public function __construct( private AdminService $service ) {
@@ -25,7 +25,6 @@ class AdminController extends Controller
 			'name'     => 'required|string|max:255',
 			'email'    => 'required|email|max:255|unique:users,email',
 			'password' => 'required|string|min:6',
-			'role_id'  => 'required|integer|in:' . $this->adminRoleId,
 			'gender'   => 'required|string|in:male,female',
 		];
 	}
@@ -40,6 +39,7 @@ class AdminController extends Controller
 
 		// Set default values for student-related fields if not provided
 		$data = array_merge( $this->defaults, $validated );
+		$data['role_id'] = $this->adminRoleId; // always set admin role internally
 
 		$admin = $this->service->createAdmin( $data );
 		return response()->json( $admin, 201 );

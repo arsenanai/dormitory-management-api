@@ -18,38 +18,38 @@ use Carbon\Carbon;
 class UserController extends Controller {
 	protected $authService;
 
-   private array $studentRegisterRules = [ 
-	   'iin'                      => 'required|digits:12|unique:users,iin',
-	   'name'                     => 'required|string|max:255',
-	   'faculty'                  => 'required|string|max:255',
-	   'specialist'               => 'required|string|max:255',
-	   'enrollment_year'          => 'required|integer|digits:4',
-	   'gender'                   => 'required|in:male,female',
-	   'email'                    => 'required|email|max:255|unique:users,email',
-	   'phone_numbers'            => 'nullable|array',
-	   'phone_numbers.*'          => 'string',
-	   'room_id'                  => 'nullable|exists:rooms,id',
-	   'password'                 => 'required|string|min:6|confirmed',
-	   'deal_number'              => 'nullable|string|max:255',
-	   'city_id'                  => 'nullable|integer|exists:cities,id',
-	   'files'                    => 'nullable|array|max:4',
-	   'files.*'                  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-	   'agree_to_dormitory_rules' => 'required|accepted',
-   ];
+	private array $studentRegisterRules = [ 
+		'iin'                      => 'required|digits:12|unique:users,iin',
+		'name'                     => 'required|string|max:255',
+		'faculty'                  => 'required|string|max:255',
+		'specialist'               => 'required|string|max:255',
+		'enrollment_year'          => 'required|integer|digits:4',
+		'gender'                   => 'required|in:male,female',
+		'email'                    => 'required|email|max:255|unique:users,email',
+		'phone_numbers'            => 'nullable|array',
+		'phone_numbers.*'          => 'string',
+		'room_id'                  => 'nullable|exists:rooms,id',
+		'password'                 => 'required|string|min:6|confirmed',
+		'deal_number'              => 'nullable|string|max:255',
+		'city_id'                  => 'nullable|integer|exists:cities,id',
+		'files'                    => 'nullable|array|max:4',
+		'files.*'                  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+		'agree_to_dormitory_rules' => 'required|accepted',
+	];
 
-   private array $adminRegisterRules = [
-	   'name'     => 'required|string|max:255',
-	   'email'    => 'required|email|max:255|unique:users,email',
-	   'password' => 'required|string|min:6|confirmed',
-   ];
+	private array $adminRegisterRules = [ 
+		'name'     => 'required|string|max:255',
+		'email'    => 'required|email|max:255|unique:users,email',
+		'password' => 'required|string|min:6|confirmed',
+	];
 
-   private array $guestRegisterRules = [
-	   'name'     => 'required|string|max:255',
-	   'room_type'=> 'required|string',
-	   'files'    => 'nullable|array|max:4',
-	   'files.*'  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-	   'email'    => 'nullable|email|max:255|unique:users,email',
-   ];
+	private array $guestRegisterRules = [ 
+		'name'      => 'required|string|max:255',
+		'room_type' => 'required|string',
+		'files'     => 'nullable|array|max:4',
+		'files.*'   => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+		'email'     => 'nullable|email|max:255|unique:users,email',
+	];
 
 	public function __construct( UserAuthService $authService ) {
 		$this->authService = $authService;
@@ -79,42 +79,42 @@ class UserController extends Controller {
 		] );
 	}
 
-   public function register( Request $request ) {
-	   $userType = $request->input('user_type', 'student');
-	   if ($userType === 'admin') {
-		   $rules = $this->adminRegisterRules;
-	   } elseif ($userType === 'guest') {
-		   $rules = $this->guestRegisterRules;
-	   } else {
-		   $rules = $this->studentRegisterRules;
-	   }
+	public function register( Request $request ) {
+		$userType = $request->input( 'user_type', 'student' );
+		if ( $userType === 'admin' ) {
+			$rules = $this->adminRegisterRules;
+		} elseif ( $userType === 'guest' ) {
+			$rules = $this->guestRegisterRules;
+		} else {
+			$rules = $this->studentRegisterRules;
+		}
 
-	   $validated = $request->validate($rules);
+		$validated = $request->validate( $rules );
 
-	   // Handle file uploads
-	   $filePaths = [];
-	   if ($request->hasFile('files')) {
-		   foreach ($request->file('files') as $file) {
-			   $filePaths[] = $file->store('user_files', 'public');
-		   }
-		   $validated['files'] = $filePaths;
-	   }
+		// Handle file uploads
+		$filePaths = [];
+		if ( $request->hasFile( 'files' ) ) {
+			foreach ( $request->file( 'files' ) as $file ) {
+				$filePaths[] = $file->store( 'user_files', 'public' );
+			}
+			$validated['files'] = $filePaths;
+		}
 
-	   $validated['password'] = Hash::make($validated['password']);
-	   $validated['status'] = 'pending';
+		$validated['password'] = Hash::make( $validated['password'] );
+		$validated['status'] = 'pending';
 
-	   if ($userType === 'admin') {
-		   $validated['role_id'] = Role::where('name', 'admin')->first()->id ?? 1;
-	   } elseif ($userType === 'guest') {
-		   $validated['role_id'] = Role::where('name', 'guest')->first()->id ?? 4;
-	   } else {
-		   $validated['role_id'] = Role::where('name', 'student')->first()->id ?? 3;
-	   }
+		if ( $userType === 'admin' ) {
+			$validated['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 1;
+		} elseif ( $userType === 'guest' ) {
+			$validated['role_id'] = Role::where( 'name', 'guest' )->first()->id ?? 4;
+		} else {
+			$validated['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 3;
+		}
 
-	   $user = User::create($validated);
+		$user = User::create( $validated );
 
-	   return response()->json($user, 201);
-   }
+		return response()->json( $user, 201 );
+	}
 
 	/**
 	 * Display a listing of users (admin only)
@@ -180,16 +180,26 @@ class UserController extends Controller {
 		// Generate name from first_name and last_name
 		$validated['name'] = $validated['first_name'] . ' ' . $validated['last_name'];
 
+		// Always set admin role_id if user_type is admin
+		if ( $request->input( 'user_type' ) === 'admin' ) {
+			$validated['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 1;
+		}
+
+		// Reject admin creation attempts here
+		if ( $request->input( 'user_type' ) === 'admin' ) {
+			return response()->json( [ 'message' => 'Admin creation is not allowed via this endpoint.' ], 403 );
+		}
+
 		// Handle phone numbers as array and also store in phone column
-		if (isset($validated['phone'])) {
-			$validated['phone_numbers'] = [$validated['phone']];
+		if ( isset( $validated['phone'] ) ) {
+			$validated['phone_numbers'] = [ $validated['phone'] ];
 			// Keep phone in the phone column as well
 		}
 
 		// Handle date_of_birth mapping to birth_date
-		if (isset($validated['date_of_birth'])) {
+		if ( isset( $validated['date_of_birth'] ) ) {
 			$validated['birth_date'] = $validated['date_of_birth'];
-			unset($validated['date_of_birth']);
+			unset( $validated['date_of_birth'] );
 		}
 
 		if ( ! isset( $validated['status'] ) ) {
@@ -228,11 +238,11 @@ class UserController extends Controller {
 
 			// Student-specific fields
 			'student_id'        => [ 
-					'nullable',
-					'string',
-					'max:20',
-					Rule::unique( 'users' )->ignore( $user->id ),
-				],
+				'nullable',
+				'string',
+				'max:20',
+				Rule::unique( 'users' )->ignore( $user->id ),
+			],
 			'birth_date'        => 'nullable|date',
 			'date_of_birth'     => 'nullable|date',
 			'blood_type'        => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
@@ -255,22 +265,22 @@ class UserController extends Controller {
 		}
 
 		// Update name if first_name or last_name changed
-		if (isset($validated['first_name']) || isset($validated['last_name'])) {
+		if ( isset( $validated['first_name'] ) || isset( $validated['last_name'] ) ) {
 			$firstName = $validated['first_name'] ?? $user->first_name;
 			$lastName = $validated['last_name'] ?? $user->last_name;
 			$validated['name'] = $firstName . ' ' . $lastName;
 		}
 
 		// Handle phone numbers as array and also store in phone column
-		if (isset($validated['phone'])) {
-			$validated['phone_numbers'] = [$validated['phone']];
+		if ( isset( $validated['phone'] ) ) {
+			$validated['phone_numbers'] = [ $validated['phone'] ];
 			// Keep phone in the phone column as well
 		}
 
 		// Handle date_of_birth mapping to birth_date
-		if (isset($validated['date_of_birth'])) {
+		if ( isset( $validated['date_of_birth'] ) ) {
 			$validated['birth_date'] = $validated['date_of_birth'];
-			unset($validated['date_of_birth']);
+			unset( $validated['date_of_birth'] );
 		}
 
 		$user->update( $validated );
@@ -292,76 +302,76 @@ class UserController extends Controller {
 	 */
 	public function profile( Request $request ) {
 		$user = $request->user()->load( [ 'role', 'dormitory', 'room', 'studentProfile', 'guestProfile' ] );
-		
+
 		// Return role-specific profile data
-		if ($user->hasRole('student')) {
+		if ( $user->hasRole( 'student' ) ) {
 			// For students, return extended student profile information
 			$studentProfile = $user->studentProfile;
-			return response()->json([
-				'id' => $user->id,
-				'name' => $user->name,
-				'first_name' => $user->first_name,
-				'last_name' => $user->last_name,
-				'email' => $user->email,
-				'phone' => $user->phone,
-				'phone_numbers' => $user->phone_numbers,
-				'role' => $user->role,
-				'room' => $user->room,
-				'dormitory' => $user->dormitory,
-				'dormitory_id' => $user->dormitory_id,
+			return response()->json( [ 
+				'id'                => $user->id,
+				'name'              => $user->name,
+				'first_name'        => $user->first_name,
+				'last_name'         => $user->last_name,
+				'email'             => $user->email,
+				'phone'             => $user->phone,
+				'phone_numbers'     => $user->phone_numbers,
+				'role'              => $user->role,
+				'room'              => $user->room,
+				'dormitory'         => $user->dormitory,
+				'dormitory_id'      => $user->dormitory_id,
 				// Student-specific fields from StudentProfile
-				'student_id' => $studentProfile?->student_id,
-				'faculty' => $studentProfile?->faculty,
-				'specialty' => $studentProfile?->specialist, // Note: field name difference
-				'course' => $studentProfile?->course,
-				'year_of_study' => $studentProfile?->year_of_study,
-				'enrollment_year' => $studentProfile?->enrollment_year,
-				'graduation_year' => $user->graduation_year, // This might be on User model
-				'blood_type' => $studentProfile?->blood_type,
+				'student_id'        => $studentProfile?->student_id,
+				'faculty'           => $studentProfile?->faculty,
+				'specialty'         => $studentProfile?->specialist, // Note: field name difference
+				'course'            => $studentProfile?->course,
+				'year_of_study'     => $studentProfile?->year_of_study,
+				'enrollment_year'   => $studentProfile?->enrollment_year,
+				'graduation_year'   => $user->graduation_year, // This might be on User model
+				'blood_type'        => $studentProfile?->blood_type,
 				'emergency_contact' => $studentProfile?->emergency_contact_name,
-				'emergency_phone' => $studentProfile?->emergency_contact_phone,
-				'has_meal_plan' => $user->has_meal_plan,
-				'violations' => $user->violations,
-				'status' => $user->status,
-				'created_at' => $user->created_at,
-				'updated_at' => $user->updated_at,
-			]);
-		} elseif ($user->hasRole('guest')) {
+				'emergency_phone'   => $studentProfile?->emergency_contact_phone,
+				'has_meal_plan'     => $user->has_meal_plan,
+				'violations'        => $user->violations,
+				'status'            => $user->status,
+				'created_at'        => $user->created_at,
+				'updated_at'        => $user->updated_at,
+			] );
+		} elseif ( $user->hasRole( 'guest' ) ) {
 			// For guests, return guest-specific profile information
 			$guestProfile = $user->guestProfile;
-			return response()->json([
-				'id' => $user->id,
-				'name' => $user->name,
-				'first_name' => $user->first_name,
-				'last_name' => $user->last_name,
-				'email' => $user->email,
-				'phone' => $user->phone,
-				'phone_numbers' => $user->phone_numbers,
-				'role' => $user->role,
-				'room' => $user->room,
+			return response()->json( [ 
+				'id'                => $user->id,
+				'name'              => $user->name,
+				'first_name'        => $user->first_name,
+				'last_name'         => $user->last_name,
+				'email'             => $user->email,
+				'phone'             => $user->phone,
+				'phone_numbers'     => $user->phone_numbers,
+				'role'              => $user->role,
+				'room'              => $user->room,
 				// Guest-specific fields from GuestProfile
 				'emergency_contact' => $guestProfile?->emergency_contact_name,
-				'emergency_phone' => $guestProfile?->emergency_contact_phone,
-				'status' => $user->status,
-				'created_at' => $user->created_at,
-				'updated_at' => $user->updated_at,
-			]);
+				'emergency_phone'   => $guestProfile?->emergency_contact_phone,
+				'status'            => $user->status,
+				'created_at'        => $user->created_at,
+				'updated_at'        => $user->updated_at,
+			] );
 		} else {
 			// For admin and other roles, return basic user information
-			return response()->json([
-				'id' => $user->id,
-				'name' => $user->name,
-				'first_name' => $user->first_name,
-				'last_name' => $user->last_name,
-				'email' => $user->email,
-				'phone' => $user->phone,
-				'role' => $user->role,
-				'dormitory' => $user->dormitory,
+			return response()->json( [ 
+				'id'           => $user->id,
+				'name'         => $user->name,
+				'first_name'   => $user->first_name,
+				'last_name'    => $user->last_name,
+				'email'        => $user->email,
+				'phone'        => $user->phone,
+				'role'         => $user->role,
+				'dormitory'    => $user->dormitory,
 				'dormitory_id' => $user->dormitory_id,
-				'status' => $user->status,
-				'created_at' => $user->created_at,
-				'updated_at' => $user->updated_at,
-			]);
+				'status'       => $user->status,
+				'created_at'   => $user->created_at,
+				'updated_at'   => $user->updated_at,
+			] );
 		}
 	}
 
@@ -387,15 +397,15 @@ class UserController extends Controller {
 		unset( $validated['role_id'], $validated['status'] );
 
 		// Update name if first_name or last_name changed
-		if (isset($validated['first_name']) || isset($validated['last_name'])) {
+		if ( isset( $validated['first_name'] ) || isset( $validated['last_name'] ) ) {
 			$firstName = $validated['first_name'] ?? $user->first_name;
 			$lastName = $validated['last_name'] ?? $user->last_name;
 			$validated['name'] = $firstName . ' ' . $lastName;
 		}
 
 		// Handle phone numbers as array and also store in phone column
-		if (isset($validated['phone'])) {
-			$validated['phone_numbers'] = [$validated['phone']];
+		if ( isset( $validated['phone'] ) ) {
+			$validated['phone_numbers'] = [ $validated['phone'] ];
 			// Keep phone in the phone column as well
 		}
 
@@ -442,86 +452,86 @@ class UserController extends Controller {
 	 * Send password reset link to user's email
 	 */
 	public function sendPasswordResetLink( Request $request ) {
-		$request->validate([
+		$request->validate( [ 
 			'email' => 'required|email'
-		]);
+		] );
 
-		$user = User::where('email', $request->email)->first();
-		
-		if (!$user) {
+		$user = User::where( 'email', $request->email )->first();
+
+		if ( ! $user ) {
 			// Don't reveal if email exists or not for security
-			return response()->json([
+			return response()->json( [ 
 				'message' => 'If this email exists in our system, you will receive a password reset link.'
-			]);
+			] );
 		}
 
 		// Generate a password reset token
-		$token = \Str::random(64);
-		
+		$token = \Str::random( 64 );
+
 		// Store in password_resets table (create migration if needed)
-		\DB::table('password_resets')->updateOrInsert(
-			['email' => $user->email],
-			[
-				'email' => $user->email,
-				'token' => Hash::make($token),
+		\DB::table( 'password_resets' )->updateOrInsert(
+			[ 'email' => $user->email ],
+			[ 
+				'email'      => $user->email,
+				'token'      => Hash::make( $token ),
 				'created_at' => now()
 			]
 		);
 
-	   // Send password reset email
-	   \Mail::to($user->email)->send(new \App\Mail\PasswordResetMail($token, $user->email));
-		
-		return response()->json([
-			'message' => 'If this email exists in our system, you will receive a password reset link.',
+		// Send password reset email
+		\Mail::to( $user->email )->send( new \App\Mail\PasswordResetMail( $token, $user->email ) );
+
+		return response()->json( [ 
+			'message'     => 'If this email exists in our system, you will receive a password reset link.',
 			'debug_token' => $token // Remove this in production
-		]);
+		] );
 	}
 
 	/**
 	 * Reset password using token
 	 */
 	public function resetPassword( Request $request ) {
-		$request->validate([
-			'email' => 'required|email',
-			'token' => 'required|string',
+		$request->validate( [ 
+			'email'    => 'required|email',
+			'token'    => 'required|string',
 			'password' => 'required|string|min:6|confirmed'
-		]);
+		] );
 
-		$passwordReset = \DB::table('password_resets')
-			->where('email', $request->email)
+		$passwordReset = \DB::table( 'password_resets' )
+			->where( 'email', $request->email )
 			->first();
 
-		if (!$passwordReset || !Hash::check($request->token, $passwordReset->token)) {
-			return response()->json([
+		if ( ! $passwordReset || ! Hash::check( $request->token, $passwordReset->token ) ) {
+			return response()->json( [ 
 				'message' => 'Invalid or expired password reset token.'
-			], 422);
+			], 422 );
 		}
 
 		// Check if token is not older than 60 minutes
-		if (now()->diffInMinutes($passwordReset->created_at) > 60) {
-			return response()->json([
+		if ( now()->diffInMinutes( $passwordReset->created_at ) > 60 ) {
+			return response()->json( [ 
 				'message' => 'Password reset token has expired.'
-			], 422);
+			], 422 );
 		}
 
-		$user = User::where('email', $request->email)->first();
-		
-		if (!$user) {
-			return response()->json([
+		$user = User::where( 'email', $request->email )->first();
+
+		if ( ! $user ) {
+			return response()->json( [ 
 				'message' => 'User not found.'
-			], 404);
+			], 404 );
 		}
 
 		// Update password
-		$user->update([
-			'password' => Hash::make($request->password)
-		]);
+		$user->update( [ 
+			'password' => Hash::make( $request->password )
+		] );
 
 		// Delete the used token
-		\DB::table('password_resets')->where('email', $request->email)->delete();
+		\DB::table( 'password_resets' )->where( 'email', $request->email )->delete();
 
-		return response()->json([
+		return response()->json( [ 
 			'message' => 'Password has been reset successfully.'
-		]);
+		] );
 	}
 }
