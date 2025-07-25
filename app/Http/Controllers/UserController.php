@@ -5,15 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Services\UserAuthService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use function response;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PasswordResetMail;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\Configuration;
+use App\Services\UserAuthService;
 
 class UserController extends Controller {
 	protected $authService;
@@ -100,20 +102,68 @@ class UserController extends Controller {
 			$validated['files'] = $filePaths;
 		}
 
-		$validated['password'] = Hash::make( $validated['password'] );
-		$validated['status'] = 'pending';
-
+		$userData = [ 
+			'name'          => $validated['name'],
+			'first_name'    => $validated['name'], // or split if needed
+			'last_name'     => '', // or split if needed
+			'email'         => $validated['email'],
+			'phone_numbers' => $validated['phone_numbers'] ?? [],
+			'room_id'       => $validated['room_id'] ?? null,
+			'password'      => Hash::make( $validated['password'] ),
+			'status'        => 'pending',
+			'role_id'       => null, // set below
+		];
 		if ( $userType === 'admin' ) {
-			$validated['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 1;
+			$userData['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 1;
 		} elseif ( $userType === 'guest' ) {
-			$validated['role_id'] = Role::where( 'name', 'guest' )->first()->id ?? 4;
+			$userData['role_id'] = Role::where( 'name', 'guest' )->first()->id ?? 4;
 		} else {
-			$validated['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 3;
+			$userData['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 3;
 		}
 
-		$user = User::create( $validated );
+		$user = User::create( $userData );
 
-		return response()->json( $user, 201 );
+		// Create profile and store role-specific fields
+		if ( $userType === 'student' ) {
+			$profileData = [ 
+				'user_id'                  => $user->id,
+				'iin'                      => $validated['iin'],
+				'faculty'                  => $validated['faculty'],
+				'specialist'               => $validated['specialist'],
+				'enrollment_year'          => $validated['enrollment_year'],
+				'gender'                   => $validated['gender'],
+				'deal_number'              => $validated['deal_number'] ?? null,
+				'city_id'                  => $validated['city_id'] ?? null,
+				'files'                    => $filePaths,
+				'agree_to_dormitory_rules' => $validated['agree_to_dormitory_rules'],
+			];
+			\App\Models\StudentProfile::create( $profileData );
+		} elseif ( $userType === 'guest' ) {
+			$profileData = [ 
+				'user_id'   => $user->id,
+				'room_type' => $validated['room_type'],
+				'files'     => $filePaths,
+			];
+			\App\Models\GuestProfile::create( $profileData );
+		} // AdminProfile can be handled similarly if needed
+
+		// Add a user-friendly message for the frontend, localized
+		if ( $userType === 'guest' ) {
+			return response()->json( [ 
+				'message' => __( 'auth.guest_registration_success' ),
+				'user'    => $user->load( 'guestProfile' )
+			], 201 );
+		} elseif ( $userType === 'student' ) {
+			return response()->json( [ 
+				'message' => __( 'auth.registration_success' ),
+				'user'    => $user->load( 'studentProfile' )
+			], 201 );
+		} else {
+			return response()->json( [ 
+				'message' => __( 'auth.registration_success' ),
+				'user'    => $user
+			], 201 );
+		}
 	}
 
 	/**
@@ -223,39 +273,45 @@ class UserController extends Controller {
 	 */
 	public function update( Request $request, User $user ) {
 		$rules = [ 
-			'first_name'        => 'sometimes|string|max:255',
-			'last_name'         => 'sometimes|string|max:255',
-			'email'             => [ 
+			'first_name'              => 'sometimes|string|max:255',
+			'last_name'               => 'sometimes|string|max:255',
+			'email'                   => [ 
 				'sometimes',
 				'email',
 				Rule::unique( 'users' )->ignore( $user->id ),
 			],
-			'password'          => 'sometimes|string|min:6',
-			'role_id'           => 'sometimes|exists:roles,id',
-			'phone'             => 'nullable|string|max:20',
-			'status'            => 'sometimes|in:pending,approved,rejected',
-			'dormitory_id'      => 'nullable|exists:dormitories,id',
-
+			'password'                => 'sometimes|string|min:6',
+			'role_id'                 => 'sometimes|exists:roles,id',
+			'phone'                   => 'nullable|string|max:20',
+			'status'                  => 'sometimes|in:pending,approved,rejected',
+			'dormitory_id'            => 'nullable|exists:dormitories,id',
 			// Student-specific fields
-			'student_id'        => [ 
+			'student_id'              => [ 
 				'nullable',
 				'string',
 				'max:20',
-				Rule::unique( 'users' )->ignore( $user->id ),
+				Rule::unique( 'student_profiles', 'student_id' )->ignore( optional( $user->studentProfile )->id ),
 			],
-			'birth_date'        => 'nullable|date',
-			'date_of_birth'     => 'nullable|date',
-			'blood_type'        => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-			'course'            => 'nullable|string|max:100',
-			'faculty'           => 'nullable|string|max:100',
-			'specialty'         => 'nullable|string|max:100',
-			'enrollment_year'   => 'nullable|integer|min:1900|max:' . date( 'Y' ),
-			'graduation_year'   => 'nullable|integer|min:1900|max:' . ( date( 'Y' ) + 10 ),
-			'year_of_study'     => 'nullable|integer|min:1|max:6',
-			'gender'            => 'nullable|in:male,female',
-			'emergency_contact' => 'nullable|string|max:100',
-			'emergency_phone'   => 'nullable|string|max:20',
-			'violations'        => 'nullable|string',
+			'faculty'                 => 'nullable|string|max:100',
+			'specialist'              => 'nullable|string|max:100',
+			'enrollment_year'         => 'nullable|integer|min:1900|max:' . date( 'Y' ),
+			'gender'                  => 'nullable|in:male,female',
+			'deal_number'             => 'nullable|string|max:255',
+			'city_id'                 => 'nullable|integer|exists:cities,id',
+			'files'                   => 'nullable|array|max:4',
+			'files.*'                 => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+			// Guest-specific fields
+			'purpose_of_visit'        => 'nullable|string|max:255',
+			'host_name'               => 'nullable|string|max:255',
+			'host_contact'            => 'nullable|string|max:255',
+			'visit_start_date'        => 'nullable|date',
+			'visit_end_date'          => 'nullable|date',
+			'identification_type'     => 'nullable|string|max:255',
+			'identification_number'   => 'nullable|string|max:255',
+			'emergency_contact_name'  => 'nullable|string|max:255',
+			'emergency_contact_phone' => 'nullable|string|max:255',
+			'is_approved'             => 'nullable|boolean',
+			'daily_rate'              => 'nullable|numeric',
 		];
 
 		$validated = $request->validate( $rules );
@@ -274,18 +330,24 @@ class UserController extends Controller {
 		// Handle phone numbers as array and also store in phone column
 		if ( isset( $validated['phone'] ) ) {
 			$validated['phone_numbers'] = [ $validated['phone'] ];
-			// Keep phone in the phone column as well
 		}
 
-		// Handle date_of_birth mapping to birth_date
-		if ( isset( $validated['date_of_birth'] ) ) {
-			$validated['birth_date'] = $validated['date_of_birth'];
-			unset( $validated['date_of_birth'] );
+		// Split user and profile fields
+		$userFields = [ 'first_name', 'last_name', 'name', 'email', 'password', 'role_id', 'phone_numbers', 'room_id', 'status', 'dormitory_id' ];
+		$profileFields = array_diff( array_keys( $validated ), $userFields );
+		$userData = array_intersect_key( $validated, array_flip( $userFields ) );
+		$profileData = array_intersect_key( $validated, array_flip( $profileFields ) );
+
+		$user->update( $userData );
+
+		// Update profile if student or guest
+		if ( $user->hasRole( 'student' ) && $user->studentProfile ) {
+			$user->studentProfile->update( $profileData );
+		} elseif ( $user->hasRole( 'guest' ) && $user->guestProfile ) {
+			$user->guestProfile->update( $profileData );
 		}
 
-		$user->update( $validated );
-
-		return response()->json( $user->load( [ 'role', 'dormitory' ] ) );
+		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ) );
 	}
 
 	/**
@@ -380,38 +442,59 @@ class UserController extends Controller {
 	 */
 	public function updateProfile( Request $request ) {
 		$user = $request->user();
-
 		$rules = [ 
-			'first_name'        => 'sometimes|string|max:255',
-			'last_name'         => 'sometimes|string|max:255',
-			'email'             => 'sometimes|email|max:255|unique:users,email,' . $user->id,
-			'phone'             => 'nullable|string|max:20',
-			'dormitory_id'      => 'nullable|exists:dormitories,id',
-			'emergency_contact' => 'nullable|string|max:100',
-			'emergency_phone'   => 'nullable|string|max:20',
+			'first_name'              => 'sometimes|string|max:255',
+			'last_name'               => 'sometimes|string|max:255',
+			'email'                   => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+			'phone'                   => 'nullable|string|max:20',
+			'dormitory_id'            => 'nullable|exists:dormitories,id',
+			// Student-specific fields
+			'faculty'                 => 'nullable|string|max:100',
+			'specialist'              => 'nullable|string|max:100',
+			'enrollment_year'         => 'nullable|integer|min:1900|max:' . date( 'Y' ),
+			'gender'                  => 'nullable|in:male,female',
+			'deal_number'             => 'nullable|string|max:255',
+			'city_id'                 => 'nullable|integer|exists:cities,id',
+			'files'                   => 'nullable|array|max:4',
+			'files.*'                 => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+			// Guest-specific fields
+			'purpose_of_visit'        => 'nullable|string|max:255',
+			'host_name'               => 'nullable|string|max:255',
+			'host_contact'            => 'nullable|string|max:255',
+			'visit_start_date'        => 'nullable|date',
+			'visit_end_date'          => 'nullable|date',
+			'identification_type'     => 'nullable|string|max:255',
+			'identification_number'   => 'nullable|string|max:255',
+			'emergency_contact_name'  => 'nullable|string|max:255',
+			'emergency_contact_phone' => 'nullable|string|max:255',
+			'is_approved'             => 'nullable|boolean',
+			'daily_rate'              => 'nullable|numeric',
 		];
-
 		$validated = $request->validate( $rules );
-
-		// Users cannot update their own role or status
 		unset( $validated['role_id'], $validated['status'] );
-
 		// Update name if first_name or last_name changed
 		if ( isset( $validated['first_name'] ) || isset( $validated['last_name'] ) ) {
 			$firstName = $validated['first_name'] ?? $user->first_name;
 			$lastName = $validated['last_name'] ?? $user->last_name;
 			$validated['name'] = $firstName . ' ' . $lastName;
 		}
-
 		// Handle phone numbers as array and also store in phone column
 		if ( isset( $validated['phone'] ) ) {
 			$validated['phone_numbers'] = [ $validated['phone'] ];
-			// Keep phone in the phone column as well
 		}
-
-		$user->update( $validated );
-
-		return response()->json( $user->load( [ 'role', 'dormitory' ] ) );
+		// Split user and profile fields
+		$userFields = [ 'first_name', 'last_name', 'name', 'email', 'phone_numbers', 'room_id', 'dormitory_id' ];
+		$profileFields = array_diff( array_keys( $validated ), $userFields );
+		$userData = array_intersect_key( $validated, array_flip( $userFields ) );
+		$profileData = array_intersect_key( $validated, array_flip( $profileFields ) );
+		$user->update( $userData );
+		// Update profile if student or guest
+		if ( $user->hasRole( 'student' ) && $user->studentProfile ) {
+			$user->studentProfile->update( $profileData );
+		} elseif ( $user->hasRole( 'guest' ) && $user->guestProfile ) {
+			$user->guestProfile->update( $profileData );
+		}
+		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ) );
 	}
 
 	/**
@@ -532,6 +615,20 @@ class UserController extends Controller {
 
 		return response()->json( [ 
 			'message' => 'Password has been reset successfully.'
+		] );
+	}
+
+	/**
+	 * API endpoint: GET /users/{id}/can-access-dormitory or /me/can-access-dormitory
+	 * Returns: { can_access: boolean, reason: string }
+	 */
+	public function canAccessDormitory( Request $request, $id = null ) {
+		$user = $id ? User::findOrFail( $id ) : $request->user();
+		$canAccess = $user->canAccessDormitory();
+		$reason = $canAccess ? 'Access granted' : 'Access denied: payment or dormitory approval missing';
+		return response()->json( [ 
+			'can_access' => $canAccess,
+			'reason'     => $reason,
 		] );
 	}
 }

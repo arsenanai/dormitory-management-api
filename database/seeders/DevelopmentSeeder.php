@@ -15,6 +15,7 @@ use App\Models\SemesterPayment;
 use App\Models\Message;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use App\Models\AdminProfile;
 
 class DevelopmentSeeder extends Seeder {
 	public function run(): void {
@@ -29,22 +30,54 @@ class DevelopmentSeeder extends Seeder {
 			'region_id' => $almaty_region->id
 		] );
 
-		// Create roles if they don't exist
-		$sudoRole = Role::firstOrCreate( [ 'name' => 'sudo' ] );
-		$adminRole = Role::firstOrCreate( [ 'name' => 'admin' ] );
-		$studentRole = Role::firstOrCreate( [ 'name' => 'student' ] );
+		// Create roles
+		$adminRole = \App\Models\Role::firstOrCreate( [ 'name' => 'admin' ] );
+		$sudoRole = \App\Models\Role::firstOrCreate( [ 'name' => 'sudo' ] );
+		$studentRole = \App\Models\Role::firstOrCreate( [ 'name' => 'student' ] );
+
+		// Create admin user
+		$admin = \App\Models\User::firstOrCreate( [ 
+			'email' => 'admin@email.com'
+		], [ 
+			'name'     => 'Test Admin',
+			'email'    => 'admin@email.com',
+			'password' => Hash::make( 'supersecret' ),
+			'role_id'  => $adminRole->id,
+			'status'   => 'active',
+		] );
 
 		// Create sudo user
-		$sudo = User::firstOrCreate(
-			[ 'email' => 'sudo@dormitory.local' ],
-			[ 
-				'name'     => 'Super Administrator',
-				'email'    => 'sudo@dormitory.local',
-				'password' => Hash::make( 'password' ),
-				'role_id'  => $sudoRole->id,
-				'status'   => 'active',
-			]
-		);
+		$sudo = \App\Models\User::firstOrCreate( [ 
+			'email' => 'sudo@email.com'
+		], [ 
+			'name'     => 'Test Sudo',
+			'email'    => 'sudo@email.com',
+			'password' => Hash::make( 'supersecret' ),
+			'role_id'  => $sudoRole->id,
+			'status'   => 'active',
+		] );
+
+		// Create a student user with has_meal_plan = true
+		$student = \App\Models\User::firstOrCreate( [ 
+			'email' => 'student@email.com'
+		], [ 
+			'name'     => 'Test Student',
+			'email'    => 'student@email.com',
+			'password' => Hash::make( 'studentpass' ),
+			'role_id'  => $studentRole->id,
+			'status'   => 'active',
+		] );
+		\App\Models\StudentProfile::firstOrCreate( [ 
+			'user_id' => $student->id
+		], [ 
+			'iin'                      => '123456789012',
+			'faculty'                  => 'Engineering',
+			'specialist'               => 'Software',
+			'enrollment_year'          => 2022,
+			'gender'                   => 'male',
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan'            => true
+		] );
 
 		// Create room types
 		$standardRoomType = RoomType::firstOrCreate(
@@ -92,6 +125,15 @@ class DevelopmentSeeder extends Seeder {
 				'status'   => 'active',
 			]
 		);
+		AdminProfile::firstOrCreate(
+			[ 'user_id' => $admin1->id ],
+			[ 
+				'position'        => 'Head of Dormitory',
+				'department'      => 'Administration',
+				'office_phone'    => '+77001234567',
+				'office_location' => 'Room 101',
+			]
+		);
 
 		$admin2 = User::firstOrCreate(
 			[ 'email' => 'admin2@dormitory.local' ],
@@ -101,6 +143,15 @@ class DevelopmentSeeder extends Seeder {
 				'password' => Hash::make( 'password' ),
 				'role_id'  => $adminRole->id,
 				'status'   => 'active',
+			]
+		);
+		AdminProfile::firstOrCreate(
+			[ 'user_id' => $admin2->id ],
+			[ 
+				'position'        => 'Deputy Head',
+				'department'      => 'Administration',
+				'office_phone'    => '+77001234568',
+				'office_location' => 'Room 102',
 			]
 		);
 
@@ -155,33 +206,33 @@ class DevelopmentSeeder extends Seeder {
 			$bed = $room->beds()->whereNull( 'user_id' )->first();
 			$student = User::firstOrCreate(
 				[ 'email' => $studentData['email'] ],
-				[
+				[ 
 					'name'          => $studentData['name'],
 					'email'         => $studentData['email'],
-					'password'      => Hash::make('password'),
+					'password'      => Hash::make( 'password' ),
 					'role_id'       => $studentRole->id,
 					'status'        => 'active',
 					'room_id'       => $room->id,
 					'first_name'    => $studentData['name'],
 					'last_name'     => 'Student',
-					'phone_numbers' => json_encode(['+77001234567']),
+					'phone_numbers' => json_encode( [ '+77001234567' ] ),
 				]
 			);
 			// Create StudentProfile for student-specific fields
 			\App\Models\StudentProfile::firstOrCreate(
-				[
+				[ 
 					'user_id'    => $student->id,
-					'student_id' => 'STU' . str_pad($student->id, 5, '0', STR_PAD_LEFT),
-					'iin'        => '1234567890' . str_pad($student->id, 2, '0', STR_PAD_LEFT),
+					'student_id' => 'STU' . str_pad( $student->id, 5, '0', STR_PAD_LEFT ),
+					'iin'        => '1234567890' . str_pad( $student->id, 2, '0', STR_PAD_LEFT ),
 				],
-				[
+				[ 
 					'gender'                         => $studentData['gender'] ?? 'male',
 					'faculty'                        => $studentData['faculty'] ?? 'Engineering',
 					'specialist'                     => $studentData['specialist'] ?? 'Software Engineering',
 					'course'                         => 1,
 					'year_of_study'                  => 1,
 					'enrollment_year'                => '2024',
-					'enrollment_date'                => now()->subYears(1),
+					'enrollment_date'                => now()->subYears( 1 ),
 					'blood_type'                     => 'O+',
 					'parent_name'                    => 'Parent ' . $studentData['name'],
 					'parent_phone'                   => '+77012345678',
@@ -198,13 +249,13 @@ class DevelopmentSeeder extends Seeder {
 					'program'                        => 'Computer Science',
 					'year_level'                     => 1,
 					'nationality'                    => 'Kazakh',
-					'deal_number'                    => 'DEAL' . str_pad($student->id, 5, '0', STR_PAD_LEFT),
+					'deal_number'                    => 'DEAL' . str_pad( $student->id, 5, '0', STR_PAD_LEFT ),
 					'agree_to_dormitory_rules'       => true,
 					'has_meal_plan'                  => true,
 					'registration_limit_reached'     => false,
 					'is_backup_list'                 => false,
-					'date_of_birth'                  => now()->subYears(18),
-					'files'                          => json_encode([]),
+					'date_of_birth'                  => now()->subYears( 18 ),
+					'files'                          => json_encode( [] ),
 					'city_id'                        => $almaty_city->id,
 				]
 			);
@@ -216,27 +267,27 @@ class DevelopmentSeeder extends Seeder {
 
 			// Create sample payments
 			SemesterPayment::firstOrCreate(
-				[
-					'user_id'        => $student->id,
-					'semester'       => '2025-fall',
+				[ 
+					'user_id'  => $student->id,
+					'semester' => '2025-fall',
 				],
-				[
-					'year'                     => 2025,
-					'semester_type'            => 'fall',
-					'amount'                   => 50000 + ($index * 5000),
-					'payment_approved'         => true,
-					'dormitory_access_approved'=> true,
-					'payment_approved_at'      => now()->subDays(10),
-					'dormitory_approved_at'    => now()->subDays(5),
-					'payment_approved_by'      => $admin1->id,
-					'dormitory_approved_by'    => $admin1->id,
-					'due_date'                 => now()->addDays(30),
-					'paid_date'                => now(),
-					'payment_notes'            => 'Paid in full',
-					'dormitory_notes'          => 'Access granted',
-					'payment_status'           => 'approved',
-					'dormitory_status'         => 'approved',
-					'receipt_file'             => null,
+				[ 
+					'year'                      => 2025,
+					'semester_type'             => 'fall',
+					'amount'                    => 50000 + ( $index * 5000 ),
+					'payment_approved'          => true,
+					'dormitory_access_approved' => true,
+					'payment_approved_at'       => now()->subDays( 10 ),
+					'dormitory_approved_at'     => now()->subDays( 5 ),
+					'payment_approved_by'       => $admin1->id,
+					'dormitory_approved_by'     => $admin1->id,
+					'due_date'                  => now()->addDays( 30 ),
+					'paid_date'                 => now(),
+					'payment_notes'             => 'Paid in full',
+					'dormitory_notes'           => 'Access granted',
+					'payment_status'            => 'approved',
+					'dormitory_status'          => 'approved',
+					'receipt_file'              => null,
 				]
 			);
 		}
@@ -259,6 +310,19 @@ class DevelopmentSeeder extends Seeder {
 			'dormitory_id'   => $dormitory1->id,
 			'status'         => 'sent',
 			'sent_at'        => now()->subDays( 2 ),
+		] );
+
+		// Create a default dormitory and room for foreign key references in tests
+		$dormitory = \App\Models\Dormitory::firstOrCreate( [ 
+			'name'     => 'Default Dormitory',
+			'capacity' => 100
+		] );
+		$room = \App\Models\Room::firstOrCreate( [ 
+			'number'       => 'A101',
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => 1,
+			'floor'        => 1,
+			'capacity'     => 4
 		] );
 
 		$this->command->info( 'Development data seeded successfully!' );

@@ -1,1 +1,4 @@
-{}
+{
+    "auth.registration_success": "Registration successful. Please wait for approval.",
+    "auth.guest_registration_success": "Guest registration successful. Please check your email for confirmation or further instructions."
+}

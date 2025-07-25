@@ -112,12 +112,8 @@ class UserModelTest extends TestCase {
 	public function test_user_fillable_fields_are_correct() {
 		$user = new User();
 		$expectedFillable = [ 
-			'iin', 'name', 'first_name', 'last_name', 'date_of_birth', 'gender', 'email', 'phone',
-			'phone_numbers', 'room_id', 'password', 'city_id', 'files', 'status', 'card_number', 'role_id',
-			'blood_type', 'emergency_contact', 'emergency_phone', 'course', 'year_of_study', 'faculty',
-			'specialty', 'enrollment_year', 'graduation_year', 'student_id', 'dormitory_id', 'has_meal_plan'
+			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'password', 'status', 'role_id', 'remember_token'
 		];
-
 		$this->assertEquals( $expectedFillable, $user->getFillable() );
 	}
 
@@ -128,10 +124,7 @@ class UserModelTest extends TestCase {
 			'email_verified_at' => 'datetime',
 			'password'          => 'hashed',
 			'phone_numbers'     => 'array',
-			'files'             => 'array',
-			'date_of_birth'     => 'date',
 		];
-
 		$this->assertEquals( $expectedCasts, $user->getCasts() );
 	}
 
@@ -141,7 +134,6 @@ class UserModelTest extends TestCase {
 			'name'     => 'John Doe',
 			'email'    => 'john@example.com',
 			'password' => 'password123',
-			'gender'   => 'male',
 		];
 
 		$user = User::create( $userData );
@@ -149,6 +141,5 @@ class UserModelTest extends TestCase {
 		$this->assertInstanceOf( User::class, $user );
 		$this->assertEquals( 'John Doe', $user->name );
 		$this->assertEquals( 'john@example.com', $user->email );
-		$this->assertEquals( 'male', $user->gender );
 	}
 }

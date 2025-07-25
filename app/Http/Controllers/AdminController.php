@@ -35,12 +35,18 @@ class AdminController extends Controller {
 	}
 
 	public function store( Request $request ) {
-		$validated = $request->validate( $this->rules );
-
-		// Set default values for student-related fields if not provided
+		$rules = array_merge(
+			$this->rules,
+			[ 
+				'position'        => 'nullable|string|max:255',
+				'department'      => 'nullable|string|max:255',
+				'office_phone'    => 'nullable|string|max:255',
+				'office_location' => 'nullable|string|max:255',
+			]
+		);
+		$validated = $request->validate( $rules );
 		$data = array_merge( $this->defaults, $validated );
-		$data['role_id'] = $this->adminRoleId; // always set admin role internally
-
+		$data['role_id'] = $this->adminRoleId;
 		$admin = $this->service->createAdmin( $data );
 		return response()->json( $admin, 201 );
 	}
@@ -50,11 +56,15 @@ class AdminController extends Controller {
 			fn( $rule ) => 'sometimes|' . $rule,
 			$this->rules
 		);
-		$validated = $request->validate( $updateRules );
-
-		// Set default values for student-related fields if not provided
+		$profileRules = [ 
+			'position'        => 'nullable|string|max:255',
+			'department'      => 'nullable|string|max:255',
+			'office_phone'    => 'nullable|string|max:255',
+			'office_location' => 'nullable|string|max:255',
+		];
+		$rules = array_merge( $updateRules, $profileRules );
+		$validated = $request->validate( $rules );
 		$data = array_merge( $this->defaults, $validated );
-
 		$admin = $this->service->updateAdmin( $id, $data );
 		return response()->json( $admin, 200 );
 	}

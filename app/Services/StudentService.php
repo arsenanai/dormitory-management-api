@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Bed;
+use Illuminate\Validation\ValidationException;
 
 class StudentService {
 	/**
@@ -44,6 +46,21 @@ class StudentService {
 	 * Create a new student
 	 */
 	public function createStudent( array $data ) {
+		// Bed assignment validation
+		if ( isset( $data['bed_id'] ) ) {
+			$bed = Bed::find( $data['bed_id'] );
+			if ( ! $bed ) {
+				throw ValidationException::withMessages( [ 'bed_id' => 'Selected bed does not exist.' ] );
+			}
+			if ( $bed->reserved_for_staff ) {
+				// Only allow admin users to be assigned to staff-reserved beds
+				$roleName = isset( $data['role'] ) ? $data['role'] : ( isset( $data['role_id'] ) ? optional( \App\Models\Role::find( $data['role_id'] ) )->name : null );
+				if ( $roleName !== 'admin' ) {
+					throw ValidationException::withMessages( [ 'bed_id' => 'Only admin users can be assigned to staff-reserved beds.' ] );
+				}
+			}
+		}
+
 		// Handle file uploads
 		$filePaths = [];
 		if ( isset( $data['files'] ) ) {
@@ -88,6 +105,21 @@ class StudentService {
 	 * Update student
 	 */
 	public function updateStudent( $id, array $data ) {
+		// Bed assignment validation
+		if ( isset( $data['bed_id'] ) ) {
+			$bed = Bed::find( $data['bed_id'] );
+			if ( ! $bed ) {
+				throw ValidationException::withMessages( [ 'bed_id' => 'Selected bed does not exist.' ] );
+			}
+			if ( $bed->reserved_for_staff ) {
+				$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )->find( $id );
+				$roleName = $student && $student->role ? $student->role->name : null;
+				if ( $roleName !== 'admin' ) {
+					throw ValidationException::withMessages( [ 'bed_id' => 'Only admin users can be assigned to staff-reserved beds.' ] );
+				}
+			}
+		}
+
 		$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
 			->findOrFail( $id );
 

@@ -39,24 +39,24 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	} );
 
 	// Debug route to test student role
-	Route::get('/debug/role', function() {
+	Route::get( '/debug/role', function () {
 		$user = auth()->user();
-		if (!$user) {
-			return response()->json(['error' => 'No user']);
+		if ( ! $user ) {
+			return response()->json( [ 'error' => 'No user' ] );
 		}
-		$user->load('role');
-		return response()->json([
-			'user_id' => $user->id,
-			'role_id' => $user->role_id,
-			'role_name' => $user->role ? $user->role->name : 'No role',
-			'has_student_role' => $user->hasRole('student')
-		]);
-	});
+		$user->load( 'role' );
+		return response()->json( [ 
+			'user_id'          => $user->id,
+			'role_id'          => $user->role_id,
+			'role_name'        => $user->role ? $user->role->name : 'No role',
+			'has_student_role' => $user->hasRole( 'student' )
+		] );
+	} );
 
 	// Debug student access to messages
-	Route::middleware(['role:student'])->get('/debug/student-messages', function() {
-		return response()->json(['message' => 'Student can access this']);
-	});
+	Route::middleware( [ 'role:student' ] )->get( '/debug/student-messages', function () {
+		return response()->json( [ 'message' => 'Student can access this' ] );
+	} );
 
 	// Message management (admin, sudo, guard, student can access messages)
 	Route::middleware( [ 'role:admin,sudo,guard,student' ] )->group( function () {
@@ -131,9 +131,19 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
 		// Room type management
 		Route::apiResource( 'room-types', RoomTypeController::class);
-		
+
 		// Room management
 		Route::apiResource( 'rooms', RoomController::class);
 
 	} );
+
+	// Dormitory access check
+	Route::middleware( [ 'auth:sanctum' ] )->group( function () {
+		Route::get( '/me/can-access-dormitory', [ UserController::class, 'canAccessDormitory' ] );
+		Route::get( '/users/{id}/can-access-dormitory', [ UserController::class, 'canAccessDormitory' ] );
+	} );
+
+	Route::middleware( 'auth:sanctum' )->get( '/dormitory-access/check', [ \App\Http\Controllers\DormitoryAccessController::class, 'check' ] );
+	Route::middleware( [ 'auth:sanctum' ] )->get( '/rooms/available', [ \App\Http\Controllers\RoomController::class, 'available' ] );
+	Route::middleware( [ 'auth:sanctum' ] )->get( '/guests/payments', [ \App\Http\Controllers\GuestController::class, 'payments' ] );
 } );

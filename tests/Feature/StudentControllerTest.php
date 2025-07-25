@@ -130,10 +130,15 @@ class StudentControllerTest extends TestCase {
 				'email' => 'newstudent@test.com'
 			] );
 
-		$this->assertDatabaseHas( 'users', [ 
-			'iin'    => '123456789012',
-			'name'   => 'Test Student',
-			'status' => 'pending'
+		// Assert role-specific fields in student_profiles
+		$this->assertDatabaseHas( 'student_profiles', [ 
+			'faculty'         => 'Computer Science',
+			'specialist'      => 'Software Engineering',
+			'enrollment_year' => 2024,
+			'gender'          => 'male',
+			'blood_type'      => 'O+',
+			'parent_name'     => 'Test Parent',
+			'parent_phone'    => '+77012345678',
 		] );
 	}
 
@@ -166,9 +171,15 @@ class StudentControllerTest extends TestCase {
 
 		$response->assertStatus( 200 )
 			->assertJsonFragment( [ 
-				'name'    => 'Updated Student Name',
-				'faculty' => 'Updated Faculty'
+				'name' => 'Updated Student Name',
 			] );
+
+		// Role-specific fields in student_profiles
+		$this->assertDatabaseHas( 'student_profiles', [ 
+			'user_id'    => $this->student->id,
+			'faculty'    => 'Updated Faculty',
+			'blood_type' => 'A+',
+		] );
 	}
 
 	/** @test */
@@ -189,7 +200,9 @@ class StudentControllerTest extends TestCase {
 	public function students_can_be_filtered_by_faculty() {
 		User::factory()->create( [ 
 			'role_id' => Role::where( 'name', 'student' )->first()->id,
-			'faculty' => 'Engineering'
+		] );
+		\App\Models\StudentProfile::factory()->create( [ 
+			'faculty' => 'Engineering',
 		] );
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )

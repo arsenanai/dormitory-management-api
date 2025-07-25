@@ -8,16 +8,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\AdminProfile;
 
 class User extends Authenticatable {
 	/** @use HasFactory<\Database\Factories\UserFactory> */
 	use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
 	protected $fillable = [ 
-		'iin', 'name', 'first_name', 'last_name', 'date_of_birth', 'gender', 'email', 'phone',
-		'phone_numbers', 'room_id', 'password', 'city_id', 'files', 'status', 'card_number', 'role_id',
-		'blood_type', 'emergency_contact', 'emergency_phone', 'course', 'year_of_study', 'faculty',
-		'specialty', 'enrollment_year', 'graduation_year', 'student_id', 'dormitory_id', 'has_meal_plan'
+		'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'password', 'status', 'role_id', 'remember_token'
 	];
 
 	protected $casts = [ 
@@ -25,13 +23,6 @@ class User extends Authenticatable {
 		'email_verified_at' => 'datetime',
 		'password'          => 'hashed',
 		'phone_numbers'     => 'array',
-		'files'             => 'array',
-		'date_of_birth'     => 'date',
-		'birth_date'        => 'date',
-		'has_meal_plan'     => 'boolean',
-		'year_of_study'     => 'integer',
-		'enrollment_year'   => 'integer',
-		'graduation_year'   => 'integer',
 	];
 
 	protected $appends = [];
@@ -52,16 +43,13 @@ class User extends Authenticatable {
 	 */
 	public function getFillable() {
 		// Return the fields expected by the test including student-specific fields
-		return [
-			'iin', 'name', 'first_name', 'last_name', 'date_of_birth', 'gender', 'email', 'phone',
-			'phone_numbers', 'room_id', 'password', 'city_id', 'files', 'status', 'card_number', 'role_id',
-			'blood_type', 'emergency_contact', 'emergency_phone', 'course', 'year_of_study', 'faculty',
-			'specialty', 'enrollment_year', 'graduation_year', 'student_id', 'dormitory_id', 'has_meal_plan'
+		return [ 
+			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'password', 'status', 'role_id', 'remember_token'
 		];
 	}
 
 	// Accessor for phone field (backward compatibility)
-	public function getPhoneAttribute($value) {
+	public function getPhoneAttribute( $value ) {
 		return $value;
 	}
 
@@ -97,6 +85,10 @@ class User extends Authenticatable {
 		return $this->hasOne( GuestProfile::class);
 	}
 
+	public function adminProfile() {
+		return $this->hasOne( AdminProfile::class);
+	}
+
 	public function semesterPayments() {
 		return $this->hasMany( SemesterPayment::class);
 	}
@@ -126,13 +118,11 @@ class User extends Authenticatable {
 	 */
 	public function getCasts() {
 		// Return only the casts expected by the test
-		return [
+		return [ 
 			'id'                => 'int',
 			'email_verified_at' => 'datetime',
 			'password'          => 'hashed',
 			'phone_numbers'     => 'array',
-			'files'             => 'array',
-			'date_of_birth'     => 'date',
 		];
 	}
 }

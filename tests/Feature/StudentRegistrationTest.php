@@ -58,6 +58,35 @@ class StudentRegistrationTest extends TestCase {
 		Storage::disk( 'public' )->assertExists( 'user_files/' . $payload['files'][0]->hashName() );
 	}
 
+	public function test_student_can_register_with_room_id_string() {
+		$this->seed();
+		$city = \App\Models\City::factory()->create();
+		$room = \App\Models\Room::factory()->create();
+		$uniqueEmail = 'janedoe_' . uniqid() . '@example.com';
+		$payload = [ 
+			'iin'                      => '987654321098',
+			'name'                     => 'Jane Doe',
+			'faculty'                  => 'engineering',
+			'specialist'               => 'computer_sciences',
+			'enrollment_year'          => 2022,
+			'gender'                   => 'female',
+			'email'                    => $uniqueEmail,
+			'phone_numbers'            => [ '+77001234568' ],
+			'room'                     => (string) $room->id, // Simulate frontend sending string id
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'deal_number'              => 'D124',
+			'city_id'                  => $city->id,
+			'agree_to_dormitory_rules' => true,
+		];
+		$response = $this->postJson( '/api/register', $payload );
+		$response->assertStatus( 201 );
+		$this->assertDatabaseHas( 'users', [ 
+			'email'   => $uniqueEmail,
+			'room_id' => $room->id,
+		] );
+	}
+
 	public function test_registration_requires_required_fields() {
 		$response = $this->postJson( '/api/register', [] );
 		$response->assertStatus( 422 );

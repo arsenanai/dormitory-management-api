@@ -18,23 +18,23 @@ class UserSeeder extends Seeder {
 			'name'          => env( 'ADMIN_NAME', 'Admin' ),
 			'first_name'    => env( 'ADMIN_FIRST_NAME', 'Admin' ),
 			'last_name'     => env( 'ADMIN_LAST_NAME', 'User' ),
-			'email'         => env( 'ADMIN_EMAIL', 'admin@email.com' ),
+			'email'         => env( 'ADMIN_EMAIL', 'admin_' . uniqid() . '@email.com' ),
 			'phone_numbers' => json_encode( [ env( 'ADMIN_PHONE', '+77001234567' ) ] ),
 			'room_id'       => null,
 			'password'      => bcrypt( env( 'ADMIN_PASSWORD', 'supersecret' ) ),
 			'status'        => 'active',
 			'role_id'       => $role->id,
 		] );
-		User::create([
-			'name' => 'Alice Student',
-			'first_name' => 'Alice',
-			'last_name' => 'Student',
-			'email' => 'alice@student.local',
-			'phone_numbers' => json_encode(['+77001234568']),
-			'room_id' => null,
-			'password' => bcrypt('password'),
-			'status' => 'active',
-			'role_id' => $studentRole->id,
-		]);
+		User::create( [ 
+			'name'          => 'Alice Student',
+			'first_name'    => 'Alice',
+			'last_name'     => 'Student',
+			'email'         => 'alice_' . uniqid() . '@student.local',
+			'phone_numbers' => json_encode( [ '+77001234568' ] ),
+			'room_id'       => null,
+			'password'      => bcrypt( 'password' ),
+			'status'        => 'active',
+			'role_id'       => $studentRole->id,
+		] );
 	}
 }
