@@ -1,5 +1,6 @@
 <?php
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
 use App\Http\Controllers\GuestController;
@@ -16,6 +17,10 @@ Route::post( '/login', [ UserController::class, 'login' ] );
 Route::post( '/register', [ UserController::class, 'register' ] );
 Route::post( '/password/reset-link', [ UserController::class, 'sendPasswordResetLink' ] );
 Route::post( '/password/reset', [ UserController::class, 'resetPassword' ] );
+Route::get( '/rooms/available', [ \App\Http\Controllers\RoomController::class, 'available' ] );
+Route::get( '/room-types', [ RoomTypeController::class, 'index' ] );
+Route::get( '/dormitories', [ DormitoryController::class, 'index' ] );
+Route::get( '/dormitories/{dormitory}/rooms', [ DormitoryController::class, 'rooms' ] );
 
 // Protected routes
 Route::middleware( [ 'auth:sanctum' ] )->group( function () {
@@ -125,15 +130,48 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		// Admin management
 		Route::apiResource( 'admins', AdminController::class);
 
-		// Dormitory management
-		Route::apiResource( 'dormitories', DormitoryController::class);
+		// Dormitory management (admin operations only)
 		Route::post( 'dormitories/{dormitory}/assign-admin', [ DormitoryController::class, 'assignAdmin' ] );
+		Route::post( '/dormitories', [ DormitoryController::class, 'store' ] );
+		Route::put( '/dormitories/{dormitory}', [ DormitoryController::class, 'update' ] );
+		Route::delete( '/dormitories/{dormitory}', [ DormitoryController::class, 'destroy' ] );
 
-		// Room type management
-		Route::apiResource( 'room-types', RoomTypeController::class);
+		// Room type management (admin operations only)
+		Route::post( '/room-types', [ RoomTypeController::class, 'store' ] );
+		Route::put( '/room-types/{roomType}', [ RoomTypeController::class, 'update' ] );
+		Route::delete( '/room-types/{roomType}', [ RoomTypeController::class, 'destroy' ] );
 
 		// Room management
 		Route::apiResource( 'rooms', RoomController::class);
+
+		// Configuration management
+		Route::get( '/configurations', [ ConfigurationController::class, 'index' ] );
+		Route::put( '/configurations', [ ConfigurationController::class, 'update' ] );
+		Route::post( '/configurations/initialize', [ ConfigurationController::class, 'initializeDefaults' ] );
+		
+		// SMTP settings
+		Route::get( '/configurations/smtp', [ ConfigurationController::class, 'getSmtpSettings' ] );
+		Route::put( '/configurations/smtp', [ ConfigurationController::class, 'updateSmtpSettings' ] );
+		
+		// Card reader settings
+		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
+		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
+		
+		// 1C integration settings
+		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
+		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
+		
+		// Language file management
+		Route::get( '/configurations/languages', [ ConfigurationController::class, 'getInstalledLanguages' ] );
+		Route::post( '/configurations/languages/upload', [ ConfigurationController::class, 'uploadLanguageFile' ] );
+		
+		// System logs
+		Route::get( '/configurations/logs', [ ConfigurationController::class, 'getSystemLogs' ] );
+		Route::delete( '/configurations/logs', [ ConfigurationController::class, 'clearSystemLogs' ] );
+		
+		// Dormitory settings
+		Route::get( '/configurations/dormitory', [ ConfigurationController::class, 'getDormitorySettings' ] );
+		Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
 
 	} );
 
@@ -144,6 +182,4 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	} );
 
 	Route::middleware( 'auth:sanctum' )->get( '/dormitory-access/check', [ \App\Http\Controllers\DormitoryAccessController::class, 'check' ] );
-	Route::middleware( [ 'auth:sanctum' ] )->get( '/rooms/available', [ \App\Http\Controllers\RoomController::class, 'available' ] );
-	Route::middleware( [ 'auth:sanctum' ] )->get( '/guests/payments', [ \App\Http\Controllers\GuestController::class, 'payments' ] );
 } );

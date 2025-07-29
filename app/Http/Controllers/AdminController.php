@@ -71,6 +71,6 @@ class AdminController extends Controller {
 
 	public function destroy( $id ) {
 		$this->service->deleteAdmin( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Admin deleted successfully' ], 200 );
 	}
 }

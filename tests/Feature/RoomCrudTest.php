@@ -66,7 +66,7 @@ class RoomCrudTest extends TestCase {
 			'Authorization' => "Bearer $token",
 		] );
 
-		$response->assertStatus( 204 );
+		$response->assertStatus( 200 );
 		$this->assertDatabaseMissing( 'rooms', [ 
 			'id' => $room->id,
 		] );
@@ -74,7 +74,7 @@ class RoomCrudTest extends TestCase {
 
 	public function test_can_list_rooms() {
 		$token = $this->loginAsSudo();
-		
+
 		// Clear existing rooms to ensure clean test environment
 		Room::query()->delete();
 
@@ -162,8 +162,8 @@ class RoomCrudTest extends TestCase {
 
 	private function loginAsSudo() {
 		$response = $this->postJson( '/api/login', [ 
-			'email'    => env( 'ADMIN_EMAIL', 'admin@email.com' ),
-			'password' => env( 'ADMIN_PASSWORD', 'supersecret' ),
+			'email'    => 'sudo@email.com',
+			'password' => 'supersecret',
 		] );
 		return $response->json( 'token' );
 	}

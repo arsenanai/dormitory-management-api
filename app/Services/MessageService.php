@@ -16,10 +16,10 @@ class MessageService {
 		$query = Message::with( [ 'sender', 'receiver', 'dormitory', 'room' ] );
 
 		$user = Auth::user();
-		
+
 		// If user is a student, only show their messages
-		if ($user && $user->hasRole('student')) {
-			$query->where('receiver_id', $user->id);
+		if ( $user && $user->hasRole( 'student' ) ) {
+			$query->where( 'receiver_id', $user->id );
 		}
 
 		// Apply filters
@@ -72,12 +72,12 @@ class MessageService {
 	 */
 	public function getMessageDetails( $id ) {
 		$message = Message::with( [ 'sender', 'receiver', 'dormitory', 'room' ] )->findOrFail( $id );
-		
+
 		$user = Auth::user();
-		
+
 		// If user is a student, only allow viewing their own messages
-		if ($user && $user->hasRole('student') && $message->receiver_id !== $user->id) {
-			return response()->json(['message' => 'Forbidden'], 403);
+		if ( $user && $user->hasRole( 'student' ) && $message->receiver_id !== $user->id ) {
+			return response()->json( [ 'message' => 'Forbidden' ], 403 );
 		}
 
 		// Decode recipient_ids if it exists
@@ -121,6 +121,7 @@ class MessageService {
 		}
 
 		$message->delete();
+		return response()->json( [ 'message' => 'Message deleted successfully' ], 200 );
 	}
 
 	/**
@@ -169,7 +170,7 @@ class MessageService {
 						->where( function ($innerQ) use ($user) {
 							$innerQ->where( 'recipient_ids', 'LIKE', '%"' . $user->id . '"%' )
 								->orWhere( 'recipient_ids', '=', json_encode( [ $user->id ] ) )
-								->orWhere( 'recipient_ids', '=', json_encode( [ (string)$user->id ] ) )
+								->orWhere( 'recipient_ids', '=', json_encode( [ (string) $user->id ] ) )
 								->orWhere( 'recipient_ids', 'LIKE', '%[' . $user->id . '%' )
 								->orWhere( 'recipient_ids', 'LIKE', '%,' . $user->id . '%' )
 								->orWhere( 'recipient_ids', 'LIKE', '%' . $user->id . ']%' );
@@ -196,11 +197,11 @@ class MessageService {
 	 */
 	public function getUnreadCount() {
 		$user = Auth::user();
-		
+
 		$count = Message::where( function ($query) use ($user) {
 			// Direct messages to this user
-			$query->where('receiver_id', $user->id);
-			
+			$query->where( 'receiver_id', $user->id );
+
 			// OR broadcast messages
 			$query->orWhere( function ($subQuery) use ($user) {
 				$subQuery->where( function ($q) use ($user) {
@@ -209,23 +210,23 @@ class MessageService {
 				} )
 					// Messages for specific dormitory
 					->orWhere( function ($subQ) use ($user) {
-					$subQ->where( 'recipient_type', 'dormitory' )
-						->where( 'dormitory_id', $user->dormitory_id ?? 0 );
-				} )
+						$subQ->where( 'recipient_type', 'dormitory' )
+							->where( 'dormitory_id', $user->dormitory_id ?? 0 );
+					} )
 					// Messages for specific room
 					->orWhere( function ($subQ) use ($user) {
-					$subQ->where( 'recipient_type', 'room' )
-						->where( 'room_id', $user->room_id );
-				} )
+						$subQ->where( 'recipient_type', 'room' )
+							->where( 'room_id', $user->room_id );
+					} )
 					// Individual messages via recipient_ids
 					->orWhere( function ($subQ) use ($user) {
-					$subQ->where( 'recipient_type', 'individual' )
-						->whereJsonContains( 'recipient_ids', $user->id );
-				} );
+						$subQ->where( 'recipient_type', 'individual' )
+							->whereJsonContains( 'recipient_ids', $user->id );
+					} );
 			} );
 		} )
-		->whereNull( 'read_at' )
-		->count();
+			->whereNull( 'read_at' )
+			->count();
 
 		return response()->json( [ 'count' => $count ] );
 	}

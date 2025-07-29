@@ -142,14 +142,18 @@ class UserControllerTest extends TestCase {
 			->postJson( '/api/users', $userData );
 
 		$response->assertStatus( 201 )
-			->assertJsonFragment( [ 
-				'student_profile' => [ 
-					'student_id'    => 'STU001',
-					'blood_type'    => 'O+',
-					'course'        => 'Computer Science',
-					'year_of_study' => 2,
+			->assertJsonStructure( [
+				'student_profile' => [
+					'student_id',
+					'blood_type',
+					'course',
+					'year_of_study'
 				]
-			] );
+			] )
+			->assertJsonPath( 'student_profile.student_id', 'STU001' )
+			->assertJsonPath( 'student_profile.blood_type', 'O+' )
+			->assertJsonPath( 'student_profile.course', 'Computer Science' )
+			->assertJsonPath( 'student_profile.year_of_study', 2 );
 
 		// Assert in student_profiles, not users
 		$this->assertDatabaseHas( 'student_profiles', [ 
@@ -219,15 +223,11 @@ class UserControllerTest extends TestCase {
 			->putJson( "/api/users/{$this->student->id}", $updateData );
 
 		$response->assertStatus( 200 )
-			->assertJsonFragment( [ 
-				'first_name'      => 'Updated',
-				'last_name'       => 'Student',
-				'phone_numbers'   => [ '+9876543210' ],
-				'student_profile' => [ 
-					'blood_type' => 'AB+',
-					'course'     => 'Updated Course',
-				]
-			] );
+			->assertJsonPath( 'first_name', 'Updated' )
+			->assertJsonPath( 'last_name', 'Student' )
+			->assertJsonPath( 'phone_numbers', [ '+9876543210' ] )
+			->assertJsonPath( 'student_profile.blood_type', 'AB+' )
+			->assertJsonPath( 'student_profile.course', 'Updated Course' );
 
 		// Role-specific fields in student_profiles
 		$this->assertDatabaseHas( 'student_profiles', [ 
@@ -296,14 +296,10 @@ class UserControllerTest extends TestCase {
 			->putJson( '/api/users/profile', $updateData );
 
 		$response->assertStatus( 200 )
-			->assertJsonFragment( [ 
-				'first_name'      => 'Updated',
-				'last_name'       => 'Name',
-				'phone_numbers'   => [ '+1111111111' ],
-				'student_profile' => [ 
-					'emergency_contact_name' => 'Updated Emergency Contact',
-				]
-			] );
+			->assertJsonPath( 'first_name', 'Updated' )
+			->assertJsonPath( 'last_name', 'Name' )
+			->assertJsonPath( 'phone_numbers', [ '+1111111111' ] )
+			->assertJsonPath( 'student_profile.emergency_contact_name', 'Updated Emergency Contact' );
 
 		// Role-specific field in student_profiles
 		$this->assertDatabaseHas( 'student_profiles', [ 

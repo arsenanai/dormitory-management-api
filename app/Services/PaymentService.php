@@ -53,11 +53,11 @@ class PaymentService {
 		$data['dormitory_status'] = $data['dormitory_status'] ?? 'pending';
 		$data['payment_approved'] = $data['payment_approved'] ?? false;
 		$data['dormitory_access_approved'] = $data['dormitory_access_approved'] ?? false;
-		
+
 		// Set due date if not provided (3 months from contract date or today)
-		if (!isset($data['due_date'])) {
-			$contractDate = isset($data['contract_date']) ? new \DateTime($data['contract_date']) : new \DateTime();
-			$data['due_date'] = $contractDate->modify('+3 months')->format('Y-m-d');
+		if ( ! isset( $data['due_date'] ) ) {
+			$contractDate = isset( $data['contract_date'] ) ? new \DateTime( $data['contract_date'] ) : new \DateTime();
+			$data['due_date'] = $contractDate->modify( '+3 months' )->format( 'Y-m-d' );
 		}
 
 		$payment = SemesterPayment::create( $data );
@@ -105,6 +105,7 @@ class PaymentService {
 		}
 
 		$payment->delete();
+		return response()->json( [ 'message' => 'Payment deleted successfully' ], 200 );
 	}
 
 	/**

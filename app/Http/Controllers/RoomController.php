@@ -46,7 +46,7 @@ class RoomController extends Controller {
 
 	public function destroy( $id ) {
 		$this->service->deleteRoom( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Room deleted successfully' ], 200 );
 	}
 
 	/**
@@ -56,7 +56,11 @@ class RoomController extends Controller {
 	public function available( Request $request ) {
 		$user = Auth::user();
 		$isStaff = $user && $user->hasRole( 'admin' ); // Adjust as needed for staff roles
-		$rooms = Room::with( [ 'beds' ] )->get();
+		$query = Room::with( [ 'beds' ] );
+		if ( $request->has( 'dormitory_id' ) ) {
+			$query->where( 'dormitory_id', $request->input( 'dormitory_id' ) );
+		}
+		$rooms = $query->get();
 		$availableRooms = $rooms->map( function ($room) use ($isStaff) {
 			$availableBeds = $room->beds->filter( function ($bed) use ($isStaff) {
 				if ( $bed->user_id || $bed->is_occupied )

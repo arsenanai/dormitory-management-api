@@ -44,5 +44,6 @@ class RoomService {
 	public function deleteRoom( $id ) {
 		$room = Room::findOrFail( $id );
 		$room->delete();
+		return response()->json( [ 'message' => 'Room deleted successfully' ], 200 );
 	}
 }

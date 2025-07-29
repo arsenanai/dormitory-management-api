@@ -50,5 +50,6 @@ class AdminService {
 	public function deleteAdmin( $id ) {
 		$admin = User::findOrFail( $id );
 		$admin->forceDelete(); // Hard delete instead of soft delete
+		return response()->json( [ 'message' => 'Admin deleted successfully' ], 200 );
 	}
 }

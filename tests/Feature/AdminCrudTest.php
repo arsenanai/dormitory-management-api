@@ -100,7 +100,7 @@ class AdminCrudTest extends TestCase {
 			'Authorization' => "Bearer $token",
 		] );
 
-		$response->assertStatus( 204 );
+		$response->assertStatus( 200 );
 		$this->assertDatabaseMissing( 'users', [ 
 			'id' => $admin->id,
 		] );

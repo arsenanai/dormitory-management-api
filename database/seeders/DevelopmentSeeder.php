@@ -70,6 +70,7 @@ class DevelopmentSeeder extends Seeder {
 		\App\Models\StudentProfile::firstOrCreate( [ 
 			'user_id' => $student->id
 		], [ 
+			'student_id'               => 'STU12345',
 			'iin'                      => '123456789012',
 			'faculty'                  => 'Engineering',
 			'specialist'               => 'Software',
@@ -95,6 +96,22 @@ class DevelopmentSeeder extends Seeder {
 			] ]
 		);
 
+		// Create guest room types for E2E tests
+		$singleRoomType = RoomType::firstOrCreate(
+			[ 'name' => 'single' ],
+			[ 'beds' => [ 
+				[ 'id' => 1, 'x' => 75, 'y' => 75, 'occupied' => false ],
+			] ]
+		);
+
+		$doubleRoomType = RoomType::firstOrCreate(
+			[ 'name' => 'double' ],
+			[ 'beds' => [ 
+				[ 'id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false ],
+				[ 'id' => 2, 'x' => 150, 'y' => 50, 'occupied' => false ],
+			] ]
+		);
+
 		// Create dormitories
 		$dormitory1 = Dormitory::firstOrCreate( [ 
 			'name'        => 'Dormitory #1',
@@ -112,6 +129,16 @@ class DevelopmentSeeder extends Seeder {
 			'gender'      => 'male',
 			'quota'       => 150,
 			'capacity'    => 200,
+		] );
+
+		// Create test dormitory for E2E tests
+		$testDormitory = Dormitory::firstOrCreate( [ 
+			'name'        => 'A Block',
+			'address'     => 'Test Address for E2E',
+			'description' => 'Test dormitory for E2E tests',
+			'gender'      => 'mixed',
+			'quota'       => 50,
+			'capacity'    => 50,
 		] );
 
 		// Create admin users
@@ -181,6 +208,25 @@ class DevelopmentSeeder extends Seeder {
 				}
 			}
 		}
+
+		// Create test rooms for E2E tests
+		$testRoom = Room::firstOrCreate( [ 
+			'number'       => 'a210',
+			'dormitory_id' => $testDormitory->id,
+			'room_type_id' => $standardRoomType->id,
+			'floor'        => 2,
+		] );
+
+		// Create test beds for E2E tests
+		Bed::firstOrCreate( [ 
+			'bed_number' => 1,
+			'room_id'    => $testRoom->id,
+		] );
+
+		Bed::firstOrCreate( [ 
+			'bed_number' => 2,
+			'room_id'    => $testRoom->id,
+		] );
 
 		// Create sample students
 		$students = [ 
@@ -312,6 +358,39 @@ class DevelopmentSeeder extends Seeder {
 			'sent_at'        => now()->subDays( 2 ),
 		] );
 
+		// Create sample guest data for E2E tests
+		$guestUser = User::firstOrCreate(
+			[ 'email' => 'guest@test.local' ],
+			[ 
+				'name'     => 'Test Guest',
+				'email'    => 'guest@test.local',
+				'password' => Hash::make( 'password' ),
+				'role_id'  => Role::where( 'name', 'guest' )->firstOrCreate( [ 'name' => 'guest' ] )->id,
+				'status'   => 'active',
+			]
+		);
+
+		// Create guest profile
+		\App\Models\GuestProfile::firstOrCreate(
+			[ 'user_id' => $guestUser->id ],
+			[ 
+				'purpose_of_visit'        => 'Academic Visit',
+				'host_name'               => 'Dr. Smith',
+				'host_contact'            => '+77001234567',
+				'daily_rate'              => 5000,
+				'visit_start_date'        => now()->subDays( 2 ),
+				'visit_end_date'          => now()->addDays( 5 ),
+				'identification_type'     => 'passport',
+				'identification_number'   => 'AB1234567',
+				'emergency_contact_name'  => 'Emergency Contact',
+				'emergency_contact_phone' => '+77001234568',
+				'is_approved'             => true,
+			]
+		);
+
+		// Note: Guest payments are handled differently in this system
+		// Guest payments are tracked through the GuestProfile model
+
 		// Create a default dormitory and room for foreign key references in tests
 		$dormitory = \App\Models\Dormitory::firstOrCreate( [ 
 			'name'     => 'Default Dormitory',
@@ -321,8 +400,7 @@ class DevelopmentSeeder extends Seeder {
 			'number'       => 'A101',
 			'dormitory_id' => $dormitory->id,
 			'room_type_id' => 1,
-			'floor'        => 1,
-			'capacity'     => 4
+			'floor'        => 1
 		] );
 
 		$this->command->info( 'Development data seeded successfully!' );

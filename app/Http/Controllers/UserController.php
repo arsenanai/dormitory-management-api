@@ -128,13 +128,14 @@ class UserController extends Controller {
 			$profileData = [ 
 				'user_id'                  => $user->id,
 				'iin'                      => $validated['iin'],
+				'student_id'               => $validated['student_id'] ?? $validated['iin'], // Use IIN as fallback
 				'faculty'                  => $validated['faculty'],
 				'specialist'               => $validated['specialist'],
 				'enrollment_year'          => $validated['enrollment_year'],
 				'gender'                   => $validated['gender'],
 				'deal_number'              => $validated['deal_number'] ?? null,
 				'city_id'                  => $validated['city_id'] ?? null,
-				'files'                    => $filePaths,
+				'files'                    => ! empty( $filePaths ) ? json_encode( $filePaths ) : null,
 				'agree_to_dormitory_rules' => $validated['agree_to_dormitory_rules'],
 			];
 			\App\Models\StudentProfile::create( $profileData );
@@ -209,6 +210,7 @@ class UserController extends Controller {
 
 			// Student-specific fields
 			'student_id'        => 'nullable|string|max:20|unique:users,student_id',
+			'iin'               => 'nullable|string|max:12',
 			'birth_date'        => 'nullable|date',
 			'date_of_birth'     => 'nullable|date',
 			'blood_type'        => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
@@ -222,6 +224,8 @@ class UserController extends Controller {
 			'emergency_contact' => 'nullable|string|max:100',
 			'emergency_phone'   => 'nullable|string|max:20',
 			'violations'        => 'nullable|string',
+			'deal_number'       => 'nullable|string|max:255',
+			'city_id'           => 'nullable|integer|exists:cities,id',
 		];
 
 		$validated = $request->validate( $rules );
@@ -258,7 +262,49 @@ class UserController extends Controller {
 
 		$user = User::create( $validated );
 
-		return response()->json( $user->load( [ 'role', 'dormitory' ] ), 201 );
+		// Create profile records based on role
+		if ( $user->hasRole( 'student' ) ) {
+			// Create StudentProfile
+			$studentProfileData = [ 
+				'user_id'                  => $user->id,
+				'iin'                      => $validated['iin'] ?? '000000000000', // Default IIN if not provided
+				'student_id'               => $validated['student_id'] ?? 'STU' . str_pad( $user->id, 6, '0', STR_PAD_LEFT ), // Default student_id if not provided
+				'faculty'                  => $validated['faculty'] ?? null,
+				'specialist'               => $validated['specialty'] ?? null,
+				'enrollment_year'          => $validated['enrollment_year'] ?? null,
+				'gender'                   => $validated['gender'] ?? 'other',
+				'blood_type'               => $validated['blood_type'] ?? null,
+				'emergency_contact_name'   => $validated['emergency_contact'] ?? null,
+				'emergency_contact_phone'  => $validated['emergency_phone'] ?? null,
+				'violations'               => $validated['violations'] ?? null,
+				'deal_number'              => $validated['deal_number'] ?? null,
+				'city_id'                  => $validated['city_id'] ?? null,
+				'course'                   => $validated['course'] ?? null,
+				'year_of_study'            => $validated['year_of_study'] ?? null,
+				'agree_to_dormitory_rules' => true,
+				'files'                    => json_encode( [] ),
+			];
+			\App\Models\StudentProfile::create( $studentProfileData );
+		} elseif ( $user->hasRole( 'guest' ) ) {
+			// Create GuestProfile
+			$guestProfileData = [ 
+				'user_id'                 => $user->id,
+				'purpose_of_visit'        => $validated['purpose_of_visit'] ?? null,
+				'host_name'               => $validated['host_name'] ?? null,
+				'host_contact'            => $validated['host_contact'] ?? null,
+				'visit_start_date'        => $validated['visit_start_date'] ?? null,
+				'visit_end_date'          => $validated['visit_end_date'] ?? null,
+				'identification_type'     => $validated['identification_type'] ?? null,
+				'identification_number'   => $validated['identification_number'] ?? null,
+				'emergency_contact_name'  => $validated['emergency_contact_name'] ?? null,
+				'emergency_contact_phone' => $validated['emergency_contact_phone'] ?? null,
+				'is_approved'             => $validated['is_approved'] ?? false,
+				'daily_rate'              => $validated['daily_rate'] ?? null,
+			];
+			\App\Models\GuestProfile::create( $guestProfileData );
+		}
+
+		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ), 201 );
 	}
 
 	/**
@@ -292,10 +338,17 @@ class UserController extends Controller {
 				'max:20',
 				Rule::unique( 'student_profiles', 'student_id' )->ignore( optional( $user->studentProfile )->id ),
 			],
+			'iin'                     => 'nullable|string|max:12',
 			'faculty'                 => 'nullable|string|max:100',
 			'specialist'              => 'nullable|string|max:100',
 			'enrollment_year'         => 'nullable|integer|min:1900|max:' . date( 'Y' ),
 			'gender'                  => 'nullable|in:male,female',
+			'blood_type'              => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+			'course'                  => 'nullable|string|max:100',
+			'year_of_study'           => 'nullable|integer|min:1|max:6',
+			'emergency_contact'       => 'nullable|string|max:100',
+			'emergency_phone'         => 'nullable|string|max:20',
+			'violations'              => 'nullable|string',
 			'deal_number'             => 'nullable|string|max:255',
 			'city_id'                 => 'nullable|integer|exists:cities,id',
 			'files'                   => 'nullable|array|max:4',
@@ -341,10 +394,58 @@ class UserController extends Controller {
 		$user->update( $userData );
 
 		// Update profile if student or guest
-		if ( $user->hasRole( 'student' ) && $user->studentProfile ) {
-			$user->studentProfile->update( $profileData );
-		} elseif ( $user->hasRole( 'guest' ) && $user->guestProfile ) {
-			$user->guestProfile->update( $profileData );
+		if ( $user->hasRole( 'student' ) ) {
+			// Map profile fields correctly
+			$studentProfileData = [];
+			if ( isset( $profileData['faculty'] ) )
+				$studentProfileData['faculty'] = $profileData['faculty'];
+			if ( isset( $profileData['specialist'] ) )
+				$studentProfileData['specialist'] = $profileData['specialist'];
+			if ( isset( $profileData['enrollment_year'] ) )
+				$studentProfileData['enrollment_year'] = $profileData['enrollment_year'];
+			if ( isset( $profileData['gender'] ) )
+				$studentProfileData['gender'] = $profileData['gender'];
+			if ( isset( $profileData['blood_type'] ) )
+				$studentProfileData['blood_type'] = $profileData['blood_type'];
+			if ( isset( $profileData['course'] ) )
+				$studentProfileData['course'] = $profileData['course'];
+			if ( isset( $profileData['year_of_study'] ) )
+				$studentProfileData['year_of_study'] = $profileData['year_of_study'];
+			if ( isset( $profileData['emergency_contact'] ) )
+				$studentProfileData['emergency_contact_name'] = $profileData['emergency_contact'];
+			if ( isset( $profileData['emergency_phone'] ) )
+				$studentProfileData['emergency_contact_phone'] = $profileData['emergency_phone'];
+			if ( isset( $profileData['violations'] ) )
+				$studentProfileData['violations'] = $profileData['violations'];
+			if ( isset( $profileData['deal_number'] ) )
+				$studentProfileData['deal_number'] = $profileData['deal_number'];
+			if ( isset( $profileData['city_id'] ) )
+				$studentProfileData['city_id'] = $profileData['city_id'];
+			if ( isset( $profileData['iin'] ) )
+				$studentProfileData['iin'] = $profileData['iin'];
+			if ( isset( $profileData['student_id'] ) )
+				$studentProfileData['student_id'] = $profileData['student_id'];
+
+			if ( $user->studentProfile ) {
+				$user->studentProfile->update( $studentProfileData );
+			} else {
+				// Create StudentProfile if it doesn't exist
+				$studentProfileData['user_id'] = $user->id;
+				$studentProfileData['iin'] = $studentProfileData['iin'] ?? '000000000000'; // Default IIN if not provided
+				$studentProfileData['student_id'] = $studentProfileData['student_id'] ?? 'STU' . str_pad( $user->id, 6, '0', STR_PAD_LEFT ); // Default student_id if not provided
+				$studentProfileData['agree_to_dormitory_rules'] = true;
+				$studentProfileData['files'] = json_encode( [] );
+				$studentProfileData['gender'] = $studentProfileData['gender'] ?? 'other'; // Default gender if not provided
+				\App\Models\StudentProfile::create( $studentProfileData );
+			}
+		} elseif ( $user->hasRole( 'guest' ) ) {
+			if ( $user->guestProfile ) {
+				$user->guestProfile->update( $profileData );
+			} else {
+				// Create GuestProfile if it doesn't exist
+				$profileData['user_id'] = $user->id;
+				\App\Models\GuestProfile::create( $profileData );
+			}
 		}
 
 		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ) );
@@ -363,7 +464,7 @@ class UserController extends Controller {
 	 * Get current user profile
 	 */
 	public function profile( Request $request ) {
-		$user = $request->user()->load( [ 'role', 'dormitory', 'room', 'studentProfile', 'guestProfile' ] );
+		$user = $request->user()->load( [ 'role', 'dormitory', 'room', 'studentProfile', 'guestProfile', 'adminProfile' ] );
 
 		// Return role-specific profile data
 		if ( $user->hasRole( 'student' ) ) {
@@ -381,6 +482,7 @@ class UserController extends Controller {
 				'room'              => $user->room,
 				'dormitory'         => $user->dormitory,
 				'dormitory_id'      => $user->dormitory_id,
+				'student_profile'   => $studentProfile,
 				// Student-specific fields from StudentProfile
 				'student_id'        => $studentProfile?->student_id,
 				'faculty'           => $studentProfile?->faculty,
@@ -411,6 +513,7 @@ class UserController extends Controller {
 				'phone_numbers'     => $user->phone_numbers,
 				'role'              => $user->role,
 				'room'              => $user->room,
+				'guest_profile'     => $guestProfile,
 				// Guest-specific fields from GuestProfile
 				'emergency_contact' => $guestProfile?->emergency_contact_name,
 				'emergency_phone'   => $guestProfile?->emergency_contact_phone,
@@ -420,19 +523,21 @@ class UserController extends Controller {
 			] );
 		} else {
 			// For admin and other roles, return basic user information
+			$adminProfile = $user->adminProfile;
 			return response()->json( [ 
-				'id'           => $user->id,
-				'name'         => $user->name,
-				'first_name'   => $user->first_name,
-				'last_name'    => $user->last_name,
-				'email'        => $user->email,
-				'phone'        => $user->phone,
-				'role'         => $user->role,
-				'dormitory'    => $user->dormitory,
-				'dormitory_id' => $user->dormitory_id,
-				'status'       => $user->status,
-				'created_at'   => $user->created_at,
-				'updated_at'   => $user->updated_at,
+				'id'            => $user->id,
+				'name'          => $user->name,
+				'first_name'    => $user->first_name,
+				'last_name'     => $user->last_name,
+				'email'         => $user->email,
+				'phone'         => $user->phone,
+				'role'          => $user->role,
+				'dormitory'     => $user->dormitory,
+				'dormitory_id'  => $user->dormitory_id,
+				'admin_profile' => $adminProfile,
+				'status'        => $user->status,
+				'created_at'    => $user->created_at,
+				'updated_at'    => $user->updated_at,
 			] );
 		}
 	}
@@ -449,10 +554,17 @@ class UserController extends Controller {
 			'phone'                   => 'nullable|string|max:20',
 			'dormitory_id'            => 'nullable|exists:dormitories,id',
 			// Student-specific fields
+			'iin'                     => 'nullable|string|max:12',
 			'faculty'                 => 'nullable|string|max:100',
 			'specialist'              => 'nullable|string|max:100',
 			'enrollment_year'         => 'nullable|integer|min:1900|max:' . date( 'Y' ),
 			'gender'                  => 'nullable|in:male,female',
+			'blood_type'              => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+			'course'                  => 'nullable|string|max:100',
+			'year_of_study'           => 'nullable|integer|min:1|max:6',
+			'emergency_contact'       => 'nullable|string|max:100',
+			'emergency_phone'         => 'nullable|string|max:20',
+			'violations'              => 'nullable|string',
 			'deal_number'             => 'nullable|string|max:255',
 			'city_id'                 => 'nullable|integer|exists:cities,id',
 			'files'                   => 'nullable|array|max:4',
@@ -489,10 +601,58 @@ class UserController extends Controller {
 		$profileData = array_intersect_key( $validated, array_flip( $profileFields ) );
 		$user->update( $userData );
 		// Update profile if student or guest
-		if ( $user->hasRole( 'student' ) && $user->studentProfile ) {
-			$user->studentProfile->update( $profileData );
-		} elseif ( $user->hasRole( 'guest' ) && $user->guestProfile ) {
-			$user->guestProfile->update( $profileData );
+		if ( $user->hasRole( 'student' ) ) {
+			// Map profile fields correctly
+			$studentProfileData = [];
+			if ( isset( $profileData['faculty'] ) )
+				$studentProfileData['faculty'] = $profileData['faculty'];
+			if ( isset( $profileData['specialist'] ) )
+				$studentProfileData['specialist'] = $profileData['specialist'];
+			if ( isset( $profileData['enrollment_year'] ) )
+				$studentProfileData['enrollment_year'] = $profileData['enrollment_year'];
+			if ( isset( $profileData['gender'] ) )
+				$studentProfileData['gender'] = $profileData['gender'];
+			if ( isset( $profileData['blood_type'] ) )
+				$studentProfileData['blood_type'] = $profileData['blood_type'];
+			if ( isset( $profileData['course'] ) )
+				$studentProfileData['course'] = $profileData['course'];
+			if ( isset( $profileData['year_of_study'] ) )
+				$studentProfileData['year_of_study'] = $profileData['year_of_study'];
+			if ( isset( $profileData['emergency_contact'] ) )
+				$studentProfileData['emergency_contact_name'] = $profileData['emergency_contact'];
+			if ( isset( $profileData['emergency_phone'] ) )
+				$studentProfileData['emergency_contact_phone'] = $profileData['emergency_phone'];
+			if ( isset( $profileData['violations'] ) )
+				$studentProfileData['violations'] = $profileData['violations'];
+			if ( isset( $profileData['deal_number'] ) )
+				$studentProfileData['deal_number'] = $profileData['deal_number'];
+			if ( isset( $profileData['city_id'] ) )
+				$studentProfileData['city_id'] = $profileData['city_id'];
+			if ( isset( $profileData['iin'] ) )
+				$studentProfileData['iin'] = $profileData['iin'];
+			if ( isset( $profileData['student_id'] ) )
+				$studentProfileData['student_id'] = $profileData['student_id'];
+
+			if ( $user->studentProfile ) {
+				$user->studentProfile->update( $studentProfileData );
+			} else {
+				// Create StudentProfile if it doesn't exist
+				$studentProfileData['user_id'] = $user->id;
+				$studentProfileData['iin'] = $studentProfileData['iin'] ?? '000000000000'; // Default IIN if not provided
+				$studentProfileData['student_id'] = $studentProfileData['student_id'] ?? 'STU' . str_pad( $user->id, 6, '0', STR_PAD_LEFT ); // Default student_id if not provided
+				$studentProfileData['agree_to_dormitory_rules'] = true;
+				$studentProfileData['files'] = json_encode( [] );
+				$studentProfileData['gender'] = $studentProfileData['gender'] ?? 'other'; // Default gender if not provided
+				\App\Models\StudentProfile::create( $studentProfileData );
+			}
+		} elseif ( $user->hasRole( 'guest' ) ) {
+			if ( $user->guestProfile ) {
+				$user->guestProfile->update( $profileData );
+			} else {
+				// Create GuestProfile if it doesn't exist
+				$profileData['user_id'] = $user->id;
+				\App\Models\GuestProfile::create( $profileData );
+			}
 		}
 		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ) );
 	}

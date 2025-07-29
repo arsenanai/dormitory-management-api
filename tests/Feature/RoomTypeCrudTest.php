@@ -54,7 +54,7 @@ class RoomTypeCrudTest extends TestCase {
 	public function test_can_update_room_type() {
 		$token = $this->loginAsSudo();
 		$roomType = RoomType::factory()->create();
-		
+
 		$response = $this->putJson( "/api/room-types/{$roomType->id}", [ 
 			'name' => 'lux',
 			'beds' => json_encode( [ 
@@ -100,7 +100,7 @@ class RoomTypeCrudTest extends TestCase {
 			'Authorization' => "Bearer $token",
 		] );
 
-		$response->assertStatus( 204 );
+		$response->assertStatus( 200 );
 		$this->assertDatabaseMissing( 'room_types', [ 
 			'id' => $roomType->id,
 		] );
@@ -124,8 +124,8 @@ class RoomTypeCrudTest extends TestCase {
 
 	private function loginAsSudo() {
 		$response = $this->postJson( '/api/login', [ 
-			'email'    => env( 'ADMIN_EMAIL', 'admin@email.com' ),
-			'password' => env( 'ADMIN_PASSWORD', 'supersecret' ),
+			'email'    => 'sudo@email.com',
+			'password' => 'supersecret',
 		] );
 		return $response->json( 'token' );
 	}

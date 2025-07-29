@@ -42,9 +42,10 @@ class DashboardServiceTest extends TestCase {
 		] );
 
 		$this->student = User::factory()->create( [ 
-			'role_id' => $studentRole->id,
-			'email'   => 'student@test.com',
-			'status'  => 'active',
+			'role_id'       => $studentRole->id,
+			'email'         => 'student@test.com',
+			'status'        => 'active',
+			'has_meal_plan' => true,
 		] );
 
 		// Create dormitory and room structure

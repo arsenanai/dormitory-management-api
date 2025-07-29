@@ -44,6 +44,25 @@ class StudentControllerTest extends TestCase {
 			'email'   => 'student@test.com'
 		] );
 
+		// Create StudentProfile for the test student
+		\App\Models\StudentProfile::create( [ 
+			'user_id'                  => $this->student->id,
+			'iin'                      => '123456789012',
+			'student_id'               => 'STU00001',
+			'faculty'                  => 'Engineering',
+			'specialist'               => 'Computer Science',
+			'enrollment_year'          => '2024',
+			'gender'                   => 'male',
+			'blood_type'               => 'O+',
+			'parent_name'              => 'Parent Name',
+			'parent_phone'             => '+77012345678',
+			'mentor_name'              => 'Mentor Name',
+			'mentor_email'             => 'mentor@test.com',
+			'deal_number'              => 'DEAL001',
+			'agree_to_dormitory_rules' => true,
+			'files'                    => json_encode( [] ),
+		] );
+
 		// Create dormitory and room
 		$this->dormitory = Dormitory::create( [ 
 			'name'     => 'Test Dormitory',
@@ -108,7 +127,7 @@ class StudentControllerTest extends TestCase {
 		Storage::fake( 'public' );
 
 		$studentData = [ 
-			'iin'             => '123456789012',
+			'iin'             => '987654321098',
 			'name'            => 'Test Student',
 			'faculty'         => 'Computer Science',
 			'specialist'      => 'Software Engineering',
@@ -191,7 +210,8 @@ class StudentControllerTest extends TestCase {
 		$response = $this->actingAs( $this->admin, 'sanctum' )
 			->deleteJson( "/api/students/{$testStudent->id}" );
 
-		$response->assertStatus( 204 );
+		$response->assertStatus( 200 )
+			->assertJson( [ 'message' => 'Student deleted successfully' ] );
 		// Check that the student is soft deleted
 		$this->assertSoftDeleted( 'users', [ 'id' => $testStudent->id ] );
 	}

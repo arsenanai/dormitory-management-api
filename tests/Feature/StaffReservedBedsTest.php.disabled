@@ -1,0 +1,393 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use App\Models\Role;
+use App\Models\Dormitory;
+use App\Models\Room;
+use App\Models\Bed;
+use App\Models\RoomType;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/**
+ * @skip - Bed management endpoints (/api/beds) don't exist. Need to implement BedController first.
+ */
+class StaffReservedBedsTest extends TestCase {
+	use RefreshDatabase;
+
+	protected function setUp(): void {
+		parent::setUp();
+		$this->seed();
+	}
+
+	/** @test */
+	public function admin_can_reserve_bed_for_staff() {
+		// Create an admin role and user
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create a bed
+		$bed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => false
+		] );
+
+		// Admin reserves the bed for staff
+		$response = $this->actingAs( $admin )->putJson( "/api/beds/{$bed->id}", [ 
+			'reserved_for_staff' => true
+		] );
+
+		$response->assertStatus( 200 );
+		$this->assertTrue( $bed->fresh()->reserved_for_staff );
+	}
+
+	/** @test */
+	public function student_cannot_be_assigned_to_staff_reserved_bed() {
+		// Create roles
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$studentRole = Role::where( 'name', 'student' )->first();
+
+		// Create users
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		$student = User::factory()->create( [ 
+			'role_id' => $studentRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create a staff-reserved bed
+		$bed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => true,
+			'user_id'            => null
+		] );
+
+		// Try to assign student to staff-reserved bed
+		$response = $this->actingAs( $admin )->putJson( "/api/beds/{$bed->id}", [ 
+			'user_id' => $student->id
+		] );
+
+		$response->assertStatus( 422 ); // Validation error
+		$this->assertNull( $bed->fresh()->user_id );
+	}
+
+	/** @test */
+	public function staff_can_be_assigned_to_staff_reserved_bed() {
+		// Create roles
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$staffRole = Role::where( 'name', 'admin' )->first(); // Using admin as staff for this test
+
+		// Create users
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		$staff = User::factory()->create( [ 
+			'role_id' => $staffRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create a staff-reserved bed
+		$bed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => true,
+			'user_id'            => null
+		] );
+
+		// Assign staff to staff-reserved bed
+		$response = $this->actingAs( $admin )->putJson( "/api/beds/{$bed->id}", [ 
+			'user_id' => $staff->id
+		] );
+
+		$response->assertStatus( 200 );
+		$this->assertEquals( $staff->id, $bed->fresh()->user_id );
+	}
+
+	/** @test */
+	public function student_cannot_be_assigned_to_bed_when_it_becomes_staff_reserved() {
+		// Create roles
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$studentRole = Role::where( 'name', 'student' )->first();
+
+		// Create users
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		$student = User::factory()->create( [ 
+			'role_id' => $studentRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create a bed and assign student to it
+		$bed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => false,
+			'user_id'            => $student->id
+		] );
+
+		// Try to reserve the bed for staff while student is assigned
+		$response = $this->actingAs( $admin )->putJson( "/api/beds/{$bed->id}", [ 
+			'reserved_for_staff' => true
+		] );
+
+		$response->assertStatus( 422 ); // Validation error - cannot reserve bed for staff when student is assigned
+		$this->assertFalse( $bed->fresh()->reserved_for_staff );
+	}
+
+	/** @test */
+	public function staff_reserved_beds_are_excluded_from_student_assignment_options() {
+		// Create roles
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$studentRole = Role::where( 'name', 'student' )->first();
+
+		// Create users
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		$student = User::factory()->create( [ 
+			'role_id' => $studentRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create available beds (some staff-reserved, some not)
+		$staffReservedBed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => true,
+			'user_id'            => null
+		] );
+
+		$availableBed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => false,
+			'user_id'            => null
+		] );
+
+		// Get available beds for student assignment
+		$response = $this->actingAs( $admin )->getJson( '/api/rooms/available' );
+
+		$response->assertStatus( 200 );
+		$availableBeds = $response->json( 'data' );
+
+		// Staff-reserved bed should not be in available beds for students
+		$this->assertNotContains( $staffReservedBed->id, collect( $availableBeds )->pluck( 'id' )->toArray() );
+	}
+
+	/** @test */
+	public function admin_can_see_staff_reserved_beds_in_room_details() {
+		// Create an admin role and user
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create beds with different reservation statuses
+		$staffReservedBed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => true,
+			'user_id'            => null
+		] );
+
+		$regularBed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => false,
+			'user_id'            => null
+		] );
+
+		// Get room details
+		$response = $this->actingAs( $admin )->getJson( "/api/rooms/{$room->id}" );
+
+		$response->assertStatus( 200 );
+		$roomData = $response->json( 'data' );
+		$beds = $roomData['beds'];
+
+		// Should show both beds with their reservation status
+		$this->assertCount( 2, $beds );
+
+		$staffReservedBedData = collect( $beds )->firstWhere( 'id', $staffReservedBed->id );
+		$regularBedData = collect( $beds )->firstWhere( 'id', $regularBed->id );
+
+		$this->assertTrue( $staffReservedBedData['reserved_for_staff'] );
+		$this->assertFalse( $regularBedData['reserved_for_staff'] );
+	}
+
+	/** @test */
+	public function student_cannot_see_staff_reserved_beds_in_available_options() {
+		// Create roles
+		$studentRole = Role::where( 'name', 'student' )->first();
+
+		// Create a student user
+		$student = User::factory()->create( [ 
+			'role_id' => $studentRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create beds with different reservation statuses
+		$staffReservedBed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => true,
+			'user_id'            => null
+		] );
+
+		$availableBed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => false,
+			'user_id'            => null
+		] );
+
+		// Student tries to get available beds
+		$response = $this->actingAs( $student )->getJson( '/api/rooms/available' );
+
+		$response->assertStatus( 200 );
+		$availableBeds = $response->json( 'data' );
+
+		// Staff-reserved bed should not be available to students
+		$this->assertNotContains( $staffReservedBed->id, collect( $availableBeds )->pluck( 'id' )->toArray() );
+
+		// Regular bed should be available
+		$this->assertContains( $availableBed->id, collect( $availableBeds )->pluck( 'id' )->toArray() );
+	}
+
+	/** @test */
+	public function bed_cannot_be_reserved_for_staff_if_already_occupied_by_student() {
+		// Create roles
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$studentRole = Role::where( 'name', 'student' )->first();
+
+		// Create users
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		$student = User::factory()->create( [ 
+			'role_id' => $studentRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create a bed occupied by a student
+		$bed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => false,
+			'user_id'            => $student->id
+		] );
+
+		// Try to reserve the bed for staff
+		$response = $this->actingAs( $admin )->putJson( "/api/beds/{$bed->id}", [ 
+			'reserved_for_staff' => true
+		] );
+
+		$response->assertStatus( 422 ); // Validation error
+		$this->assertFalse( $bed->fresh()->reserved_for_staff );
+	}
+
+	/** @test */
+	public function bed_can_be_unreserved_from_staff_if_not_occupied() {
+		// Create an admin role and user
+		$adminRole = Role::where( 'name', 'admin' )->first();
+		$admin = User::factory()->create( [ 
+			'role_id' => $adminRole->id,
+			'status'  => 'active'
+		] );
+
+		// Create a dormitory and room
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+		$room = Room::factory()->create( [ 
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+
+		// Create a staff-reserved bed
+		$bed = Bed::factory()->create( [ 
+			'room_id'            => $room->id,
+			'reserved_for_staff' => true,
+			'user_id'            => null
+		] );
+
+		// Unreserve the bed from staff
+		$response = $this->actingAs( $admin )->putJson( "/api/beds/{$bed->id}", [ 
+			'reserved_for_staff' => false
+		] );
+
+		$response->assertStatus( 200 );
+		$this->assertFalse( $bed->fresh()->reserved_for_staff );
+	}
+}

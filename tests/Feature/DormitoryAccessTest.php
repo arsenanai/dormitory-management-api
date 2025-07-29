@@ -5,17 +5,25 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Role;
 use App\Models\SemesterPayment;
 
 class DormitoryAccessTest extends TestCase {
 	use RefreshDatabase;
 
+	protected function setUp(): void {
+		parent::setUp();
+		$this->seed();
+	}
+
 	/** @test */
 	public function student_with_current_semester_payment_can_access_dormitory() {
-		$student = User::factory()->create( [ 'role_id' => 3 ] ); // Assume 3 = student
+		$studentRole = Role::where( 'name', 'student' )->first();
+		$student = User::factory()->create( [ 'role_id' => $studentRole->id ] );
+		$currentSemester = SemesterPayment::getCurrentSemester();
 		SemesterPayment::factory()->create( [ 
 			'user_id'                   => $student->id,
-			'semester'                  => '2024-fall',
+			'semester'                  => $currentSemester,
 			'payment_approved'          => true,
 			'dormitory_access_approved' => true,
 		] );
@@ -27,7 +35,8 @@ class DormitoryAccessTest extends TestCase {
 
 	/** @test */
 	public function student_without_current_semester_payment_cannot_access_dormitory() {
-		$student = User::factory()->create( [ 'role_id' => 3 ] ); // Assume 3 = student
+		$studentRole = Role::where( 'name', 'student' )->first();
+		$student = User::factory()->create( [ 'role_id' => $studentRole->id ] );
 		// No payment created
 
 		$response = $this->actingAs( $student )->getJson( '/api/dormitory-access/check' );
