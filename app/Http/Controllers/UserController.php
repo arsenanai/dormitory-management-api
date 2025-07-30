@@ -21,7 +21,7 @@ class UserController extends Controller {
 	protected $authService;
 
 	private array $studentRegisterRules = [ 
-		'iin'                      => 'required|digits:12|unique:users,iin',
+		'iin'                      => 'required|digits:12|unique:users,iin|unique:student_profiles,iin',
 		'name'                     => 'required|string|max:255',
 		'faculty'                  => 'required|string|max:255',
 		'specialist'               => 'required|string|max:255',
@@ -65,6 +65,13 @@ class UserController extends Controller {
 
 		$result = $this->authService->attemptLogin( $request->email, $request->password );
 
+		// Debug logging
+		\Log::info( 'Login attempt', [ 
+			'email'        => $request->email,
+			'result_type'  => gettype( $result ),
+			'result_value' => $result === 'not_approved' ? 'not_approved' : ( $result === null ? 'null' : 'user_object' )
+		] );
+
 		if ( $result === 'not_approved' ) {
 			return response()->json( [ 'message' => 'auth.not_approved' ], 401 );
 		}
@@ -82,6 +89,12 @@ class UserController extends Controller {
 	}
 
 	public function register( Request $request ) {
+		// Debug logging
+		\Log::info( 'Registration attempt', [ 
+			'user_type' => $request->input( 'user_type', 'student' ),
+			'data'      => $request->all()
+		] );
+
 		$userType = $request->input( 'user_type', 'student' );
 		if ( $userType === 'admin' ) {
 			$rules = $this->adminRegisterRules;
@@ -91,7 +104,13 @@ class UserController extends Controller {
 			$rules = $this->studentRegisterRules;
 		}
 
-		$validated = $request->validate( $rules );
+		try {
+			$validated = $request->validate( $rules );
+			\Log::info( 'Validation passed', [ 'validated' => $validated ] );
+		} catch (\Illuminate\Validation\ValidationException $e) {
+			\Log::error( 'Validation failed', [ 'errors' => $e->errors() ] );
+			throw $e;
+		}
 
 		// Handle file uploads
 		$filePaths = [];
@@ -122,6 +141,8 @@ class UserController extends Controller {
 		}
 
 		$user = User::create( $userData );
+
+		\Log::info( 'User created', [ 'user_id' => $user->id ] );
 
 		// Create profile and store role-specific fields
 		if ( $userType === 'student' ) {

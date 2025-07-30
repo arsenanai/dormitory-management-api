@@ -19,6 +19,9 @@ use App\Models\AdminProfile;
 
 class DevelopmentSeeder extends Seeder {
 	public function run(): void {
+		// Get admin user for message sender and payment approvals
+		$adminUser = User::where( 'role_id', Role::where( 'name', 'admin' )->first()->id )->first();
+
 		// Create sample countries, regions, cities
 		$kazakhstan = Country::firstOrCreate( [ 'name' => 'Kazakhstan' ] );
 		$almaty_region = Region::firstOrCreate( [ 
@@ -34,51 +37,6 @@ class DevelopmentSeeder extends Seeder {
 		$adminRole = \App\Models\Role::firstOrCreate( [ 'name' => 'admin' ] );
 		$sudoRole = \App\Models\Role::firstOrCreate( [ 'name' => 'sudo' ] );
 		$studentRole = \App\Models\Role::firstOrCreate( [ 'name' => 'student' ] );
-
-		// Create admin user
-		$admin = \App\Models\User::firstOrCreate( [ 
-			'email' => 'admin@email.com'
-		], [ 
-			'name'     => 'Test Admin',
-			'email'    => 'admin@email.com',
-			'password' => Hash::make( 'supersecret' ),
-			'role_id'  => $adminRole->id,
-			'status'   => 'active',
-		] );
-
-		// Create sudo user
-		$sudo = \App\Models\User::firstOrCreate( [ 
-			'email' => 'sudo@email.com'
-		], [ 
-			'name'     => 'Test Sudo',
-			'email'    => 'sudo@email.com',
-			'password' => Hash::make( 'supersecret' ),
-			'role_id'  => $sudoRole->id,
-			'status'   => 'active',
-		] );
-
-		// Create a student user with has_meal_plan = true
-		$student = \App\Models\User::firstOrCreate( [ 
-			'email' => 'student@email.com'
-		], [ 
-			'name'     => 'Test Student',
-			'email'    => 'student@email.com',
-			'password' => Hash::make( 'studentpass' ),
-			'role_id'  => $studentRole->id,
-			'status'   => 'active',
-		] );
-		\App\Models\StudentProfile::firstOrCreate( [ 
-			'user_id' => $student->id
-		], [ 
-			'student_id'               => 'STU12345',
-			'iin'                      => '123456789012',
-			'faculty'                  => 'Engineering',
-			'specialist'               => 'Software',
-			'enrollment_year'          => 2022,
-			'gender'                   => 'male',
-			'agree_to_dormitory_rules' => true,
-			'has_meal_plan'            => true
-		] );
 
 		// Create room types
 		$standardRoomType = RoomType::firstOrCreate(
@@ -141,51 +99,6 @@ class DevelopmentSeeder extends Seeder {
 			'capacity'    => 50,
 		] );
 
-		// Create admin users
-		$admin1 = User::firstOrCreate(
-			[ 'email' => 'admin1@dormitory.local' ],
-			[ 
-				'name'     => 'John Admin',
-				'email'    => 'admin1@dormitory.local',
-				'password' => Hash::make( 'password' ),
-				'role_id'  => $adminRole->id,
-				'status'   => 'active',
-			]
-		);
-		AdminProfile::firstOrCreate(
-			[ 'user_id' => $admin1->id ],
-			[ 
-				'position'        => 'Head of Dormitory',
-				'department'      => 'Administration',
-				'office_phone'    => '+77001234567',
-				'office_location' => 'Room 101',
-			]
-		);
-
-		$admin2 = User::firstOrCreate(
-			[ 'email' => 'admin2@dormitory.local' ],
-			[ 
-				'name'     => 'Jane Admin',
-				'email'    => 'admin2@dormitory.local',
-				'password' => Hash::make( 'password' ),
-				'role_id'  => $adminRole->id,
-				'status'   => 'active',
-			]
-		);
-		AdminProfile::firstOrCreate(
-			[ 'user_id' => $admin2->id ],
-			[ 
-				'position'        => 'Deputy Head',
-				'department'      => 'Administration',
-				'office_phone'    => '+77001234568',
-				'office_location' => 'Room 102',
-			]
-		);
-
-		// Assign admins to dormitories
-		$dormitory1->update( [ 'admin_id' => $admin1->id ] );
-		$dormitory2->update( [ 'admin_id' => $admin2->id ] );
-
 		// Create rooms for dormitory 1
 		for ( $floor = 1; $floor <= 5; $floor++ ) {
 			for ( $roomNum = 1; $roomNum <= 10; $roomNum++ ) {
@@ -228,21 +141,24 @@ class DevelopmentSeeder extends Seeder {
 			'room_id'    => $testRoom->id,
 		] );
 
-		// Create sample students
+		// Create sample students - UPDATED FOR E2E TESTS
 		$students = [ 
 			[ 
-				'name'  => 'Alice Student',
-				'email' => 'alice@student.local',
+				'name'     => 'Test Student',
+				'email'    => env( 'STUDENT_EMAIL', 'student@email.com' ),
+				'password' => env( 'STUDENT_PASSWORD', 'studentpass' ),
 				// ...student-specific fields removed, handled in StudentProfile...
 			],
 			[ 
-				'name'  => 'Bob Student',
-				'email' => 'bob@student.local',
+				'name'     => 'Alice Student',
+				'email'    => 'alice@student.local',
+				'password' => 'password',
 				// ...student-specific fields removed, handled in StudentProfile...
 			],
 			[ 
-				'name'  => 'Charlie Student',
-				'email' => 'charlie@student.local',
+				'name'     => 'Bob Student',
+				'email'    => 'bob@student.local',
+				'password' => 'password',
 				// ...student-specific fields removed, handled in StudentProfile...
 			],
 		];
@@ -255,7 +171,7 @@ class DevelopmentSeeder extends Seeder {
 				[ 
 					'name'          => $studentData['name'],
 					'email'         => $studentData['email'],
-					'password'      => Hash::make( 'password' ),
+					'password'      => Hash::make( $studentData['password'] ?? 'password' ),
 					'role_id'       => $studentRole->id,
 					'status'        => 'active',
 					'room_id'       => $room->id,
@@ -325,8 +241,8 @@ class DevelopmentSeeder extends Seeder {
 					'dormitory_access_approved' => true,
 					'payment_approved_at'       => now()->subDays( 10 ),
 					'dormitory_approved_at'     => now()->subDays( 5 ),
-					'payment_approved_by'       => $admin1->id,
-					'dormitory_approved_by'     => $admin1->id,
+					'payment_approved_by'       => $adminUser ? $adminUser->id : null,
+					'dormitory_approved_by'     => $adminUser ? $adminUser->id : null,
 					'due_date'                  => now()->addDays( 30 ),
 					'paid_date'                 => now(),
 					'payment_notes'             => 'Paid in full',
@@ -340,7 +256,7 @@ class DevelopmentSeeder extends Seeder {
 
 		// Create sample messages
 		Message::firstOrCreate( [ 
-			'sender_id'      => $admin1->id,
+			'sender_id'      => $adminUser ? $adminUser->id : 1,
 			'title'          => 'Welcome to Dormitory',
 			'content'        => 'Welcome to our dormitory! Please read the rules and regulations.',
 			'recipient_type' => 'all',
@@ -349,7 +265,7 @@ class DevelopmentSeeder extends Seeder {
 		] );
 
 		Message::firstOrCreate( [ 
-			'sender_id'      => $admin1->id,
+			'sender_id'      => $adminUser ? $adminUser->id : 1,
 			'title'          => 'Floor Meeting',
 			'content'        => 'There will be a floor meeting tomorrow at 7 PM.',
 			'recipient_type' => 'dormitory',
@@ -360,11 +276,11 @@ class DevelopmentSeeder extends Seeder {
 
 		// Create sample guest data for E2E tests
 		$guestUser = User::firstOrCreate(
-			[ 'email' => 'guest@test.local' ],
+			[ 'email' => env( 'GUEST_EMAIL', 'guest@test.local' ) ],
 			[ 
 				'name'     => 'Test Guest',
-				'email'    => 'guest@test.local',
-				'password' => Hash::make( 'password' ),
+				'email'    => env( 'GUEST_EMAIL', 'guest@test.local' ),
+				'password' => Hash::make( env( 'GUEST_PASSWORD', 'password' ) ),
 				'role_id'  => Role::where( 'name', 'guest' )->firstOrCreate( [ 'name' => 'guest' ] )->id,
 				'status'   => 'active',
 			]
