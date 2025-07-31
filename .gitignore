@@ -9,6 +9,8 @@
 .env
 .env.backup
 .env.production
+.env.local
+.env.testing
 .phpactor.json
 .phpunit.result.cache
 Homestead.json
@@ -21,3 +23,16 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Test outputs
+test-results/
+test-output-*.txt
+coverage/
+*.lcov
+*.coverage
+*.test-results
+*.e2e-results
+*.spec-results
+debug-*.php
+debug-*.log
+debug-*.txt

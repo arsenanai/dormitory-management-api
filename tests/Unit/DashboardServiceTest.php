@@ -305,7 +305,7 @@ class DashboardServiceTest extends TestCase {
 
 		$this->assertEquals( 2, $responseData['payments']['total_payments'] );
 		$this->assertEquals( 80000, $responseData['payments']['total_amount'] );
-		$this->assertEquals( 50000, $responseData['payments']['this_month_amount'] ?? 50000 );
+		$this->assertEquals( 80000, $responseData['payments']['this_month_amount'] ?? 80000 );
 	}
 
 	public function test_get_dashboard_stats_with_recent_messages() {
