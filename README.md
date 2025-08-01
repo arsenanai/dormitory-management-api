@@ -105,35 +105,192 @@ php artisan test --parallel
 - **Database Tests**: Migration and seeder testing
 - **Integration Tests**: Full workflow testing
 
-## 🐳 Docker Usage
+## 🐳 Docker Installation & Usage
 
-### Development Environment
+### Prerequisites
+
+- [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+- Git for cloning the repository
+
+### Development Environment Setup
+
+#### 1. Clone and Setup Project
 
 ```bash
-# Install Composer dependencies
-docker compose run --rm composer
+# Clone the repository
+git clone <repository-url>
+cd crm-back
+
+# Copy environment file
+cp .env.example .env
+```
+
+#### 2. Configure Environment
+
+Edit the `.env` file with your database settings:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=dormitory_management
+DB_USERNAME=root
+DB_PASSWORD=password
+CACHE_STORE=file
+```
+
+#### 3. Start Development Environment
+
+```bash
+# Start all development services
+docker compose --profile dev up -d
+
+# Generate application key
+docker compose exec dev php artisan key:generate
 
 # Run migrations
 docker compose run --rm migrate
 
-# Run seeders
+# Seed database with test data
 docker compose run --rm seed
 
-# Generate application key
-docker compose run --rm app php artisan key:generate
+# Verify setup
+docker compose exec dev php artisan migrate:status
+```
+
+#### 4. Access Development Environment
+
+- **API**: http://localhost:8000
+- **MailHog (Email Testing)**: http://localhost:8025
+- **Database**: localhost:3306
+- **Redis**: localhost:6379
+
+#### 5. Development Commands
+
+```bash
+# View logs
+docker compose logs dev
 
 # Run tests
 docker compose run --rm test
 
-# Start development server
-docker compose up dev db redis
+# Access container shell
+docker compose exec dev bash
+
+# Clear cache
+docker compose exec dev php artisan config:clear
+
+# Restart services
+docker compose restart dev
 ```
 
-### Production Environment
+### Production Environment Setup
+
+#### 1. Clone and Setup Project
 
 ```bash
-# Start production server with Nginx
-docker compose up -d app nginx-proxy letsencrypt db redis
+# Clone the repository
+git clone <repository-url>
+cd crm-back
+
+# Copy environment file
+cp .env.example .env
+```
+
+#### 2. Configure Production Environment
+
+Edit the `.env` file for production:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=dormitory_management
+DB_USERNAME=root
+DB_PASSWORD=your_secure_password
+CACHE_STORE=file
+```
+
+#### 3. Start Production Environment
+
+```bash
+# Start production services
+docker compose --profile production up -d
+
+# Generate application key
+docker compose exec app php artisan key:generate
+
+# Run migrations
+docker compose run --rm migrate
+
+# Seed database (if needed)
+docker compose run --rm seed
+
+# Set proper permissions
+docker compose exec app chown -R www-data:www-data storage bootstrap/cache
+```
+
+#### 4. Production Access
+
+- **Web Application**: http://your-domain.com
+- **API**: http://your-domain.com/api
+- **Database**: Internal network only
+- **Redis**: Internal network only
+
+#### 5. Production Maintenance
+
+```bash
+# View logs
+docker compose logs app
+
+# Update application
+git pull
+docker compose --profile production up -d --build
+
+# Backup database
+docker compose exec db mysqldump -u root -p dormitory_management > backup.sql
+
+# Monitor services
+docker compose ps
+```
+
+### Service Profiles
+
+- **Development**: `docker compose --profile dev up -d`
+  - Includes: dev, db, redis, mailhog, server-base
+- **Production**: `docker compose --profile production up -d`
+  - Includes: app, nginx, db, redis, server-base
+- **Testing**: `docker compose --profile test up -d`
+  - Includes: test, server-base
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Port conflicts**: Ensure ports 8000, 3306, 6379 are available
+2. **Permission errors**: Run `chmod -R 755 storage bootstrap/cache` in container
+3. **Database connection**: Check `.env` file and ensure database container is running
+4. **Memory issues**: Increase Docker memory allocation for large applications
+
+#### Useful Commands
+
+```bash
+# Clean up containers and volumes
+docker compose down -v
+
+# Rebuild services
+docker compose --profile dev up -d --build
+
+# View service status
+docker compose ps
+
+# Check service logs
+docker compose logs [service-name]
+
+# Access database
+docker compose exec db mysql -u root -p dormitory_management
 ```
 
 ## 📚 API Endpoints
