@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Bed;
+use Illuminate\Validation\ValidationException;
 
 class StudentService {
 	/**
@@ -44,6 +46,21 @@ class StudentService {
 	 * Create a new student
 	 */
 	public function createStudent( array $data ) {
+		// Bed assignment validation
+		if ( isset( $data['bed_id'] ) ) {
+			$bed = Bed::find( $data['bed_id'] );
+			if ( ! $bed ) {
+				throw ValidationException::withMessages( [ 'bed_id' => 'Selected bed does not exist.' ] );
+			}
+			if ( $bed->reserved_for_staff ) {
+				// Only allow admin users to be assigned to staff-reserved beds
+				$roleName = isset( $data['role'] ) ? $data['role'] : ( isset( $data['role_id'] ) ? optional( \App\Models\Role::find( $data['role_id'] ) )->name : null );
+				if ( $roleName !== 'admin' ) {
+					throw ValidationException::withMessages( [ 'bed_id' => 'Only admin users can be assigned to staff-reserved beds.' ] );
+				}
+			}
+		}
+
 		// Handle file uploads
 		$filePaths = [];
 		if ( isset( $data['files'] ) ) {
@@ -60,7 +77,30 @@ class StudentService {
 
 		$student = User::create( $data );
 
-		return response()->json( $student->load( [ 'role', 'city', 'room' ] ), 201 );
+		// Create StudentProfile
+		$profileData = [ 
+			'user_id'                  => $student->id,
+			'iin'                      => $data['iin'],
+			'student_id'               => $data['student_id'] ?? $data['iin'], // Use IIN as fallback
+			'faculty'                  => $data['faculty'],
+			'specialist'               => $data['specialist'],
+			'enrollment_year'          => $data['enrollment_year'],
+			'gender'                   => $data['gender'],
+			'blood_type'               => $data['blood_type'] ?? null,
+			'parent_name'              => $data['parent_name'] ?? null,
+			'parent_phone'             => $data['parent_phone'] ?? null,
+			'mentor_name'              => $data['mentor_name'] ?? null,
+			'mentor_email'             => $data['mentor_email'] ?? null,
+			'violations'               => $data['violations'] ?? null,
+			'deal_number'              => $data['deal_number'] ?? null,
+			'city_id'                  => $data['city_id'] ?? null,
+			'files'                    => ! empty( $filePaths ) ? json_encode( $filePaths ) : null,
+			'agree_to_dormitory_rules' => $data['agree_to_dormitory_rules'] ?? false,
+		];
+
+		\App\Models\StudentProfile::create( $profileData );
+
+		return response()->json( $student->load( [ 'role', 'city', 'room', 'studentProfile' ] ), 201 );
 	}
 
 	/**
@@ -88,6 +128,21 @@ class StudentService {
 	 * Update student
 	 */
 	public function updateStudent( $id, array $data ) {
+		// Bed assignment validation
+		if ( isset( $data['bed_id'] ) ) {
+			$bed = Bed::find( $data['bed_id'] );
+			if ( ! $bed ) {
+				throw ValidationException::withMessages( [ 'bed_id' => 'Selected bed does not exist.' ] );
+			}
+			if ( $bed->reserved_for_staff ) {
+				$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )->find( $id );
+				$roleName = $student && $student->role ? $student->role->name : null;
+				if ( $roleName !== 'admin' ) {
+					throw ValidationException::withMessages( [ 'bed_id' => 'Only admin users can be assigned to staff-reserved beds.' ] );
+				}
+			}
+		}
+
 		$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
 			->findOrFail( $id );
 
@@ -107,7 +162,19 @@ class StudentService {
 
 		$student->update( $data );
 
-		return response()->json( $student->load( [ 'role', 'city', 'room' ] ) );
+		// Update StudentProfile if profile-specific fields are provided
+		$profileFields = [ 
+			'faculty', 'specialist', 'enrollment_year', 'gender', 'blood_type',
+			'parent_name', 'parent_phone', 'mentor_name', 'mentor_email',
+			'violations', 'deal_number', 'city_id', 'files', 'agree_to_dormitory_rules'
+		];
+
+		$profileData = array_intersect_key( $data, array_flip( $profileFields ) );
+		if ( ! empty( $profileData ) && $student->studentProfile ) {
+			$student->studentProfile->update( $profileData );
+		}
+
+		return response()->json( $student->load( [ 'role', 'city', 'room', 'studentProfile' ] ) );
 	}
 
 	/**
@@ -123,6 +190,7 @@ class StudentService {
 		}
 
 		$student->delete();
+		return response()->json( [ 'message' => 'Student deleted successfully' ], 200 );
 	}
 
 	/**

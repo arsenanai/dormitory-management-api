@@ -10,6 +10,7 @@ class StudentProfile extends Model {
 
 	protected $fillable = [ 
 		'user_id',
+		'iin',
 		'student_id',
 		'faculty',
 		'specialist',
@@ -39,11 +40,15 @@ class StudentProfile extends Model {
 		'has_meal_plan',
 		'registration_limit_reached',
 		'is_backup_list',
+		'date_of_birth',
+		'gender',
+		'files',
+		'city_id',
 	];
 
 	protected $casts = [ 
 		'enrollment_date'            => 'date',
-		'course'                     => 'integer',
+		'course'                     => 'string',
 		'year_of_study'              => 'integer',
 		'year_level'                 => 'integer',
 		'agree_to_dormitory_rules'   => 'boolean',

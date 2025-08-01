@@ -16,10 +16,12 @@ class Room extends Model {
 		'notes',
 		'dormitory_id',
 		'room_type_id',
+		'is_occupied',
 	];
 
 	protected $casts = [ 
 		'floor' => 'integer',
+		'is_occupied' => 'boolean',
 	];
 
 	public function dormitory(): BelongsTo {

@@ -13,7 +13,14 @@ class MessageService {
 	 * Get messages with filters and pagination
 	 */
 	public function getMessagesWithFilters( array $filters = [] ) {
-		$query = Message::with( [ 'sender', 'dormitory', 'room' ] );
+		$query = Message::with( [ 'sender', 'receiver', 'dormitory', 'room' ] );
+
+		$user = Auth::user();
+
+		// If user is a student, only show their messages
+		if ( $user && $user->hasRole( 'student' ) ) {
+			$query->where( 'receiver_id', $user->id );
+		}
 
 		// Apply filters
 		if ( isset( $filters['recipient_type'] ) ) {
@@ -54,16 +61,24 @@ class MessageService {
 		// If send_immediately is true, send the message right away
 		if ( isset( $data['send_immediately'] ) && $data['send_immediately'] ) {
 			$this->sendMessage( $message->id );
+			$message->refresh(); // Reload the message to get updated status
 		}
 
-		return response()->json( $message->load( [ 'sender', 'dormitory', 'room' ] ), 201 );
+		return response()->json( $message->load( [ 'sender', 'receiver', 'dormitory', 'room' ] ), 201 );
 	}
 
 	/**
 	 * Get message details
 	 */
 	public function getMessageDetails( $id ) {
-		$message = Message::with( [ 'sender', 'dormitory', 'room' ] )->findOrFail( $id );
+		$message = Message::with( [ 'sender', 'receiver', 'dormitory', 'room' ] )->findOrFail( $id );
+
+		$user = Auth::user();
+
+		// If user is a student, only allow viewing their own messages
+		if ( $user && $user->hasRole( 'student' ) && $message->receiver_id !== $user->id ) {
+			return response()->json( [ 'message' => 'Forbidden' ], 403 );
+		}
 
 		// Decode recipient_ids if it exists
 		if ( $message->recipient_ids ) {
@@ -106,6 +121,7 @@ class MessageService {
 		}
 
 		$message->delete();
+		return response()->json( [ 'message' => 'Message deleted successfully' ], 200 );
 	}
 
 	/**
@@ -148,10 +164,17 @@ class MessageService {
 					$subQ->where( 'recipient_type', 'room' )
 						->where( 'room_id', $user->room_id );
 				} )
-					// Individual messages
+					// Individual messages - multiple patterns for SQLite compatibility
 					->orWhere( function ($subQ) use ($user) {
 					$subQ->where( 'recipient_type', 'individual' )
-						->whereJsonContains( 'recipient_ids', $user->id );
+						->where( function ($innerQ) use ($user) {
+							$innerQ->where( 'recipient_ids', 'LIKE', '%"' . $user->id . '"%' )
+								->orWhere( 'recipient_ids', '=', json_encode( [ $user->id ] ) )
+								->orWhere( 'recipient_ids', '=', json_encode( [ (string) $user->id ] ) )
+								->orWhere( 'recipient_ids', 'LIKE', '%[' . $user->id . '%' )
+								->orWhere( 'recipient_ids', 'LIKE', '%,' . $user->id . '%' )
+								->orWhere( 'recipient_ids', 'LIKE', '%' . $user->id . ']%' );
+						} );
 				} );
 			} )
 			->with( [ 'sender' ] )
@@ -161,11 +184,50 @@ class MessageService {
 	}
 
 	/**
-	 * Mark message as read (for future implementation)
+	 * Mark message as read
 	 */
 	public function markAsRead( $id ) {
-		// This would require a pivot table for message_user_read status
-		// For now, just return success
+		$message = Message::findOrFail( $id );
+		$message->update( [ 'read_at' => now() ] );
 		return response()->json( [ 'message' => 'Message marked as read' ] );
+	}
+
+	/**
+	 * Get unread messages count for the authenticated user
+	 */
+	public function getUnreadCount() {
+		$user = Auth::user();
+
+		$count = Message::where( function ($query) use ($user) {
+			// Direct messages to this user
+			$query->where( 'receiver_id', $user->id );
+
+			// OR broadcast messages
+			$query->orWhere( function ($subQuery) use ($user) {
+				$subQuery->where( function ($q) use ($user) {
+					// Messages for all students
+					$q->where( 'recipient_type', 'all' );
+				} )
+					// Messages for specific dormitory
+					->orWhere( function ($subQ) use ($user) {
+						$subQ->where( 'recipient_type', 'dormitory' )
+							->where( 'dormitory_id', $user->dormitory_id ?? 0 );
+					} )
+					// Messages for specific room
+					->orWhere( function ($subQ) use ($user) {
+						$subQ->where( 'recipient_type', 'room' )
+							->where( 'room_id', $user->room_id );
+					} )
+					// Individual messages via recipient_ids
+					->orWhere( function ($subQ) use ($user) {
+						$subQ->where( 'recipient_type', 'individual' )
+							->whereJsonContains( 'recipient_ids', $user->id );
+					} );
+			} );
+		} )
+			->whereNull( 'read_at' )
+			->count();
+
+		return response()->json( [ 'count' => $count ] );
 	}
 }

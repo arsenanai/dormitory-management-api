@@ -20,6 +20,7 @@ class StudentProfileFactory extends Factory {
 	public function definition(): array {
 	   return [
 		   'user_id'                => User::factory(),
+		   'iin'                    => fake()->unique()->numerify('############'), // 12-digit IIN
 		   'student_id'             => fake()->unique()->numerify('STU#####'),
 		   'faculty'                => fake()->randomElement(['Engineering', 'Business', 'Medicine', 'Law', 'Arts']),
 		   'specialist'             => fake()->randomElement(['Computer Science', 'Mechanical Engineering', 'Accounting', 'Marketing']),
@@ -38,18 +39,21 @@ class StudentProfileFactory extends Factory {
 		   'mentor_email'           => null,
 		   'emergency_contact_name' => fake()->name(),
 		   'emergency_contact_phone'=> fake()->phoneNumber(),
-	   ];
-			'emergency_contact_relationship' => fake()->randomElement( [ 'Father', 'Mother', 'Guardian', 'Sibling', 'Uncle', 'Aunt' ] ),
-			'medical_conditions'             => fake()->optional()->sentence(),
-			'dietary_restrictions'           => fake()->optional()->randomElement( [ 'Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-free' ] ),
-			'program'                        => fake()->randomElement( [ 'Computer Science', 'Engineering', 'Business', 'Medicine', 'Law' ] ),
-			'year_level'                     => fake()->numberBetween( 1, 4 ),
-			'nationality'                    => fake()->country(),
-			'deal_number'                    => fake()->optional()->numerify( 'DEAL#####' ),
-			'agree_to_dormitory_rules'       => fake()->boolean(),
-			'has_meal_plan'                  => fake()->boolean(),
-			'registration_limit_reached'     => fake()->boolean( 20 ),
-			'is_backup_list'                 => fake()->boolean( 30 ),
+		   'emergency_contact_relationship' => fake()->randomElement( [ 'Father', 'Mother', 'Guardian', 'Sibling', 'Uncle', 'Aunt' ] ),
+		   'medical_conditions'             => fake()->optional()->sentence(),
+		   'dietary_restrictions'           => fake()->optional()->randomElement( [ 'Vegetarian', 'Vegan', 'Halal', 'Kosher', 'Gluten-free' ] ),
+		   'program'                        => fake()->randomElement( [ 'Computer Science', 'Engineering', 'Business', 'Medicine', 'Law' ] ),
+		   'year_level'                     => fake()->numberBetween( 1, 4 ),
+		   'nationality'                    => fake()->country(),
+		   'deal_number'                    => fake()->optional()->numerify( 'DEAL#####' ),
+		   'agree_to_dormitory_rules'       => fake()->boolean(),
+		   'has_meal_plan'                  => fake()->boolean(),
+		   'registration_limit_reached'     => fake()->boolean( 20 ),
+		   'is_backup_list'                 => fake()->boolean( 30 ),
+		   'date_of_birth'                  => fake()->dateTimeBetween('-25 years', '-18 years'),
+		   'gender'                         => fake()->randomElement(['male', 'female']),
+		   'files'                          => json_encode(fake()->optional()->randomElements(['document1.pdf', 'document2.jpg'], rand(0, 2))),
+		   'city_id'                        => null, // Will be set based on relationship if needed
 		];
 	}
 }

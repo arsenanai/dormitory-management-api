@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Message extends Model {
-	use HasFactory;
+	use HasFactory, SoftDeletes;
 
 	protected $fillable = [ 
 		'sender_id',
@@ -18,15 +19,23 @@ class Message extends Model {
 		'recipient_ids',
 		'status',
 		'sent_at',
+		'receiver_id',
+		'read_at',
+		'type',
 	];
 
 	protected $casts = [ 
 		'sent_at'       => 'datetime',
+		'read_at'       => 'datetime',
 		'recipient_ids' => 'array',
 	];
 
 	public function sender() {
 		return $this->belongsTo( User::class, 'sender_id' );
+	}
+
+	public function receiver() {
+		return $this->belongsTo( User::class, 'receiver_id' );
 	}
 
 	public function dormitory() {

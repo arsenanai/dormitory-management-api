@@ -29,15 +29,22 @@ class MessageController extends Controller {
 	 */
 	public function store( Request $request ) {
 		$validated = $request->validate( [ 
+			'receiver_id'      => 'required|integer|exists:users,id',
 			'title'            => 'required|string|max:255',
 			'content'          => 'required|string',
-			'recipient_type'   => 'required|in:all,dormitory,room,individual',
-			'dormitory_id'     => 'required_if:recipient_type,dormitory|nullable|integer|exists:dormitories,id',
-			'room_id'          => 'required_if:recipient_type,room|nullable|integer|exists:rooms,id',
-			'recipient_ids'    => 'required_if:recipient_type,individual|nullable|array',
+			'type'             => 'required|in:general,announcement,violation,emergency,urgent',
+			'recipient_type'   => 'sometimes|in:all,dormitory,room,individual',
+			'dormitory_id'     => 'nullable|integer|exists:dormitories,id',
+			'room_id'          => 'nullable|integer|exists:rooms,id',
+			'recipient_ids'    => 'nullable|array',
 			'recipient_ids.*'  => 'integer|exists:users,id',
 			'send_immediately' => 'sometimes|boolean',
 		] );
+
+		// Set default recipient_type if not provided
+		if (!isset($validated['recipient_type'])) {
+			$validated['recipient_type'] = 'individual';
+		}
 
 		return $this->messageService->createMessage( $validated );
 	}
@@ -54,8 +61,10 @@ class MessageController extends Controller {
 	 */
 	public function update( Request $request, $id ) {
 		$validated = $request->validate( [ 
+			'receiver_id'     => 'sometimes|integer|exists:users,id',
 			'title'           => 'sometimes|string|max:255',
 			'content'         => 'sometimes|string',
+			'type'            => 'sometimes|in:general,announcement,violation,emergency,urgent',
 			'recipient_type'  => 'sometimes|in:all,dormitory,room,individual',
 			'dormitory_id'    => 'sometimes|nullable|integer|exists:dormitories,id',
 			'room_id'         => 'sometimes|nullable|integer|exists:rooms,id',
@@ -71,7 +80,7 @@ class MessageController extends Controller {
 	 */
 	public function destroy( $id ) {
 		$this->messageService->deleteMessage( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Message deleted successfully' ], 200 );
 	}
 
 	/**
@@ -93,5 +102,12 @@ class MessageController extends Controller {
 	 */
 	public function markAsRead( $id ) {
 		return $this->messageService->markAsRead( $id );
+	}
+
+	/**
+	 * Get unread messages count for the authenticated user
+	 */
+	public function unreadCount() {
+		return $this->messageService->getUnreadCount();
 	}
 }

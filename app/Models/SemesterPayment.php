@@ -26,6 +26,11 @@ class SemesterPayment extends Model {
 		'dormitory_notes',
 		'payment_status',
 		'dormitory_status',
+		'contract_number',
+		'contract_date',
+		'payment_date',
+		'payment_method',
+		'receipt_file',
 	];
 
 	protected $casts = [ 
@@ -37,7 +42,11 @@ class SemesterPayment extends Model {
 		'dormitory_approved_at'     => 'datetime',
 		'due_date'                  => 'date',
 		'paid_date'                 => 'date',
+		'contract_date'             => 'date',
+		'payment_date'              => 'date',
 	];
+
+	protected $appends = ['status'];
 
 	public function user() {
 		return $this->belongsTo( User::class);
@@ -80,5 +89,13 @@ class SemesterPayment extends Model {
 	public function scopeApproved( $query ) {
 		return $query->where( 'payment_approved', true )
 			->where( 'dormitory_access_approved', true );
+	}
+
+	public function getStatusAttribute() {
+		return match($this->payment_status) {
+			'approved' => 'completed',
+			'rejected' => 'failed', 
+			default => $this->payment_status
+		};
 	}
 }

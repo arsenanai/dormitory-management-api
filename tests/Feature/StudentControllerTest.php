@@ -44,12 +44,32 @@ class StudentControllerTest extends TestCase {
 			'email'   => 'student@test.com'
 		] );
 
+		// Create StudentProfile for the test student
+		\App\Models\StudentProfile::create( [ 
+			'user_id'                  => $this->student->id,
+			'iin'                      => '123456789012',
+			'student_id'               => 'STU00001',
+			'faculty'                  => 'Engineering',
+			'specialist'               => 'Computer Science',
+			'enrollment_year'          => '2024',
+			'gender'                   => 'male',
+			'blood_type'               => 'O+',
+			'parent_name'              => 'Parent Name',
+			'parent_phone'             => '+77012345678',
+			'mentor_name'              => 'Mentor Name',
+			'mentor_email'             => 'mentor@test.com',
+			'deal_number'              => 'DEAL001',
+			'agree_to_dormitory_rules' => true,
+			'files'                    => json_encode( [] ),
+		] );
+
 		// Create dormitory and room
 		$this->dormitory = Dormitory::create( [ 
 			'name'     => 'Test Dormitory',
 			'address'  => 'Test Address',
 			'admin_id' => $this->admin->id,
 			'gender'   => 'mixed',
+			'capacity' => 200,
 			'quota'    => 100,
 		] );
 
@@ -107,7 +127,7 @@ class StudentControllerTest extends TestCase {
 		Storage::fake( 'public' );
 
 		$studentData = [ 
-			'iin'             => '123456789012',
+			'iin'             => '987654321098',
 			'name'            => 'Test Student',
 			'faculty'         => 'Computer Science',
 			'specialist'      => 'Software Engineering',
@@ -129,10 +149,15 @@ class StudentControllerTest extends TestCase {
 				'email' => 'newstudent@test.com'
 			] );
 
-		$this->assertDatabaseHas( 'users', [ 
-			'iin'    => '123456789012',
-			'name'   => 'Test Student',
-			'status' => 'pending'
+		// Assert role-specific fields in student_profiles
+		$this->assertDatabaseHas( 'student_profiles', [ 
+			'faculty'         => 'Computer Science',
+			'specialist'      => 'Software Engineering',
+			'enrollment_year' => 2024,
+			'gender'          => 'male',
+			'blood_type'      => 'O+',
+			'parent_name'     => 'Test Parent',
+			'parent_phone'    => '+77012345678',
 		] );
 	}
 
@@ -165,9 +190,15 @@ class StudentControllerTest extends TestCase {
 
 		$response->assertStatus( 200 )
 			->assertJsonFragment( [ 
-				'name'    => 'Updated Student Name',
-				'faculty' => 'Updated Faculty'
+				'name' => 'Updated Student Name',
 			] );
+
+		// Role-specific fields in student_profiles
+		$this->assertDatabaseHas( 'student_profiles', [ 
+			'user_id'    => $this->student->id,
+			'faculty'    => 'Updated Faculty',
+			'blood_type' => 'A+',
+		] );
 	}
 
 	/** @test */
@@ -179,15 +210,19 @@ class StudentControllerTest extends TestCase {
 		$response = $this->actingAs( $this->admin, 'sanctum' )
 			->deleteJson( "/api/students/{$testStudent->id}" );
 
-		$response->assertStatus( 204 );
-		$this->assertDatabaseMissing( 'users', [ 'id' => $testStudent->id ] );
+		$response->assertStatus( 200 )
+			->assertJson( [ 'message' => 'Student deleted successfully' ] );
+		// Check that the student is soft deleted
+		$this->assertSoftDeleted( 'users', [ 'id' => $testStudent->id ] );
 	}
 
 	/** @test */
 	public function students_can_be_filtered_by_faculty() {
 		User::factory()->create( [ 
 			'role_id' => Role::where( 'name', 'student' )->first()->id,
-			'faculty' => 'Engineering'
+		] );
+		\App\Models\StudentProfile::factory()->create( [ 
+			'faculty' => 'Engineering',
 		] );
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )

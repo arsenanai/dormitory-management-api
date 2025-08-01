@@ -21,17 +21,14 @@ class MessageFactory extends Factory {
 	 * Define the model's default state.
 	 */
 	public function definition(): array {
-	   return [
-		   'sender_id'      => User::factory(),
-		   'title'          => $this->faker->sentence(4),
-		   'content'        => $this->faker->paragraph(3),
-		   'recipient_type' => $this->faker->randomElement(['all', 'dormitory', 'room', 'individual']),
-		   'dormitory_id'   => null,
-		   'room_id'        => null,
-		   'recipient_ids'  => json_encode([]),
-		   'status'         => 'draft',
-		   'sent_at'        => null,
-	   ];
+		return [
+			'sender_id'      => User::factory(),
+			'title'          => $this->faker->sentence(4),
+			'content'        => $this->faker->paragraph(3),
+			'recipient_type' => $this->faker->randomElement(['all', 'dormitory', 'room', 'individual']),
+			'dormitory_id'   => null,
+			'room_id'        => null,
+			'recipient_ids'  => json_encode([]),
 			'status'         => $this->faker->randomElement( [ 'draft', 'sent' ] ),
 			'sent_at'        => function (array $attributes) {
 				return $attributes['status'] === 'sent' ? $this->faker->dateTimeBetween( '-1 month', 'now' ) : null;

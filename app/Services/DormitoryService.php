@@ -23,6 +23,7 @@ class DormitoryService {
 	public function deleteDormitory( $id ) {
 		$dorm = Dormitory::findOrFail( $id );
 		$dorm->delete();
+		return response()->json( [ 'message' => 'Dormitory deleted successfully' ], 200 );
 	}
 
 	public function assignAdmin( $dormitoryId, $adminId ) {
@@ -31,5 +32,10 @@ class DormitoryService {
 		$dorm->admin()->associate( $admin );
 		$dorm->save();
 		return $dorm;
+	}
+
+	public function getRoomsForDormitory( $dormitoryId ) {
+		$dorm = Dormitory::findOrFail( $dormitoryId );
+		return $dorm->rooms()->with( 'roomType' )->get();
 	}
 }

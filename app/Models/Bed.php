@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+// use Illuminate\Database\Eloquent\Relations\HasMany;
+// use App\Models\BedHistoryEntry;
 
 class Bed extends Model {
 	use HasFactory;
@@ -15,10 +16,14 @@ class Bed extends Model {
 		'status',
 		'user_id',
 		'room_id',
+		'is_occupied',
+		'reserved_for_staff',
 	];
 
 	protected $casts = [ 
-		'status' => 'string',
+		'status'             => 'string',
+		'is_occupied'        => 'boolean',
+		'reserved_for_staff' => 'boolean',
 	];
 
 	/**
@@ -38,7 +43,7 @@ class Bed extends Model {
 	/**
 	 * Relationship: The bed has a history of usage entries.
 	 */
-	public function history(): HasMany {
-		return $this->hasMany( BedHistoryEntry::class);
-	}
+	// public function history(): HasMany {
+	// 	return $this->hasMany( BedHistoryEntry::class);
+	// }
 }

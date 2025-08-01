@@ -104,17 +104,17 @@ class UserControllerTest extends TestCase {
 
 		$response->assertStatus( 201 )
 			->assertJsonFragment( [ 
-				'first_name' => 'New',
-				'last_name'  => 'User',
-				'email'      => 'newuser@test.com',
-				'phone'      => '+1234567890',
+				'first_name'    => 'New',
+				'last_name'     => 'User',
+				'email'         => 'newuser@test.com',
+				'phone_numbers' => [ '+1234567890' ],
 			] );
 
 		$this->assertDatabaseHas( 'users', [ 
-			'email'      => 'newuser@test.com',
-			'first_name' => 'New',
-			'last_name'  => 'User',
-			'phone'      => '+1234567890',
+			'email'         => 'newuser@test.com',
+			'first_name'    => 'New',
+			'last_name'     => 'User',
+			'phone_numbers' => json_encode( [ '+1234567890' ] ),
 		] );
 	}
 
@@ -136,19 +136,27 @@ class UserControllerTest extends TestCase {
 			'violations'            => 'None',
 		];
 
+		$userData['iin'] = '123456789012';
+
 		$response = $this->actingAs( $this->admin )
 			->postJson( '/api/users', $userData );
 
 		$response->assertStatus( 201 )
-			->assertJsonFragment( [ 
-				'student_id'    => 'STU001',
-				'blood_type'    => 'O+',
-				'course'        => 'Computer Science',
-				'year_of_study' => 2,
-			] );
+			->assertJsonStructure( [
+				'student_profile' => [
+					'student_id',
+					'blood_type',
+					'course',
+					'year_of_study'
+				]
+			] )
+			->assertJsonPath( 'student_profile.student_id', 'STU001' )
+			->assertJsonPath( 'student_profile.blood_type', 'O+' )
+			->assertJsonPath( 'student_profile.course', 'Computer Science' )
+			->assertJsonPath( 'student_profile.year_of_study', 2 );
 
-		$this->assertDatabaseHas( 'users', [ 
-			'email'         => 'john.doe@test.com',
+		// Assert in student_profiles, not users
+		$this->assertDatabaseHas( 'student_profiles', [ 
 			'student_id'    => 'STU001',
 			'blood_type'    => 'O+',
 			'course'        => 'Computer Science',
@@ -209,23 +217,21 @@ class UserControllerTest extends TestCase {
 			'course'     => 'Updated Course',
 		];
 
+		$updateData['iin'] = '123456789012';
+
 		$response = $this->actingAs( $this->admin )
 			->putJson( "/api/users/{$this->student->id}", $updateData );
 
 		$response->assertStatus( 200 )
-			->assertJsonFragment( [ 
-				'first_name' => 'Updated',
-				'last_name'  => 'Student',
-				'phone'      => '+9876543210',
-				'blood_type' => 'AB+',
-				'course'     => 'Updated Course',
-			] );
+			->assertJsonPath( 'first_name', 'Updated' )
+			->assertJsonPath( 'last_name', 'Student' )
+			->assertJsonPath( 'phone_numbers', [ '+9876543210' ] )
+			->assertJsonPath( 'student_profile.blood_type', 'AB+' )
+			->assertJsonPath( 'student_profile.course', 'Updated Course' );
 
-		$this->assertDatabaseHas( 'users', [ 
-			'id'         => $this->student->id,
-			'first_name' => 'Updated',
-			'last_name'  => 'Student',
-			'phone'      => '+9876543210',
+		// Role-specific fields in student_profiles
+		$this->assertDatabaseHas( 'student_profiles', [ 
+			'user_id'    => $this->student->id,
 			'blood_type' => 'AB+',
 			'course'     => 'Updated Course',
 		] );
@@ -284,23 +290,21 @@ class UserControllerTest extends TestCase {
 			'emergency_contact' => 'Updated Emergency Contact',
 		];
 
+		$updateData['iin'] = '123456789012';
+
 		$response = $this->actingAs( $this->student )
 			->putJson( '/api/users/profile', $updateData );
 
 		$response->assertStatus( 200 )
-			->assertJsonFragment( [ 
-				'first_name'        => 'Updated',
-				'last_name'         => 'Name',
-				'phone'             => '+1111111111',
-				'emergency_contact' => 'Updated Emergency Contact',
-			] );
+			->assertJsonPath( 'first_name', 'Updated' )
+			->assertJsonPath( 'last_name', 'Name' )
+			->assertJsonPath( 'phone_numbers', [ '+1111111111' ] )
+			->assertJsonPath( 'student_profile.emergency_contact_name', 'Updated Emergency Contact' );
 
-		$this->assertDatabaseHas( 'users', [ 
-			'id'                => $this->student->id,
-			'first_name'        => 'Updated',
-			'last_name'         => 'Name',
-			'phone'             => '+1111111111',
-			'emergency_contact' => 'Updated Emergency Contact',
+		// Role-specific field in student_profiles
+		$this->assertDatabaseHas( 'student_profiles', [ 
+			'user_id'                => $this->student->id,
+			'emergency_contact_name' => 'Updated Emergency Contact',
 		] );
 	}
 

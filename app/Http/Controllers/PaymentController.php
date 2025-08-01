@@ -38,6 +38,10 @@ class PaymentController extends Controller {
 			'payment_method'  => 'required|string|max:100',
 			'receipt_file'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
 			'status'          => 'sometimes|in:pending,completed,failed',
+			'semester'        => 'required|string|max:255',
+			'year'            => 'required|integer|min:2020|max:2030',
+			'semester_type'   => 'required|in:fall,spring,summer',
+			'payment_status'  => 'sometimes|in:pending,approved,rejected,expired',
 		] );
 
 		return $this->paymentService->createPayment( $validated );
@@ -55,13 +59,16 @@ class PaymentController extends Controller {
 	 */
 	public function update( Request $request, $id ) {
 		$validated = $request->validate( [ 
-			'amount'          => 'sometimes|numeric|min:0',
-			'contract_number' => 'sometimes|string|max:255',
-			'contract_date'   => 'sometimes|date',
-			'payment_date'    => 'sometimes|date',
-			'payment_method'  => 'sometimes|string|max:100',
-			'receipt_file'    => 'sometimes|file|mimes:jpg,jpeg,png,pdf|max:5120',
-			'status'          => 'sometimes|in:pending,completed,failed',
+			'amount'                    => 'sometimes|numeric|min:0',
+			'contract_number'           => 'sometimes|string|max:255',
+			'contract_date'             => 'sometimes|date',
+			'payment_date'              => 'sometimes|date',
+			'payment_method'            => 'sometimes|string|max:100',
+			'receipt_file'              => 'sometimes|file|mimes:jpg,jpeg,png,pdf|max:5120',
+			'status'                    => 'sometimes|in:pending,completed,failed',
+			'payment_status'            => 'sometimes|in:pending,approved,rejected,expired',
+			'payment_approved'          => 'sometimes|boolean',
+			'dormitory_access_approved' => 'sometimes|boolean',
 		] );
 
 		return $this->paymentService->updatePayment( $id, $validated );
@@ -72,7 +79,7 @@ class PaymentController extends Controller {
 	 */
 	public function destroy( $id ) {
 		$this->paymentService->deletePayment( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Payment deleted successfully' ], 200 );
 	}
 
 	/**

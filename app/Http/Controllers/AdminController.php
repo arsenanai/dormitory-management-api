@@ -5,18 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Services\AdminService;
 use Illuminate\Http\Request;
+use function response;
 
-class AdminController extends Controller
-{
+class AdminController extends Controller {
 	private int $adminRoleId;
 	private array $rules;
 
 	// admin not need student-related fields, but we set defaults for consistency
 	private array $defaults = [ 
-		'iin'             => 'N/A',
+		'iin'             => null,
 		'faculty'         => 'N/A',
 		'specialist'      => 'N/A',
-		'enrollment_year' => 'N/A',
+		'enrollment_year' => null,
 	];
 
 	public function __construct( private AdminService $service ) {
@@ -25,7 +25,6 @@ class AdminController extends Controller
 			'name'     => 'required|string|max:255',
 			'email'    => 'required|email|max:255|unique:users,email',
 			'password' => 'required|string|min:6',
-			'role_id'  => 'required|integer|in:' . $this->adminRoleId,
 			'gender'   => 'required|string|in:male,female',
 		];
 	}
@@ -36,11 +35,18 @@ class AdminController extends Controller
 	}
 
 	public function store( Request $request ) {
-		$validated = $request->validate( $this->rules );
-
-		// Set default values for student-related fields if not provided
+		$rules = array_merge(
+			$this->rules,
+			[ 
+				'position'        => 'nullable|string|max:255',
+				'department'      => 'nullable|string|max:255',
+				'office_phone'    => 'nullable|string|max:255',
+				'office_location' => 'nullable|string|max:255',
+			]
+		);
+		$validated = $request->validate( $rules );
 		$data = array_merge( $this->defaults, $validated );
-
+		$data['role_id'] = $this->adminRoleId;
 		$admin = $this->service->createAdmin( $data );
 		return response()->json( $admin, 201 );
 	}
@@ -50,17 +56,21 @@ class AdminController extends Controller
 			fn( $rule ) => 'sometimes|' . $rule,
 			$this->rules
 		);
-		$validated = $request->validate( $updateRules );
-
-		// Set default values for student-related fields if not provided
+		$profileRules = [ 
+			'position'        => 'nullable|string|max:255',
+			'department'      => 'nullable|string|max:255',
+			'office_phone'    => 'nullable|string|max:255',
+			'office_location' => 'nullable|string|max:255',
+		];
+		$rules = array_merge( $updateRules, $profileRules );
+		$validated = $request->validate( $rules );
 		$data = array_merge( $this->defaults, $validated );
-
 		$admin = $this->service->updateAdmin( $id, $data );
 		return response()->json( $admin, 200 );
 	}
 
 	public function destroy( $id ) {
 		$this->service->deleteAdmin( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Admin deleted successfully' ], 200 );
 	}
 }

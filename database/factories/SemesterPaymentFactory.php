@@ -20,10 +20,13 @@ class SemesterPaymentFactory extends Factory {
 	public function definition(): array {
 		$year = fake()->numberBetween( 2024, 2026 );
 		$semesterType = fake()->randomElement( [ 'fall', 'spring', 'summer' ] );
+		
+		// Use microtime + random string to ensure uniqueness across all factory calls
+		$uniqueId = substr(microtime(true) * 10000, -8) . '-' . fake()->unique()->lexify('???');
 
 	   return [
 		   'user_id'                   => User::factory(),
-		   'semester'                  => $year . '-' . $semesterType,
+		   'semester'                  => $year . '-' . $semesterType . '-' . $uniqueId, // Make unique
 		   'year'                      => $year,
 		   'semester_type'             => $semesterType,
 		   'amount'                    => fake()->randomFloat(2, 500, 5000),
@@ -40,9 +43,11 @@ class SemesterPaymentFactory extends Factory {
 		   'payment_status'            => 'pending',
 		   'dormitory_status'          => 'pending',
 		   'receipt_file'              => null,
+		   'contract_number'           => 'CONTRACT-' . fake()->year() . '-' . fake()->unique()->numberBetween(1, 999),
+		   'contract_date'             => fake()->dateTimeBetween('-1 year', 'now')->format('Y-m-d'),
+		   'payment_date'              => fake()->dateTimeBetween('-6 months', 'now')->format('Y-m-d'),
+		   'payment_method'            => fake()->randomElement(['credit_card', 'bank_transfer', 'cash', 'check']),
 	   ];
-			'dormitory_status'          => fake()->randomElement( [ 'pending', 'approved', 'rejected', 'expired' ] ),
-		];
 	}
 
 	public function approved(): static {

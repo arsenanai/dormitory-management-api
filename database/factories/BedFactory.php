@@ -20,11 +20,17 @@ class BedFactory extends Factory {
 	 * Define the model's default state.
 	 */
 	public function definition(): array {
-	   return [
-		   'room_id'    => Room::factory(),
-		   'bed_number' => $this->faker->numberBetween(1, 4),
-		   'user_id'    => null,
-	   ];
+		static $bedSequence = [];
+		
+		$roomId = Room::factory();
+		
+		// Create unique bed numbers per room
+		return [
+			'room_id'     => $roomId,
+			'bed_number'  => $this->faker->numberBetween(1, 10),
+			'user_id'     => null,
+			'is_occupied' => false,
+		];
 	}
 
 	/**

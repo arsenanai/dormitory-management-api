@@ -109,4 +109,35 @@ class GuestController extends Controller {
 
 		return $this->guestService->exportGuests( $filters );
 	}
+
+	/**
+	 * GET /guests/payments
+	 * Returns a list of guest payments with guest info, amount, status, and date.
+	 */
+	public function payments( Request $request ) {
+		$query = \App\Models\Guest::query();
+		if ( $request->has( 'guest_id' ) ) {
+			$query->where( 'id', $request->input( 'guest_id' ) );
+		}
+		if ( $request->has( 'from_date' ) ) {
+			$query->whereDate( 'check_in_date', '>=', $request->input( 'from_date' ) );
+		}
+		if ( $request->has( 'to_date' ) ) {
+			$query->whereDate( 'check_out_date', '<=', $request->input( 'to_date' ) );
+		}
+		$guests = $query->with( [ 'room', 'room.dormitory' ] )->get();
+		$payments = $guests->map( function ($guest) {
+			return [ 
+				'guest_id'       => $guest->id,
+				'guest_name'     => $guest->name,
+				'room'           => $guest->room ? $guest->room->number : null,
+				'dormitory'      => $guest->room && $guest->room->dormitory ? $guest->room->dormitory->name : null,
+				'amount'         => $guest->total_amount,
+				'status'         => $guest->payment_status,
+				'check_in_date'  => $guest->check_in_date,
+				'check_out_date' => $guest->check_out_date,
+			];
+		} );
+		return response()->json( $payments );
+	}
 }

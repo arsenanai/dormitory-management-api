@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Guest;
+use App\Models\User;
+use App\Models\Role;
+use App\Models\GuestProfile;
 use App\Models\Room;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +14,9 @@ class GuestService {
 	 * Get guests with filters and pagination
 	 */
 	public function getGuestsWithFilters( array $filters = [] ) {
-		$query = Guest::with( [ 'room', 'room.dormitory' ] );
+		$guestRoleId = Role::where( 'name', 'guest' )->first()->id;
+		$query = User::where( 'role_id', $guestRoleId )
+			->with( [ 'guestProfile', 'room', 'room.dormitory' ] );
 
 		// Apply filters
 		if ( isset( $filters['room_id'] ) ) {
@@ -50,7 +54,19 @@ class GuestService {
 		DB::beginTransaction();
 
 		try {
-			$guest = Guest::create( $data );
+			$guestRoleId = Role::where( 'name', 'guest' )->first()->id;
+			$data['role_id'] = $guestRoleId;
+			$data['status'] = 'active';
+
+			$guest = User::create( $data );
+
+			// Create guest profile
+			GuestProfile::create( [ 
+				'user_id'          => $guest->id,
+				'visit_start_date' => $data['check_in_date'] ?? null,
+				'visit_end_date'   => $data['check_out_date'] ?? null,
+				'daily_rate'       => $data['total_amount'] ?? 0,
+			] );
 
 			// If room is assigned, mark it as occupied
 			if ( isset( $data['room_id'] ) ) {
@@ -61,7 +77,7 @@ class GuestService {
 			}
 
 			DB::commit();
-			return $guest->load( [ 'room', 'room.dormitory' ] );
+			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
 		} catch (\Exception $e) {
 			DB::rollBack();
 			throw $e;
@@ -75,10 +91,26 @@ class GuestService {
 		DB::beginTransaction();
 
 		try {
-			$guest = Guest::findOrFail( $id );
+			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
+				->findOrFail( $id );
 			$oldRoomId = $guest->room_id;
 
 			$guest->update( $data );
+
+			// Update guest profile if needed
+			if ( isset( $data['check_in_date'] ) || isset( $data['check_out_date'] ) || isset( $data['total_amount'] ) ) {
+				$profileData = [];
+				if ( isset( $data['check_in_date'] ) )
+					$profileData['visit_start_date'] = $data['check_in_date'];
+				if ( isset( $data['check_out_date'] ) )
+					$profileData['visit_end_date'] = $data['check_out_date'];
+				if ( isset( $data['total_amount'] ) )
+					$profileData['daily_rate'] = $data['total_amount'];
+
+				if ( $guest->guestProfile ) {
+					$guest->guestProfile->update( $profileData );
+				}
+			}
 
 			// Handle room changes
 			if ( isset( $data['room_id'] ) && $data['room_id'] != $oldRoomId ) {
@@ -100,7 +132,7 @@ class GuestService {
 			}
 
 			DB::commit();
-			return $guest->load( [ 'room', 'room.dormitory' ] );
+			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
 		} catch (\Exception $e) {
 			DB::rollBack();
 			throw $e;
@@ -114,7 +146,8 @@ class GuestService {
 		DB::beginTransaction();
 
 		try {
-			$guest = Guest::findOrFail( $id );
+			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
+				->findOrFail( $id );
 
 			// Free up room if assigned
 			if ( $guest->room_id ) {
@@ -138,7 +171,9 @@ class GuestService {
 	 * Get guest by ID
 	 */
 	public function getGuestById( $id ) {
-		return Guest::with( [ 'room', 'room.dormitory' ] )->findOrFail( $id );
+		return User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
+			->with( [ 'guestProfile', 'room', 'room.dormitory' ] )
+			->findOrFail( $id );
 	}
 
 	/**
@@ -157,7 +192,8 @@ class GuestService {
 		DB::beginTransaction();
 
 		try {
-			$guest = Guest::findOrFail( $id );
+			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
+				->findOrFail( $id );
 
 			$guest->update( [ 
 				'check_out_date' => now(),
@@ -173,7 +209,7 @@ class GuestService {
 			}
 
 			DB::commit();
-			return $guest->load( [ 'room', 'room.dormitory' ] );
+			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
 		} catch (\Exception $e) {
 			DB::rollBack();
 			throw $e;
@@ -184,7 +220,9 @@ class GuestService {
 	 * Export guests to CSV
 	 */
 	public function exportGuests( array $filters = [] ) {
-		$query = Guest::with( [ 'room', 'room.dormitory' ] );
+		$guestRoleId = Role::where( 'name', 'guest' )->first()->id;
+		$query = User::where( 'role_id', $guestRoleId )
+			->with( [ 'guestProfile', 'room', 'room.dormitory' ] );
 
 		// Apply same filters as getGuestsWithFilters
 		if ( isset( $filters['room_id'] ) ) {

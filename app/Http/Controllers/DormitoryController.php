@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\DormitoryService;
 use Illuminate\Http\Request;
 
-class DormitoryController extends Controller
-{
+class DormitoryController extends Controller {
 	private array $rules = [ 
 		'name'     => 'required|string|max:255',
 		'capacity' => 'required|integer|min:1',
@@ -39,11 +38,16 @@ class DormitoryController extends Controller
 
 	public function destroy( $id ) {
 		$this->service->deleteDormitory( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Dormitory deleted successfully' ], 200 );
 	}
 
 	public function assignAdmin( Request $request, $id ) {
 		$dorm = $this->service->assignAdmin( $id, $request->input( 'admin_id' ) );
 		return response()->json( $dorm, 200 );
+	}
+
+	public function rooms( Request $request, $id ) {
+		$rooms = $this->service->getRoomsForDormitory( $id );
+		return response()->json( $rooms, 200 );
 	}
 }

@@ -79,6 +79,6 @@ class RoomTypeController extends Controller {
 
 	public function destroy( $id ) {
 		$this->service->deleteRoomType( $id );
-		return response()->noContent();
+		return response()->json( [ 'message' => 'Room type deleted successfully' ], 200 );
 	}
 }

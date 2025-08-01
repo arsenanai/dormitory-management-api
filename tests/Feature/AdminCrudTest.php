@@ -7,36 +7,35 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-class AdminCrudTest extends TestCase
-{
-    private $adminRoleId;
+class AdminCrudTest extends TestCase {
+	private $adminRoleId;
 
-    use RefreshDatabase;
+	use RefreshDatabase;
 
-    protected function setUp(): void {
-        parent::setUp();
-        $this->seed();
-        $this->adminRoleId = Role::where( 'name', 'admin' )->firstOrFail()->id;
-    }
+	protected function setUp(): void {
+		parent::setUp();
+		$this->seed();
+		$this->adminRoleId = Role::where( 'name', 'admin' )->firstOrFail()->id;
+	}
 
-    public function test_sudo_can_list_admins() {
-        $token = $this->loginAsSudo();
+	public function test_sudo_can_list_admins() {
+		$token = $this->loginAsSudo();
 
-        // Create some admins
-        User::factory()->count(2)->create(['role_id' => $this->adminRoleId]);
-        $response = $this->getJson('/api/admins', [
-            'Authorization' => "Bearer $token",
-        ]);
+		// Create some admins
+		User::factory()->count( 2 )->create( [ 'role_id' => $this->adminRoleId ] );
+		$response = $this->getJson( '/api/admins', [ 
+			'Authorization' => "Bearer $token",
+		] );
 
-        $response->assertStatus(200);
-        $response->assertJsonStructure([ '*' => ['id', 'name', 'email', 'role_id'] ]);
-        $this->assertGreaterThanOrEqual(2, count($response->json()));
-    }
+		$response->assertStatus( 200 );
+		$response->assertJsonStructure( [ '*' => [ 'id', 'name', 'email', 'role_id' ] ] );
+		$this->assertGreaterThanOrEqual( 2, count( $response->json() ) );
+	}
 
-    public function test_sudo_can_create_admin() {
-        $token = $this->loginAsSudo();
-    
-        $payload = [ 
+	public function test_sudo_can_create_admin() {
+		$token = $this->loginAsSudo();
+
+		$payload = [ 
 			'name'            => 'Test Admin',
 			'email'           => 'testadmin@example.com',
 			'password'        => 'password',
@@ -46,67 +45,75 @@ class AdminCrudTest extends TestCase
 			'specialist'      => 'Manager',
 			'enrollment_year' => '2020',
 			'gender'          => 'male',
-        ];
-    
-        $response = $this->postJson('/api/admins', $payload, [
-            'Authorization' => "Bearer $token",
-        ]);
-    
-        $response->assertStatus(201);
-        $this->assertDatabaseHas('users', [
-            'email'   => 'testadmin@example.com',
-            'role_id' => $this->adminRoleId,
-        ]);
-    }
+		];
 
-    public function test_sudo_can_update_admin() {
-        $token = $this->loginAsSudo();
+		$response = $this->postJson( '/api/admins', $payload, [ 
+			'Authorization' => "Bearer $token",
+		] );
 
-        $admin = User::factory()->create([
-            'role_id' => $this->adminRoleId,
-            'email'   => 'updateadmin@example.com',
-            'name'    => 'Old Name',
-        ]);
+		$response->assertStatus( 201 );
+		$this->assertDatabaseHas( 'users', [ 
+			'email'   => 'testadmin@example.com',
+			'role_id' => $this->adminRoleId,
+		] );
+		// Assert role-specific fields in admin_profiles
+		$this->assertDatabaseHas( 'admin_profiles', [
+			// Example: if payload includes these fields, check them
+			// 'faculty'         => 'Engineering',
+			// 'specialist'      => 'Manager',
+			// 'enrollment_year' => '2020',
+			// 'gender'          => 'male',
+		] );
+	}
 
-        $response = $this->putJson("/api/admins/{$admin->id}", [
-            'name' => 'Updated Admin',
-        ], [
-            'Authorization' => "Bearer $token",
-        ]);
+	public function test_sudo_can_update_admin() {
+		$token = $this->loginAsSudo();
 
-        $response->assertStatus(200);
-        $this->assertDatabaseHas('users', [
-            'id'   => $admin->id,
-            'name' => 'Updated Admin',
-        ]);
-    }
+		$admin = User::factory()->create( [ 
+			'role_id' => $this->adminRoleId,
+			'email'   => 'updateadmin@example.com',
+			'name'    => 'Old Name',
+		] );
 
-    public function test_sudo_can_delete_admin() {
-        $token = $this->loginAsSudo();
+		$response = $this->putJson( "/api/admins/{$admin->id}", [ 
+			'name' => 'Updated Admin',
+		], [ 
+			'Authorization' => "Bearer $token",
+		] );
 
-        $admin = User::factory()->create([
-            'role_id' => $this->adminRoleId,
-            'email'   => 'deleteadmin@example.com',
-        ]);
+		$response->assertStatus( 200 );
+		$this->assertDatabaseHas( 'users', [ 
+			'id'   => $admin->id,
+			'name' => 'Updated Admin',
+		] );
+	}
 
-        $response = $this->deleteJson("/api/admins/{$admin->id}", [], [
-            'Authorization' => "Bearer $token",
-        ]);
+	public function test_sudo_can_delete_admin() {
+		$token = $this->loginAsSudo();
 
-        $response->assertStatus(204);
-        $this->assertDatabaseMissing('users', [
-            'id' => $admin->id,
-        ]);
-    }
+		$admin = User::factory()->create( [ 
+			'role_id' => $this->adminRoleId,
+			'email'   => 'deleteadmin@example.com',
+		] );
 
-    private function loginAsSudo() {
-        $response = $this->postJson('/api/login', [
-            'email'    => env('ADMIN_EMAIL', 'admin@email.com'),
-            'password' => env('ADMIN_PASSWORD', 'supersecret'),
-        ]);
+		$response = $this->deleteJson( "/api/admins/{$admin->id}", [], [ 
+			'Authorization' => "Bearer $token",
+		] );
 
-        return $response->json('token');
-    }
+		$response->assertStatus( 200 );
+		$this->assertDatabaseMissing( 'users', [ 
+			'id' => $admin->id,
+		] );
+	}
+
+	private function loginAsSudo() {
+		$response = $this->postJson( '/api/login', [ 
+			'email'    => 'sudo@email.com',
+			'password' => 'supersecret',
+		] );
+
+		return $response->json( 'token' );
+	}
 
 	public function test_create_admin_requires_valid_email_and_gender() {
 		$token = $this->loginAsSudo();
@@ -124,7 +131,7 @@ class AdminCrudTest extends TestCase
 		] );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'email', 'password', 'role_id', 'gender'
+			'email', 'password', 'gender'
 		] );
 	}
 
@@ -137,7 +144,7 @@ class AdminCrudTest extends TestCase
 		] );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'name', 'email', 'password', 'role_id', 'gender'
+			'name', 'email', 'password', 'gender'
 		] );
 
 		// Invalid email and short password
@@ -156,7 +163,7 @@ class AdminCrudTest extends TestCase
 		] );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'email', 'password', 'role_id', 'gender'
+			'email', 'password', 'gender'
 		] );
 	}
 

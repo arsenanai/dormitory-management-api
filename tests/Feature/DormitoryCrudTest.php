@@ -64,7 +64,7 @@ class DormitoryCrudTest extends TestCase {
 			'Authorization' => "Bearer $token",
 		] );
 
-		$response->assertStatus( 204 );
+		$response->assertStatus( 200 );
 		$this->assertDatabaseMissing( 'dormitories', [ 
 			'id' => $dorm->id,
 		] );
@@ -145,7 +145,18 @@ class DormitoryCrudTest extends TestCase {
 
 	public function test_update_admin_requires_valid_fields() {
 		$token = $this->loginAsSudo();
-		$admin = User::factory()->create( [ 'role_id' => $this->adminRoleId ] );
+		
+		// Create admin user without triggering StudentProfile creation
+		$admin = User::create([
+			'name' => 'Test Admin',
+			'first_name' => 'Test',
+			'last_name' => 'Admin',
+			'email' => 'testadmin@example.com',
+			'password' => bcrypt('password'),
+			'role_id' => $this->adminRoleId,
+			'status' => 'approved',
+			'phone_numbers' => json_encode(['+1234567890'])
+		]);
 
 		// Invalid email and too short name
 		$response = $this->putJson( "/api/admins/{$admin->id}", [ 
@@ -160,8 +171,8 @@ class DormitoryCrudTest extends TestCase {
 
 	private function loginAsSudo() {
 		$response = $this->postJson( '/api/login', [ 
-			'email'    => env( 'ADMIN_EMAIL', 'admin@email.com' ),
-			'password' => env( 'ADMIN_PASSWORD', 'supersecret' ),
+			'email'    => 'sudo@email.com',
+			'password' => 'supersecret',
 		] );
 		return $response->json( 'token' );
 	}
