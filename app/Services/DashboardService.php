@@ -115,9 +115,9 @@ class DashboardService {
 		} );
 
 		$totalBeds = $bedQuery->count();
-		$occupiedBeds = ( clone $bedQuery )->where(function($q) {
+		$occupiedBeds = ( clone $bedQuery )->where( function ($q) {
 			$q->whereNotNull( 'user_id' )->orWhere( 'is_occupied', true );
-		})->count();
+		} )->count();
 		$availableBeds = $totalBeds - $occupiedBeds;
 
 		// Room occupancy: use is_occupied flag, or fall back to bed availability
@@ -126,7 +126,7 @@ class DashboardService {
 			$occupiedRooms->where( 'dormitory_id', $dormitoryId );
 		}
 		$occupiedRoomsCount = $occupiedRooms->count();
-		
+
 		$availableRoomsCount = $totalRooms - $occupiedRoomsCount;
 
 		return [ 
@@ -211,116 +211,154 @@ class DashboardService {
 	 */
 	public function getGuardStats() {
 		$totalRooms = Room::count();
-		$occupiedRooms = Room::where('is_occupied', true)->count();
-		
-		$stats = [
-			'total_rooms' => $totalRooms,
-			'occupied_rooms' => $occupiedRooms,
-			'my_reports' => Message::where('type', 'violation')->count(),
-			'recent_violations' => Message::where('type', 'violation')
-				->where('created_at', '>=', now()->subDays(7))
+		$occupiedRooms = Room::where( 'is_occupied', true )->count();
+
+		$stats = [ 
+			'total_rooms'       => $totalRooms,
+			'occupied_rooms'    => $occupiedRooms,
+			'my_reports'        => Message::where( 'type', 'violation' )->count(),
+			'recent_violations' => Message::where( 'type', 'violation' )
+				->where( 'created_at', '>=', now()->subDays( 7 ) )
 				->count(),
-			'room_occupancy' => $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100, 2) : 0,
+			'room_occupancy'    => $totalRooms > 0 ? round( ( $occupiedRooms / $totalRooms ) * 100, 2 ) : 0,
 		];
 
-		return response()->json($stats);
+		return response()->json( $stats );
 	}
 
 	/**
-	 * Get student dashboard stats
+	 * Get student dashboard statistics
 	 */
 	public function getStudentDashboardStats() {
-		$user = auth()->user();
-		
-		// Get upcoming payments (payments with due dates in the future)
-		$upcomingPayments = SemesterPayment::where('user_id', $user->id)
-			->where('payment_approved', false)
-			->where('due_date', '>', now())
-			->count();
+		$user = Auth::user();
 
-		// Get payment history (all payments for this user)
-		$paymentHistory = SemesterPayment::where('user_id', $user->id)->count();
-
-		// Get room info if user has a room
+		// Get user's room information
 		$roomInfo = null;
-		if ($user->room_id) {
-			$room = $user->room()->with(['dormitory', 'roomType'])->first();
-			if ($room) {
-				$roomInfo = [
-					'room_number' => $room->number,
-					'floor' => $room->floor,
-					'dormitory_name' => $room->dormitory->name ?? null,
-					'room_type' => $room->roomType->name ?? null,
-				];
-			}
+		if ( $user->room ) {
+			$roomInfo = [ 
+				'room_number'    => $user->room->number,
+				'floor'          => $user->room->floor,
+				'dormitory_name' => $user->room->dormitory->name ?? 'Unknown',
+				'room_type'      => $user->room->roomType->name ?? 'standard',
+			];
 		}
-		
-		$stats = [
-			'my_messages' => Message::where('receiver_id', $user->id)->count(),
-			'unread_messages_count' => Message::where('receiver_id', $user->id)
-				->whereNull('read_at')->count(),
-			'my_payments' => SemesterPayment::where('user_id', $user->id)->count(),
-			'upcoming_payments' => $upcomingPayments,
-			'payment_history' => $paymentHistory,
-			'room_info' => $roomInfo,
+
+		// Get user's messages
+		$messages = Message::where( 'receiver_id', $user->id )
+			->with( 'sender' )
+			->orderBy( 'created_at', 'desc' )
+			->limit( 10 )
+			->get();
+
+		// Get user's payments
+		$payments = SemesterPayment::where( 'user_id', $user->id )
+			->orderBy( 'created_at', 'desc' )
+			->get();
+
+		$stats = [ 
+			'my_messages'           => $messages->count(),
+			'unread_messages_count' => $messages->whereNull( 'read_at' )->count(),
+			'my_payments'           => $payments->count(),
+			'upcoming_payments'     => $payments->where( 'status', 'pending' )->count(),
+			'payment_history'       => $payments->where( 'status', 'approved' )->count(),
+			'room_info'             => $roomInfo,
 		];
 
-		return response()->json($stats);
+		return response()->json( $stats );
+	}
+
+	/**
+	 * Get guest dashboard statistics
+	 */
+	public function getGuestDashboardStats() {
+		$user = Auth::user();
+
+		// Get user's room information
+		$roomInfo = null;
+		if ( $user->room ) {
+			$roomInfo = [ 
+				'room_number'    => $user->room->number,
+				'floor'          => $user->room->floor,
+				'dormitory_name' => $user->room->dormitory->name ?? 'Unknown',
+				'room_type'      => $user->room->roomType->name ?? 'standard',
+			];
+		}
+
+		// Get user's messages
+		$messages = Message::where( 'receiver_id', $user->id )
+			->with( 'sender' )
+			->orderBy( 'created_at', 'desc' )
+			->limit( 10 )
+			->get();
+
+		// Mock guest-specific data (since guest payments might be handled differently)
+		$stats = [ 
+			'my_messages'           => $messages->count(),
+			'unread_messages_count' => $messages->whereNull( 'read_at' )->count(),
+			'room_info'             => $roomInfo,
+			'daily_rate'            => 5000, // Mock daily rate in tenge
+			'check_in_date'         => now()->format( 'Y-m-d' ),
+			'check_out_date'        => now()->addDays( 5 )->format( 'Y-m-d' ),
+			'total_days'            => 5,
+			'total_amount'          => 25000, // Mock total amount
+		];
+
+		return response()->json( $stats );
 	}
 
 	/**
 	 * Get monthly statistics
 	 */
 	public function getMonthlyStats() {
-		$currentMonth = [
-			'total_payments' => SemesterPayment::whereMonth('created_at', now()->month)
-				->whereYear('created_at', now()->year)->count(),
-			'total_amount' => SemesterPayment::whereMonth('created_at', now()->month)
-				->whereYear('created_at', now()->year)->sum('amount'),
-			'approved_payments' => SemesterPayment::whereMonth('created_at', now()->month)
-				->whereYear('created_at', now()->year)
-				->where('payment_approved', true)->count(),
-			'new_students' => User::whereHas('role', fn($q) => $q->where('name', 'student'))
-				->whereMonth('created_at', now()->month)
-				->whereYear('created_at', now()->year)->count(),
-			'messages_sent' => Message::whereMonth('created_at', now()->month)
-				->whereYear('created_at', now()->year)->count(),
+		$currentMonth = [ 
+			'total_payments'    => SemesterPayment::whereMonth( 'created_at', now()->month )
+				->whereYear( 'created_at', now()->year )->count(),
+			'total_amount'      => SemesterPayment::whereMonth( 'created_at', now()->month )
+				->whereYear( 'created_at', now()->year )->sum( 'amount' ),
+			'approved_payments' => SemesterPayment::whereMonth( 'created_at', now()->month )
+				->whereYear( 'created_at', now()->year )
+				->where( 'payment_approved', true )->count(),
+			'new_students'      => User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
+				->whereMonth( 'created_at', now()->month )
+				->whereYear( 'created_at', now()->year )->count(),
+			'messages_sent'     => Message::whereMonth( 'created_at', now()->month )
+				->whereYear( 'created_at', now()->year )->count(),
 		];
 
-		$lastMonth = [
-			'total_payments' => SemesterPayment::whereMonth('created_at', now()->subMonth()->month)
-				->whereYear('created_at', now()->subMonth()->year)->count(),
-			'total_amount' => SemesterPayment::whereMonth('created_at', now()->subMonth()->month)
-				->whereYear('created_at', now()->subMonth()->year)->sum('amount'),
-			'approved_payments' => SemesterPayment::whereMonth('created_at', now()->subMonth()->month)
-				->whereYear('created_at', now()->subMonth()->year)
-				->where('payment_approved', true)->count(),
-			'new_students' => User::whereHas('role', fn($q) => $q->where('name', 'student'))
-				->whereMonth('created_at', now()->subMonth()->month)
-				->whereYear('created_at', now()->subMonth()->year)->count(),
-			'messages_sent' => Message::whereMonth('created_at', now()->subMonth()->month)
-				->whereYear('created_at', now()->subMonth()->year)->count(),
+		$lastMonth = [ 
+			'total_payments'    => SemesterPayment::whereMonth( 'created_at', now()->subMonth()->month )
+				->whereYear( 'created_at', now()->subMonth()->year )->count(),
+			'total_amount'      => SemesterPayment::whereMonth( 'created_at', now()->subMonth()->month )
+				->whereYear( 'created_at', now()->subMonth()->year )->sum( 'amount' ),
+			'approved_payments' => SemesterPayment::whereMonth( 'created_at', now()->subMonth()->month )
+				->whereYear( 'created_at', now()->subMonth()->year )
+				->where( 'payment_approved', true )->count(),
+			'new_students'      => User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
+				->whereMonth( 'created_at', now()->subMonth()->month )
+				->whereYear( 'created_at', now()->subMonth()->year )->count(),
+			'messages_sent'     => Message::whereMonth( 'created_at', now()->subMonth()->month )
+				->whereYear( 'created_at', now()->subMonth()->year )->count(),
 		];
 
 		// Get monthly revenue for the last 12 months
 		$monthlyRevenue = [];
-		for ($i = 11; $i >= 0; $i--) {
-			$date = now()->subMonths($i);
-			$monthlyRevenue[] = [
-				'month' => $date->format('M'),
-				'year' => $date->year,
-				'total_amount' => SemesterPayment::whereMonth('created_at', $date->month)
-					->whereYear('created_at', $date->year)->sum('amount') ?: 0,
-				'payment_count' => SemesterPayment::whereMonth('created_at', $date->month)
-					->whereYear('created_at', $date->year)->count(),
+		for ( $i = 11; $i >= 0; $i-- ) {
+			$date = now()->subMonths( $i );
+			$monthlyRevenue[] = [ 
+				'month'         => $date->format( 'M' ),
+				'year'          => $date->year,
+				'total_amount'  => SemesterPayment::whereMonth( 'created_at', $date->month )
+					->whereYear( 'created_at', $date->year )->sum( 'amount' ) ?: 0,
+				'payment_count' => SemesterPayment::whereMonth( 'created_at', $date->month )
+					->whereYear( 'created_at', $date->year )->count(),
 			];
 		}
 
-		return response()->json([
-			'current_month' => $currentMonth,
-			'previous_month' => $lastMonth,
+		return response()->json( [ 
+			'current_month'   => $currentMonth,
+			'previous_month'  => $lastMonth,
 			'monthly_revenue' => $monthlyRevenue,
-		]);
+		] );
 	}
 
 	/**
@@ -328,49 +366,49 @@ class DashboardService {
 	 */
 	public function getPaymentAnalytics() {
 		// Get payment methods analytics
-		$paymentMethods = SemesterPayment::selectRaw('payment_method as method, COUNT(*) as count, SUM(amount) as total_amount')
-			->groupBy('payment_method')
+		$paymentMethods = SemesterPayment::selectRaw( 'payment_method as method, COUNT(*) as count, SUM(amount) as total_amount' )
+			->groupBy( 'payment_method' )
 			->get()
-			->map(function ($item) {
-				return [
-					'method' => $item->method,
-					'count' => $item->count,
+			->map( function ($item) {
+				return [ 
+					'method'       => $item->method,
+					'count'        => $item->count,
 					'total_amount' => (float) $item->total_amount,
 				];
-			});
+			} );
 
 		// Get payment statuses analytics
-		$paymentStatuses = SemesterPayment::selectRaw('payment_status as status, COUNT(*) as count, SUM(amount) as total_amount')
-			->groupBy('payment_status')
+		$paymentStatuses = SemesterPayment::selectRaw( 'payment_status as status, COUNT(*) as count, SUM(amount) as total_amount' )
+			->groupBy( 'payment_status' )
 			->get()
-			->map(function ($item) {
-				return [
-					'status' => $item->status,
-					'count' => $item->count,
+			->map( function ($item) {
+				return [ 
+					'status'       => $item->status,
+					'count'        => $item->count,
 					'total_amount' => (float) $item->total_amount,
 				];
-			});
+			} );
 
 		// Get daily revenue for the last 30 days
 		$dailyRevenue = [];
-		for ($i = 29; $i >= 0; $i--) {
-			$date = now()->subDays($i)->format('Y-m-d');
-			$dayData = SemesterPayment::whereDate('created_at', $date)
-				->selectRaw('SUM(amount) as total_amount, COUNT(*) as payment_count')
+		for ( $i = 29; $i >= 0; $i-- ) {
+			$date = now()->subDays( $i )->format( 'Y-m-d' );
+			$dayData = SemesterPayment::whereDate( 'created_at', $date )
+				->selectRaw( 'SUM(amount) as total_amount, COUNT(*) as payment_count' )
 				->first();
-			
-			$dailyRevenue[] = [
-				'date' => $date,
-				'total_amount' => (float) ($dayData->total_amount ?: 0),
+
+			$dailyRevenue[] = [ 
+				'date'          => $date,
+				'total_amount'  => (float) ( $dayData->total_amount ?: 0 ),
 				'payment_count' => $dayData->payment_count ?: 0,
 			];
 		}
 
-		return response()->json([
-			'payment_methods' => $paymentMethods,
+		return response()->json( [ 
+			'payment_methods'  => $paymentMethods,
 			'payment_statuses' => $paymentStatuses,
-			'daily_revenue' => $dailyRevenue,
-		]);
+			'daily_revenue'    => $dailyRevenue,
+		] );
 	}
 
 	/**

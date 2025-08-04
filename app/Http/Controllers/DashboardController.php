@@ -38,6 +38,13 @@ class DashboardController extends Controller {
 	}
 
 	/**
+	 * Get guest dashboard
+	 */
+	public function guestDashboard( Request $request ) {
+		return $this->dashboardService->getGuestDashboardStats();
+	}
+
+	/**
 	 * Get monthly stats
 	 */
 	public function monthlyStats( Request $request ) {

@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DashboardController;
@@ -41,6 +42,10 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	Route::middleware( [ 'role:student' ] )->group( function () {
 		Route::get( '/dashboard/student', [ DashboardController::class, 'studentDashboard' ] );
 		Route::get( '/my-messages', [ MessageController::class, 'myMessages' ] );
+	} );
+
+	Route::middleware( [ 'role:guest' ] )->group( function () {
+		Route::get( '/dashboard/guest', [ DashboardController::class, 'guestDashboard' ] );
 	} );
 
 	// Debug route to test student role
@@ -97,6 +102,13 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		// User management
 		Route::apiResource( 'users', UserController::class);
 
+		// Accounting routes
+		Route::get( '/accounting', [ AccountingController::class, 'index' ] );
+		Route::get( '/accounting/student/{studentId}', [ AccountingController::class, 'studentAccounting' ] );
+		Route::get( '/accounting/semester/{semester}', [ AccountingController::class, 'semesterAccounting' ] );
+		Route::get( '/accounting/export', [ AccountingController::class, 'export' ] );
+		Route::get( '/accounting/stats', [ AccountingController::class, 'stats' ] );
+
 		// Guest management
 		Route::get( '/guests/export', [ GuestController::class, 'export' ] );
 		Route::get( '/guests/available-rooms', [ GuestController::class, 'availableRooms' ] );
@@ -148,27 +160,27 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/configurations', [ ConfigurationController::class, 'index' ] );
 		Route::put( '/configurations', [ ConfigurationController::class, 'update' ] );
 		Route::post( '/configurations/initialize', [ ConfigurationController::class, 'initializeDefaults' ] );
-		
+
 		// SMTP settings
 		Route::get( '/configurations/smtp', [ ConfigurationController::class, 'getSmtpSettings' ] );
 		Route::put( '/configurations/smtp', [ ConfigurationController::class, 'updateSmtpSettings' ] );
-		
+
 		// Card reader settings
 		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
 		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
-		
+
 		// 1C integration settings
 		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
 		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
-		
+
 		// Language file management
 		Route::get( '/configurations/languages', [ ConfigurationController::class, 'getInstalledLanguages' ] );
 		Route::post( '/configurations/languages/upload', [ ConfigurationController::class, 'uploadLanguageFile' ] );
-		
+
 		// System logs
 		Route::get( '/configurations/logs', [ ConfigurationController::class, 'getSystemLogs' ] );
 		Route::delete( '/configurations/logs', [ ConfigurationController::class, 'clearSystemLogs' ] );
-		
+
 		// Dormitory settings
 		Route::get( '/configurations/dormitory', [ ConfigurationController::class, 'getDormitorySettings' ] );
 		Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
