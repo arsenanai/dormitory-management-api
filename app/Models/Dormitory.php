@@ -20,8 +20,9 @@ class Dormitory extends Model {
 	];
 
 	protected $casts = [ 
-		'capacity'   => 'integer',
-		'quota'      => 'integer',
+		'capacity' => 'integer',
+		'quota'    => 'integer',
+		'admin_id' => 'integer',
 	];
 
 	public function admin() {

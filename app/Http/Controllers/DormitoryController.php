@@ -9,6 +9,7 @@ class DormitoryController extends Controller {
 	private array $rules = [ 
 		'name'     => 'required|string|max:255',
 		'capacity' => 'required|integer|min:1',
+		'admin_id' => 'nullable|integer|exists:users,id',
 	];
 
 	public function __construct( private DormitoryService $service ) {
@@ -17,7 +18,12 @@ class DormitoryController extends Controller {
 	public function index( Request $request ) {
 		// Optionally, you can add filters or pagination here
 		$dorms = $this->service->listDormitories();
-		return response()->json( $dorms, 200 );
+		return $dorms;
+	}
+
+	public function show( $id ) {
+		$dorm = $this->service->getById( $id );
+		return response()->json( $dorm, 200 );
 	}
 
 	public function store( Request $request ) {

@@ -14,6 +14,13 @@ class AdminService {
 		} )->get( [ 'id', 'name', 'email', 'role_id' ] );
 	}
 
+	public function getAdminById( $id ) {
+		// Get a specific admin by ID with their profile
+		return User::whereHas( 'role', function ($q) {
+			$q->where( 'name', 'admin' );
+		} )->where( 'id', $id )->with( 'adminProfile' )->firstOrFail();
+	}
+
 	public function createAdmin( array $data ) {
 		$userFields = [ 'name', 'email', 'password', 'role_id' ];
 		$profileFields = [ 'position', 'department', 'office_phone', 'office_location' ];
@@ -28,10 +35,22 @@ class AdminService {
 
 	public function updateAdmin( $id, array $data ) {
 		$admin = User::findOrFail( $id );
-		$userFields = [ 'name', 'email', 'password', 'role_id' ];
+		$userFields = [ 'name', 'surname', 'email', 'password', 'role_id', 'phone_numbers', 'dormitory_id', 'dormitory' ];
 		$profileFields = [ 'position', 'department', 'office_phone', 'office_location' ];
 		$userData = array_intersect_key( $data, array_flip( $userFields ) );
 		$profileData = array_intersect_key( $data, array_flip( $profileFields ) );
+
+		// Handle name mapping (surname -> last_name)
+		if ( isset( $userData['surname'] ) ) {
+			$userData['last_name'] = $userData['surname'];
+			unset( $userData['surname'] );
+		}
+
+		// Handle dormitory mapping (dormitory -> dormitory_id)
+		if ( isset( $userData['dormitory'] ) ) {
+			$userData['dormitory_id'] = $userData['dormitory'];
+			unset( $userData['dormitory'] );
+		}
 		if ( isset( $userData['password'] ) && $userData['password'] ) {
 			$userData['password'] = Hash::make( $userData['password'] );
 		} else {

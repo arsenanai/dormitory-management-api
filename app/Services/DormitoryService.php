@@ -4,10 +4,15 @@ namespace App\Services;
 
 use App\Models\Dormitory;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 
 class DormitoryService {
 	public function createDormitory( array $data ) {
 		return Dormitory::create( $data );
+	}
+
+	public function getById( $id ) {
+		return Dormitory::with( [ 'admin', 'rooms.beds' ] )->findOrFail( $id );
 	}
 
 	public function updateDormitory( $id, array $data ) {
@@ -16,8 +21,28 @@ class DormitoryService {
 		return $dorm;
 	}
 
-	public function listDormitories() {
-		return Dormitory::with( 'admin' )->get();
+	public function listDormitories(): JsonResponse {
+		$dormitories = Dormitory::with( [ 'admin', 'rooms.beds' ] )->get();
+
+		// Transform the data to include additional computed fields
+		$dormitories = $dormitories->map( function ($dormitory) {
+			$dormitory->registered = $dormitory->rooms->sum( function ($room) {
+				return $room->beds->whereNotNull( 'user_id' )->count();
+			} );
+
+			$dormitory->freeBeds = $dormitory->rooms->sum( function ($room) {
+				return $room->beds->whereNull( 'user_id' )->count();
+			} );
+
+			$dormitory->rooms_count = $dormitory->rooms->count();
+
+			return $dormitory;
+		} );
+
+		return response()->json( [ 
+			'success' => true,
+			'data'    => $dormitories
+		] );
 	}
 
 	public function deleteDormitory( $id ) {

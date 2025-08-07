@@ -143,6 +143,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::apiResource( 'admins', AdminController::class);
 
 		// Dormitory management (admin operations only)
+		Route::get( '/dormitories/{dormitory}', [ DormitoryController::class, 'show' ] );
 		Route::post( 'dormitories/{dormitory}/assign-admin', [ DormitoryController::class, 'assignAdmin' ] );
 		Route::post( '/dormitories', [ DormitoryController::class, 'store' ] );
 		Route::put( '/dormitories/{dormitory}', [ DormitoryController::class, 'update' ] );

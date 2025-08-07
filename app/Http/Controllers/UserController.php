@@ -573,6 +573,8 @@ class UserController extends Controller {
 			'last_name'               => 'sometimes|string|max:255',
 			'email'                   => 'sometimes|email|max:255|unique:users,email,' . $user->id,
 			'phone'                   => 'nullable|string|max:20',
+			'phone_numbers'           => 'sometimes|nullable|array',
+			'phone_numbers.*'         => 'sometimes|nullable|string|max:20',
 			'dormitory_id'            => 'nullable|exists:dormitories,id',
 			// Student-specific fields
 			'iin'                     => 'nullable|string|max:12',
@@ -674,8 +676,17 @@ class UserController extends Controller {
 				$profileData['user_id'] = $user->id;
 				\App\Models\GuestProfile::create( $profileData );
 			}
+		} elseif ( $user->hasRole( 'admin' ) || $user->hasRole( 'sudo' ) ) {
+			// Handle admin profile updates
+			if ( $user->adminProfile ) {
+				$user->adminProfile->update( $profileData );
+			} else {
+				// Create AdminProfile if it doesn't exist
+				$profileData['user_id'] = $user->id;
+				\App\Models\AdminProfile::create( $profileData );
+			}
 		}
-		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ) );
+		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile', 'adminProfile' ] ) );
 	}
 
 	/**

@@ -34,18 +34,25 @@ class DashboardService {
 			->whereNull( 'read_at' )
 			->count();
 
-		// Return flattened structure for the main dashboard
+		// Return flattened structure for the main dashboard with frontend-expected field names
 		$stats = [ 
-			'total_students'   => $studentStats['total'],
-			'total_rooms'      => $roomStats['total_rooms'],
-			'occupied_rooms'   => $roomStats['occupied_rooms'],
-			'available_rooms'  => $roomStats['available_rooms'],
-			'total_payments'   => $paymentStats['total_payments'],
-			'pending_payments' => $paymentStats['pending_payments'],
-			'recent_payments'  => $paymentStats['this_month_amount'],
-			'unread_messages'  => $unreadMessages,
-			'recent_messages'  => $messageStats['recent_messages'],
-			'occupancy_rate'   => $roomStats['occupancy_rate'],
+			'total_dormitories'      => Dormitory::count(),
+			'total_rooms'            => $roomStats['total_rooms'],
+			'total_beds'             => $roomStats['total_beds'],
+			'available_rooms'        => $roomStats['available_rooms'],
+			'occupied_rooms'         => $roomStats['occupied_rooms'],
+			'available_beds'         => $roomStats['available_beds'],
+			'occupied_beds'          => $roomStats['occupied_beds'],
+			'total_students'         => $studentStats['total'],
+			'students_with_meals'    => $studentStats['with_meals'],
+			'students_without_meals' => $studentStats['without_meals'],
+			'current_presence'       => $roomStats['occupied_beds'],
+			'total_payments'         => $paymentStats['total_payments'],
+			'pending_payments'       => $paymentStats['pending_payments'],
+			'recent_payments'        => $paymentStats['this_month_amount'],
+			'unread_messages'        => $unreadMessages,
+			'recent_messages'        => $messageStats['recent_messages'],
+			'occupancy_rate'         => $roomStats['occupancy_rate'],
 		];
 
 		return response()->json( $stats );

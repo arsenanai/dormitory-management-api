@@ -15,7 +15,7 @@ class User extends Authenticatable {
 	use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
 	protected $fillable = [ 
-		'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'password', 'status', 'role_id', 'remember_token'
+		'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'dormitory_id', 'password', 'status', 'role_id', 'remember_token'
 	];
 
 	protected $casts = [ 
@@ -44,7 +44,7 @@ class User extends Authenticatable {
 	public function getFillable() {
 		// Return the fields expected by the test including student-specific fields
 		return [ 
-			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'password', 'status', 'role_id', 'remember_token'
+			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'dormitory_id', 'password', 'status', 'role_id', 'remember_token'
 		];
 	}
 
@@ -62,7 +62,7 @@ class User extends Authenticatable {
 	}
 
 	public function dormitory() {
-		return $this->hasOne( Dormitory::class, 'admin_id' );
+		return $this->belongsTo( Dormitory::class);
 	}
 
 	public function payments() {

@@ -25,13 +25,18 @@ class AdminController extends Controller {
 			'name'     => 'required|string|max:255',
 			'email'    => 'required|email|max:255|unique:users,email',
 			'password' => 'required|string|min:6',
-			'gender'   => 'required|string|in:male,female',
+			'gender'   => 'nullable|string|in:male,female',
 		];
 	}
 
 	public function index( Request $request ) {
 		$admins = $this->service->listAdmins();
 		return response()->json( $admins, 200 );
+	}
+
+	public function show( $id ) {
+		$admin = $this->service->getAdminById( $id );
+		return response()->json( $admin, 200 );
 	}
 
 	public function store( Request $request ) {
@@ -52,10 +57,17 @@ class AdminController extends Controller {
 	}
 
 	public function update( Request $request, $id ) {
-		$updateRules = array_map(
-			fn( $rule ) => 'sometimes|' . $rule,
-			$this->rules
-		);
+		// Create update rules with email uniqueness excluding current user
+		$updateRules = [ 
+			'name'            => 'sometimes|required|string|max:255',
+			'surname'         => 'sometimes|nullable|string|max:255',
+			'email'           => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+			'password'        => 'sometimes|nullable|string|min:6',
+			'gender'          => 'sometimes|nullable|string|in:male,female',
+			'phone_numbers'   => 'sometimes|nullable|array',
+			'phone_numbers.*' => 'sometimes|nullable|string|max:20',
+			'dormitory'       => 'sometimes|nullable|integer|exists:dormitories,id',
+		];
 		$profileRules = [ 
 			'position'        => 'nullable|string|max:255',
 			'department'      => 'nullable|string|max:255',
