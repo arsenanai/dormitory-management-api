@@ -1,5 +1,5 @@
-# Multi-stage build for Laravel backend
-FROM php:8.2-fpm-alpine AS base
+# Laravel backend with PHP 8.2 and Nginx
+FROM php:8.2-fpm-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -13,13 +13,15 @@ RUN apk add --no-cache \
     libxml2-dev \
     zip \
     unzip \
-    supervisor \
-    nginx
+    nginx \
+    postgresql-dev \
+    postgresql-client
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-        pdo_mysql \
+        pdo_pgsql \
+        pgsql \
         mbstring \
         exif \
         pcntl \
@@ -34,49 +36,69 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files
-COPY composer.json composer.lock ./
-
-# Install dependencies (without post-install scripts)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
-
-# Copy application code
+# Copy application code first
 COPY . .
 
-# Run post-install scripts after code is copied
-RUN composer run-script post-autoload-dump
+# Make artisan executable before composer install runs its scripts
+RUN chmod +x artisan
+
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
-# Development stage
-FROM base AS development
+# Configure PHP
+RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.memory_consumption=128" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini \
+    && echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Install development dependencies
-RUN composer install --optimize-autoloader --no-interaction
+# Configure Nginx
+RUN mkdir -p /etc/nginx/conf.d && \
+    echo 'events {' > /etc/nginx/nginx.conf && \
+    echo '    worker_connections 1024;' >> /etc/nginx/nginx.conf && \
+    echo '}' >> /etc/nginx/nginx.conf && \
+    echo '' >> /etc/nginx/nginx.conf && \
+    echo 'http {' >> /etc/nginx/nginx.conf && \
+    echo '    include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
+    echo '    default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
+    echo '    sendfile on;' >> /etc/nginx/nginx.conf && \
+    echo '    keepalive_timeout 65;' >> /etc/nginx/nginx.conf && \
+    echo '    include /etc/nginx/conf.d/*.conf;' >> /etc/nginx/nginx.conf && \
+    echo '}' >> /etc/nginx/nginx.conf && \
+    echo 'server {' > /etc/nginx/conf.d/default.conf && \
+    echo '    listen 8000;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    server_name localhost;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    root /var/www/html/public;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    index index.php index.html;' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location / {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        try_files $uri $uri/ /index.php?$query_string;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location ~ \.php$ {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        fastcgi_pass 127.0.0.1:9000;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        fastcgi_index index.php;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;' >> /etc/nginx/conf.d/default.conf && \
+    echo '        include fastcgi_params;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
+    echo '' >> /etc/nginx/conf.d/default.conf && \
+    echo '    location ~ /\.(?!well-known).* {' >> /etc/nginx/conf.d/default.conf && \
+    echo '        deny all;' >> /etc/nginx/conf.d/default.conf && \
+    echo '    }' >> /etc/nginx/conf.d/default.conf && \
+    echo '}' >> /etc/nginx/conf.d/default.conf
 
-# Copy development configuration (if exists)
-RUN if [ -f docker/php/php.ini ]; then cp docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini; fi
-RUN if [ -f docker/nginx/nginx.conf ]; then cp docker/nginx/nginx.conf /etc/nginx/nginx.conf; fi
+# Create startup script
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'php-fpm -D' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
 
 # Expose port
 EXPOSE 8000
 
-# Start development server
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
-
-# Production stage
-FROM base AS production
-
-# Copy production configuration (if exists)
-RUN if [ -f docker/php/php.ini ]; then cp docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini; fi
-RUN if [ -f docker/nginx/nginx.conf ]; then cp docker/nginx/nginx.conf /etc/nginx/nginx.conf; fi
-RUN if [ -f docker/supervisor/supervisord.conf ]; then cp docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf; fi
-
-# Expose port
-EXPOSE 80
-
-# Start production server
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"] 
+# Start services
+CMD ["/start.sh"] 

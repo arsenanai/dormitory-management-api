@@ -105,192 +105,159 @@ php artisan test --parallel
 - **Database Tests**: Migration and seeder testing
 - **Integration Tests**: Full workflow testing
 
-## 🐳 Docker Installation & Usage
+## 🐳 Docker Setup
+
+This project uses environment-based Docker builds controlled by the `APP_ENV` variable in your `.env` file. **Only one `docker-compose.yml` file is needed** - the environment is automatically detected from your `.env` file.
 
 ### Prerequisites
-
-- [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/install/) installed
+- Docker and Docker Compose installed
 - Git for cloning the repository
 
-### Development Environment Setup
+### Quick Start
 
-#### 1. Clone and Setup Project
-
+#### Local Development
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd crm-back
+# Copy environment file for local development
+cp env.example .env
 
-# Copy environment file
-cp .env.example .env
-```
-
-#### 2. Configure Environment
-
-Edit the `.env` file with your database settings:
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=db
-DB_PORT=3306
-DB_DATABASE=dormitory_management
-DB_USERNAME=root
+# Edit .env file and set:
+APP_ENV=local
+APP_DEBUG=true
 DB_PASSWORD=password
-CACHE_STORE=file
+
+# Build and start containers
+docker-compose up -d
+
+# Run migrations and seed database
+docker-compose exec api php artisan migrate
+docker-compose exec api php artisan db:seed
+
+# Access the application
+# API: http://localhost:8000
+# MailHog: http://localhost:8025
+# Database: localhost:3306
+# Redis: localhost:6379
 ```
 
-#### 3. Start Development Environment
-
+#### Production
 ```bash
-# Start all development services
-docker compose --profile dev up -d
+# Copy environment file for production
+cp env.production .env
 
-# Generate application key
-docker compose exec dev php artisan key:generate
-
-# Run migrations
-docker compose run --rm migrate
-
-# Seed database with test data
-docker compose run --rm seed
-
-# Verify setup
-docker compose exec dev php artisan migrate:status
-```
-
-#### 4. Access Development Environment
-
-- **API**: http://localhost:8000
-- **MailHog (Email Testing)**: http://localhost:8025
-- **Database**: localhost:3306
-- **Redis**: localhost:6379
-
-#### 5. Development Commands
-
-```bash
-# View logs
-docker compose logs dev
-
-# Run tests
-docker compose run --rm test
-
-# Access container shell
-docker compose exec dev bash
-
-# Clear cache
-docker compose exec dev php artisan config:clear
-
-# Restart services
-docker compose restart dev
-```
-
-### Production Environment Setup
-
-#### 1. Clone and Setup Project
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd crm-back
-
-# Copy environment file
-cp .env.example .env
-```
-
-#### 2. Configure Production Environment
-
-Edit the `.env` file for production:
-
-```env
+# Edit .env file and set:
 APP_ENV=production
 APP_DEBUG=false
-DB_CONNECTION=mysql
-DB_HOST=db
-DB_PORT=3306
-DB_DATABASE=dormitory_management
-DB_USERNAME=root
 DB_PASSWORD=your_secure_password
-CACHE_STORE=file
-```
 
-#### 3. Start Production Environment
-
-```bash
-# Start production services
-docker compose --profile production up -d
-
-# Generate application key
-docker compose exec app php artisan key:generate
+# Build and start containers
+docker-compose up -d
 
 # Run migrations
-docker compose run --rm migrate
+docker-compose exec api php artisan migrate --force
 
-# Seed database (if needed)
-docker compose run --rm seed
-
-# Set proper permissions
-docker compose exec app chown -R www-data:www-data storage bootstrap/cache
+# Access the application
+# API: http://localhost:8000
 ```
 
-#### 4. Production Access
+### Environment Configuration
 
-- **Web Application**: http://your-domain.com
-- **API**: http://your-domain.com/api
-- **Database**: Internal network only
-- **Redis**: Internal network only
+The system automatically detects your environment from the `APP_ENV` variable in your `.env` file:
 
-#### 5. Production Maintenance
+#### Local Development (`APP_ENV=local`)
+- **Container Target**: `local` (development-friendly)
+- **Debugging**: Full debugging enabled with Xdebug
+- **Hot Reload**: Code changes reflect immediately
+- **Volume Mounts**: Source code mounted for live editing
+- **Development Tools**: vim, htop, mysql-client included
+- **Port**: 8000
+- **Caching**: File-based caching
+- **Sessions**: File-based sessions
+
+#### Production (`APP_ENV=production`)
+- **Container Target**: `production` (optimized)
+- **Security**: Enhanced security headers and CSRF protection
+- **Performance**: Redis-based caching and session storage
+- **Optimization**: OPcache enabled, compressed responses
+- **Port**: 80
+- **Caching**: Redis-based caching
+- **Sessions**: Redis-based sessions
+
+### Docker Commands
 
 ```bash
+# Start services
+docker-compose up -d
+
 # View logs
-docker compose logs app
+docker-compose logs -f api
 
-# Update application
-git pull
-docker compose --profile production up -d --build
+# Access container shell
+docker-compose exec api sh
 
-# Backup database
-docker compose exec db mysqldump -u root -p dormitory_management > backup.sql
+# Run migrations
+docker-compose exec api php artisan migrate
 
-# Monitor services
-docker compose ps
+# Run tests
+docker-compose exec api php artisan test
+
+# Clear caches
+docker-compose exec api php artisan config:clear
+docker-compose exec api php artisan cache:clear
+
+# Stop services
+docker-compose down
+
+# Rebuild containers
+docker-compose up --build -d
 ```
 
-### Service Profiles
+### Environment Variables
 
-- **Development**: `docker compose --profile dev up -d`
-  - Includes: dev, db, redis, mailhog, server-base
-- **Production**: `docker compose --profile production up -d`
-  - Includes: app, nginx, db, redis, server-base
-- **Testing**: `docker compose --profile test up -d`
-  - Includes: test, server-base
+#### Required Variables
+```env
+APP_ENV=local                    # Environment: local or production
+APP_DEBUG=true                   # Debug mode (true for local, false for production)
+DB_PASSWORD=password             # Database password
+```
+
+#### Docker-Specific Variables
+```env
+API_PORT=8000                    # API port (8000 for local, 80 for production)
+VOLUME_MOUNT=.:/var/www/html     # Volume mount (.:/var/www/html for local, /dev/null:/dev/null for production)
+CACHE_STORE=file                 # Cache store (file for local, redis for production)
+SESSION_DRIVER=file              # Session driver (file for local, redis for production)
+QUEUE_CONNECTION=sync            # Queue connection (sync for local, redis for production)
+```
+
+### Services
+
+- **api**: Laravel application (environment-based build)
+- **db**: MySQL 8.0 database
+- **redis**: Redis cache and session storage
+- **mailhog**: Email testing (development only)
 
 ### Troubleshooting
 
 #### Common Issues
-
 1. **Port conflicts**: Ensure ports 8000, 3306, 6379 are available
 2. **Permission errors**: Run `chmod -R 755 storage bootstrap/cache` in container
-3. **Database connection**: Check `.env` file and ensure database container is running
-4. **Memory issues**: Increase Docker memory allocation for large applications
+3. **Database connection**: Check DB_HOST and credentials in .env
+4. **Build failures**: Clear Docker cache with `docker system prune -a`
 
-#### Useful Commands
-
+#### Debug Commands
 ```bash
-# Clean up containers and volumes
-docker compose down -v
+# Check container status
+docker-compose ps
 
-# Rebuild services
-docker compose --profile dev up -d --build
+# View detailed logs
+docker-compose logs -f
 
-# View service status
-docker compose ps
+# Rebuild containers
+docker-compose up --build -d
 
-# Check service logs
-docker compose logs [service-name]
-
-# Access database
-docker compose exec db mysql -u root -p dormitory_management
+# Clean up
+docker-compose down -v
+docker system prune -f
 ```
 
 ## 📚 API Endpoints

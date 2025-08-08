@@ -38,36 +38,28 @@ class DevelopmentSeeder extends Seeder {
 		$sudoRole = \App\Models\Role::firstOrCreate( [ 'name' => 'sudo' ] );
 		$studentRole = \App\Models\Role::firstOrCreate( [ 'name' => 'student' ] );
 
-		// Create room types
+		// Create room types - only standard and lux
 		$standardRoomType = RoomType::firstOrCreate(
 			[ 'name' => 'standard' ],
-			[ 'beds' => [ 
-				[ 'id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false ],
-				[ 'id' => 2, 'x' => 150, 'y' => 50, 'occupied' => false ],
-			] ]
+			[ 
+				'beds' => [ 
+					[ 'id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false ],
+					[ 'id' => 2, 'x' => 150, 'y' => 50, 'occupied' => false ],
+				],
+				'capacity' => 2,
+				'price' => 0.00
+			]
 		);
 
 		$luxRoomType = RoomType::firstOrCreate(
 			[ 'name' => 'lux' ],
-			[ 'beds' => [ 
-				[ 'id' => 1, 'x' => 100, 'y' => 100, 'occupied' => false ],
-			] ]
-		);
-
-		// Create guest room types for E2E tests
-		$singleRoomType = RoomType::firstOrCreate(
-			[ 'name' => 'single' ],
-			[ 'beds' => [ 
-				[ 'id' => 1, 'x' => 75, 'y' => 75, 'occupied' => false ],
-			] ]
-		);
-
-		$doubleRoomType = RoomType::firstOrCreate(
-			[ 'name' => 'double' ],
-			[ 'beds' => [ 
-				[ 'id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false ],
-				[ 'id' => 2, 'x' => 150, 'y' => 50, 'occupied' => false ],
-			] ]
+			[ 
+				'beds' => [ 
+					[ 'id' => 1, 'x' => 100, 'y' => 100, 'occupied' => false ],
+				],
+				'capacity' => 1,
+				'price' => 0.00
+			]
 		);
 
 		// Create dormitories
@@ -315,7 +307,7 @@ class DevelopmentSeeder extends Seeder {
 		$room = \App\Models\Room::firstOrCreate( [ 
 			'number'       => 'A101',
 			'dormitory_id' => $dormitory->id,
-			'room_type_id' => 1,
+			'room_type_id' => $standardRoomType->id,
 			'floor'        => 1
 		] );
 

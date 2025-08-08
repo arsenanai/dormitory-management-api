@@ -1,193 +1,59 @@
 version: '3.8'
 
 services:
-  # Database
+  # Database - PostgreSQL 16
   db:
-    image: mysql:8.0
+    image: postgres:16-alpine
     container_name: crm-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-dormitory_management}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_USER: ${DB_USERNAME:-root}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_DATABASE:-dormitory_management}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
-    command: --default-authentication-plugin=mysql_native_password
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - crm-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-dormitory_management}"]
       timeout: 20s
-      retries: 10
+      retries: 5
 
-  # Redis
-  redis:
-    image: redis:alpine
-    container_name: crm-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - crm-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      timeout: 20s
-      retries: 10
-
-  # Backend API (Development)
-  api-dev:
+  # Backend API - Laravel
+  api:
     build:
       context: .
       dockerfile: Dockerfile
-      target: development
-    container_name: crm-api-dev
+    container_name: crm-api
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
     volumes:
       - .:/var/www/html
-      - /var/www/html/vendor
-      - /var/www/html/node_modules
+      - ./storage:/var/www/html/storage
     environment:
-      APP_ENV: local
-      APP_DEBUG: true
-      DB_CONNECTION: mysql
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DB_CONNECTION: pgsql
       DB_HOST: db
-      DB_PORT: 3306
+      DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-dormitory_management}
-      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-password}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       CACHE_STORE: file
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - crm-network
-    profiles:
-      - dev
-
-  # Backend API (Production)
-  api-prod:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: production
-    container_name: crm-api-prod
-    restart: unless-stopped
-    ports:
-      - "8000:80"
-    environment:
-      APP_ENV: production
-      APP_DEBUG: false
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE:-dormitory_management}
-      DB_USERNAME: ${DB_USERNAME:-root}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CACHE_STORE: file
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - crm-network
-    profiles:
-      - production
-
-  # MailHog for development
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: crm-mailhog
-    ports:
-      - "1026:1025"
-      - "8025:8025"
-    networks:
-      - crm-network
-    profiles:
-      - dev
-
-  # Database migrations
-  migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: crm-migrate
-    command: php artisan migrate --force
-    environment:
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE:-dormitory_management}
-      DB_USERNAME: ${DB_USERNAME:-root}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
     depends_on:
       db:
         condition: service_healthy
     networks:
       - crm-network
-    profiles:
-      - dev
-      - production
-
-  # Database seeding
-  seed:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: crm-seed
-    command: php artisan db:seed --force
-    environment:
-      DB_CONNECTION: mysql
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_DATABASE: ${DB_DATABASE:-dormitory_management}
-      DB_USERNAME: ${DB_USERNAME:-root}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - crm-network
-    profiles:
-      - dev
-
-  # Testing
-  test:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: development
-    container_name: crm-test
-    command: php artisan test
-    environment:
-      APP_ENV: testing
-      DB_CONNECTION: sqlite
-      DB_DATABASE: ":memory:"
-    networks:
-      - crm-network
-    profiles:
-      - test
 
 volumes:
-  mysql_data:
-  redis_data:
+  postgres_data:
 
 networks:
   crm-network:
-    driver: bridge
+    external: true
