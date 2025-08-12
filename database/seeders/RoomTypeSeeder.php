@@ -13,28 +13,32 @@ class RoomTypeSeeder extends Seeder
     public function run(): void
     {
         // Create standard room type
-        RoomType::create([
-            'name'     => 'standard',
-            'capacity' => 2,
-            'price'    => 150.00,
-            'minimap'  => null,
-            'beds'     => json_encode([
-                ['x' => 10, 'y' => 20, 'width' => 30, 'height' => 40],
-                ['x' => 50, 'y' => 60, 'width' => 30, 'height' => 40],
-            ]),
-            'photos'   => json_encode([]),
-        ]);
+        RoomType::firstOrCreate(
+            ['name' => 'standard'],
+            [
+                'capacity' => 2,
+                'price'    => 150.00,
+                'minimap'  => null,
+                'beds'     => json_encode([
+                    ['x' => 10, 'y' => 20, 'width' => 30, 'height' => 40],
+                    ['x' => 50, 'y' => 60, 'width' => 30, 'height' => 40],
+                ]),
+                'photos'   => json_encode([]),
+            ]
+        );
 
         // Create lux room type
-        RoomType::create([
-            'name'     => 'lux',
-            'capacity' => 1,
-            'price'    => 300.00,
-            'minimap'  => null,
-            'beds'     => json_encode([
-                ['x' => 10, 'y' => 20, 'width' => 30, 'height' => 40],
-            ]),
-            'photos'   => json_encode([]),
-        ]);
+        RoomType::firstOrCreate(
+            ['name' => 'lux'],
+            [
+                'capacity' => 1,
+                'price'    => 300.00,
+                'minimap'  => null,
+                'beds'     => json_encode([
+                    ['x' => 10, 'y' => 20, 'width' => 30, 'height' => 40],
+                ]),
+                'photos'   => json_encode([]),
+            ]
+        );
     }
 }

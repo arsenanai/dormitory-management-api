@@ -224,6 +224,71 @@ class RoomTypeCrudTest extends TestCase {
 		] );
 	}
 
+	public function test_api_returns_exactly_two_room_types() {
+		$token = $this->loginAsSudo();
+
+		$response = $this->getJson( '/api/room-types', [ 
+			'Authorization' => "Bearer $token",
+		] );
+
+		$response->assertStatus( 200 );
+		$roomTypes = $response->json();
+		
+		// Should have exactly 2 room types
+		$this->assertCount( 2, $roomTypes );
+		
+		// Find standard and lux room types
+		$standard = collect( $roomTypes )->firstWhere( 'name', 'standard' );
+		$lux = collect( $roomTypes )->firstWhere( 'name', 'lux' );
+		
+		// Verify standard room type
+		$this->assertNotNull( $standard );
+		$this->assertEquals( 2, $standard['capacity'] );
+		$this->assertEquals( '150.00', $standard['price'] );
+		
+		// Verify lux room type
+		$this->assertNotNull( $lux );
+		$this->assertEquals( 1, $lux['capacity'] );
+		$this->assertEquals( '300.00', $lux['price'] );
+	}
+
+	public function test_room_types_have_consistent_data_structure() {
+		$token = $this->loginAsSudo();
+
+		$response = $this->getJson( '/api/room-types', [ 
+			'Authorization' => "Bearer $token",
+		] );
+
+		$response->assertStatus( 200 );
+		$roomTypes = $response->json();
+		
+		foreach ( $roomTypes as $roomType ) {
+			// Check required fields exist
+			$this->assertArrayHasKey( 'id', $roomType );
+			$this->assertArrayHasKey( 'name', $roomType );
+			$this->assertArrayHasKey( 'capacity', $roomType );
+			$this->assertArrayHasKey( 'price', $roomType );
+			$this->assertArrayHasKey( 'created_at', $roomType );
+			$this->assertArrayHasKey( 'updated_at', $roomType );
+			
+			// Check data types (in test environment, price might be integer)
+			$this->assertIsInt( $roomType['id'] );
+			$this->assertIsString( $roomType['name'] );
+			$this->assertIsInt( $roomType['capacity'] );
+			$this->assertTrue( is_string($roomType['price']) || is_numeric($roomType['price']), 'Price should be string or numeric' );
+			
+			// Check name is valid
+			$this->assertContains( $roomType['name'], [ 'standard', 'lux' ] );
+			
+			// Check capacity is valid
+			$this->assertGreaterThan( 0, $roomType['capacity'] );
+			$this->assertLessThanOrEqual( 4, $roomType['capacity'] );
+			
+			// Check price is valid
+			$this->assertGreaterThanOrEqual( 0, (float) $roomType['price'] );
+		}
+	}
+
 	private function loginAsSudo() {
 		$response = $this->postJson( '/api/login', [ 
 			'email'    => 'sudo@email.com',
