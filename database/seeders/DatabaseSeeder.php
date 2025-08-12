@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder {
 		$this->call( [ 
 			RoleSeeder::class,
 			AdminSeeder::class, // Only this seeder creates admin/sudo users
+			RoomTypeSeeder::class, // Add room types (standard and lux)
 			StudentSeeder::class,
 			GuestSeeder::class,
 			ConfigurationSeeder::class,
