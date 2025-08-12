@@ -9,7 +9,15 @@ class DormitoryController extends Controller {
 	private array $rules = [ 
 		'name'     => 'required|string|max:255',
 		'capacity' => 'required|integer|min:1',
+		'gender'   => 'required|in:male,female,mixed',
 		'admin_id' => 'nullable|integer|exists:users,id',
+		'registered' => 'nullable|integer|min:0',
+		'freeBeds' => 'nullable|integer|min:0',
+		'rooms_count' => 'nullable|integer|min:0',
+		'address'  => 'nullable|string|max:500',
+		'description' => 'nullable|string|max:1000',
+		'quota'    => 'nullable|integer|min:0',
+		'phone'    => 'nullable|string|max:20',
 	];
 
 	public function __construct( private DormitoryService $service ) {
@@ -18,12 +26,17 @@ class DormitoryController extends Controller {
 	public function index( Request $request ) {
 		// Optionally, you can add filters or pagination here
 		$dorms = $this->service->listDormitories();
-		return $dorms;
+		return $dorms->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+			->header('Pragma', 'no-cache')
+			->header('Expires', '0');
 	}
 
 	public function show( $id ) {
 		$dorm = $this->service->getById( $id );
-		return response()->json( $dorm, 200 );
+		return response()->json( $dorm, 200 )
+			->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+			->header('Pragma', 'no-cache')
+			->header('Expires', '0');
 	}
 
 	public function store( Request $request ) {
@@ -33,13 +46,22 @@ class DormitoryController extends Controller {
 	}
 
 	public function update( Request $request, $id ) {
+		\Log::info('Dormitory update called', ['id' => $id, 'request_data' => $request->all()]);
+		
 		$updateRules = array_map(
 			fn( $rule ) => 'sometimes|' . $rule,
 			$this->rules
 		);
 		$validated = $request->validate( $updateRules );
+		\Log::info('Dormitory update validated', ['validated_data' => $validated]);
+		
 		$dorm = $this->service->updateDormitory( $id, $validated );
-		return response()->json( $dorm, 200 );
+		\Log::info('Dormitory update result', ['result' => $dorm->toArray()]);
+		
+		return response()->json( $dorm, 200 )
+			->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+			->header('Pragma', 'no-cache')
+			->header('Expires', '0');
 	}
 
 	public function destroy( $id ) {

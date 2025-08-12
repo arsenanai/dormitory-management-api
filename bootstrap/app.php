@@ -17,8 +17,9 @@ return Application::configure( basePath: dirname( __DIR__ ) )
 			'role' => RoleMiddleware::class,
 		] );
 
-		// Apply rate limiting to API routes
+		// Apply CORS middleware to API routes
 		$middleware->api( prepend: [ 
+			\Illuminate\Http\Middleware\HandleCors::class,
 			\Illuminate\Routing\Middleware\ThrottleRequests::class . ':60,1'
 		] );
 	} )

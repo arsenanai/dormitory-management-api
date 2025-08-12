@@ -16,8 +16,14 @@ class DormitoryService {
 	}
 
 	public function updateDormitory( $id, array $data ) {
+		\Log::info('DormitoryService updateDormitory called', ['id' => $id, 'data' => $data]);
+		
 		$dorm = Dormitory::findOrFail( $id );
+		\Log::info('Dormitory found', ['dormitory' => $dorm->toArray()]);
+		
 		$dorm->update( $data );
+		\Log::info('Dormitory updated', ['dormitory_after_update' => $dorm->fresh()->toArray()]);
+		
 		return $dorm;
 	}
 
