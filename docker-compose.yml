@@ -1,4 +1,32 @@
 services:
+  # Local Nginx Reverse Proxy (simulating production setup)
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: crm-nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx-proxy.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - it_services_net
+
+  # Frontend - Vue.js (for dorm.sdu.edu.kz)
+  frontend:
+    image: nginx:alpine
+    container_name: crm-frontend
+    restart: unless-stopped
+    volumes:
+      - ../crm-front/dist:/usr/share/nginx/html:ro
+      - ../crm-front/docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - it_services_net
+
   # Database - PostgreSQL 16
   db:
     image: postgres:16-alpine
@@ -17,19 +45,21 @@ services:
       timeout: 20s
       retries: 5
 
-  # Backend API - Laravel
+  # Backend API - Laravel (for api.dorm.sdu.edu.kz)
   api:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: crm-api
     restart: unless-stopped
+    ports:
+      - "8000:80"
     volumes:
       - .:/var/www/html
       - ./storage:/var/www/html/storage
     environment:
-      APP_ENV: ${APP_ENV:-production}
-      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
       DB_CONNECTION: pgsql
       DB_HOST: db
       DB_PORT: 5432

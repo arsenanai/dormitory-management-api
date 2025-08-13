@@ -79,6 +79,41 @@ php artisan serve
 
 The API will be available at [http://localhost:8000](http://localhost:8000).
 
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Fix storage permissions (IMPORTANT!)
+docker exec -it crm-api chown -R www-data:www-data /var/www/html/storage
+
+# Check container status
+docker-compose ps
+```
+
+### Domain Architecture
+
+The system works with a single domain:
+- **`dorm.sdu.edu.kz`** → Frontend (Vue.js application) + Backend API (on port 8000)
+
+**API Endpoints**: All API calls should be made to `https://dorm.sdu.edu.kz:8000/api/*`
+
+**Frontend**: The Vue.js application is served from the same domain.
+
+### Troubleshooting
+
+**Permission Denied Error**: If you see `file_put_contents(): Failed to open stream: Permission denied`:
+```bash
+# Fix storage directory permissions
+docker exec -it crm-api chown -R www-data:www-data /var/www/html/storage
+docker exec -it crm-api chmod -R 775 /var/www/html/storage
+```
+
+**Port Access**: The backend should NOT be directly accessible on port 8000 in production. Use the reverse proxy configuration instead.
+
 ## 🧪 Testing
 
 ### Running Tests
