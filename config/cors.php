@@ -10,7 +10,7 @@ return [
 		'http://localhost:5173',
 		'https://dorm.sdu.edu.kz'
 	],
-	'allowed_origins_patterns' => [
+	'allowed_origins_patterns' => [ 
 		'https://*.sdu.edu.kz'
 	],
 	'allowed_headers'          => [ '*' ],
