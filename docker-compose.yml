@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Database - PostgreSQL 16
   db:
@@ -10,12 +8,10 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-dormitory_management}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-    ports:
-      - "${DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - crm-network
+      - it_services_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-dormitory_management}"]
       timeout: 20s
@@ -28,8 +24,6 @@ services:
       dockerfile: Dockerfile
     container_name: crm-api
     restart: unless-stopped
-    ports:
-      - "${API_PORT:-8000}:8000"
     volumes:
       - .:/var/www/html
       - ./storage:/var/www/html/storage
@@ -49,11 +43,11 @@ services:
       db:
         condition: service_healthy
     networks:
-      - crm-network
+      - it_services_net
 
 volumes:
   postgres_data:
 
 networks:
-  crm-network:
+  it_services_net:
     external: true

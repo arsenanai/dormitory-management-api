@@ -39,12 +39,12 @@ class DevelopmentSeeder extends Seeder {
 		$studentRole = \App\Models\Role::firstOrCreate( [ 'name' => 'student' ] );
 
 		// Get existing room types (created by RoomTypeSeeder)
-		$standardRoomType = RoomType::where('name', 'standard')->first();
-		$luxRoomType = RoomType::where('name', 'lux')->first();
+		$standardRoomType = RoomType::where( 'name', 'standard' )->first();
+		$luxRoomType = RoomType::where( 'name', 'lux' )->first();
 
 		// Ensure room types exist
-		if (!$standardRoomType || !$luxRoomType) {
-			throw new \Exception('Room types not found. Please run RoomTypeSeeder first.');
+		if ( ! $standardRoomType || ! $luxRoomType ) {
+			throw new \Exception( 'Room types not found. Please run RoomTypeSeeder first.' );
 		}
 
 		// Create dormitories
