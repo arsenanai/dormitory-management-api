@@ -1,0 +1,72 @@
+services:
+  # Database - PostgreSQL 16
+  db:
+    image: postgres:16-alpine
+    container_name: crm-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-dormitory_management}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - it_services_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-dormitory_management}"]
+      timeout: 20s
+      retries: 5
+
+  # Backend API - Laravel
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm-api-prod
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+      - ./storage:/var/www/html/storage
+    environment:
+      APP_ENV: production
+      APP_DEBUG: false
+      APP_URL: https://dorm.sdu.edu.kz
+      SPA_URL: https://dorm.sdu.edu.kz
+      FRONTEND_URL: https://dorm.sdu.edu.kz
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-dormitory_management}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - it_services_net
+
+  # Redis for production
+  redis:
+    image: redis:7-alpine
+    container_name: crm-redis-prod
+    restart: unless-stopped
+    networks:
+      - it_services_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  it_services_net:
+    external: true
