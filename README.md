@@ -94,6 +94,23 @@ docker exec -it crm-api chown -R www-data:www-data /var/www/html/storage
 docker-compose ps
 ```
 
+### Local Development Setup
+
+For local development, the system works with:
+- **`dorm.lcl`** → Frontend (Vue.js application)
+- **`dorm.lcl:8000`** → Backend API (Laravel)
+
+**Setup local domain:**
+```bash
+# Add to /etc/hosts
+echo "127.0.0.1 dorm.lcl" | sudo tee -a /etc/hosts
+```
+
+**Access points:**
+- Frontend: `https://dorm.lcl` (port 443)
+- Backend API: `https://dorm.lcl:8000` (port 8000)
+- API Endpoints: `https://dorm.lcl:8000/api/*`
+
 ### Domain Architecture
 
 The system works with a single domain:
