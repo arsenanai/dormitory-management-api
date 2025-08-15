@@ -36,3 +36,7 @@ coverage/
 debug-*.php
 debug-*.log
 debug-*.txt
+
+# Local reverse proxy simulation (not for production)
+docker/nginx-proxy.conf
+docker/ssl/

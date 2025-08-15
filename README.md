@@ -79,6 +79,58 @@ php artisan serve
 
 The API will be available at [http://localhost:8000](http://localhost:8000).
 
+## 🐳 Docker Deployment
+
+### Quick Start with Docker
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Fix storage permissions (IMPORTANT!)
+docker exec -it crm-api chown -R www-data:www-data /var/www/html/storage
+
+# Check container status
+docker-compose ps
+```
+
+### Local Development Setup
+
+For local development, the system works with:
+- **`dorm.lcl`** → Frontend (Vue.js application)
+- **`dorm.lcl:8000`** → Backend API (Laravel)
+
+**Setup local domain:**
+```bash
+# Add to /etc/hosts
+echo "127.0.0.1 dorm.lcl" | sudo tee -a /etc/hosts
+```
+
+**Access points:**
+- Frontend: `https://dorm.lcl` (port 443)
+- Backend API: `https://dorm.lcl:8000` (port 8000)
+- API Endpoints: `https://dorm.lcl:8000/api/*`
+
+### Domain Architecture
+
+The system works with a single domain:
+- **`dorm.sdu.edu.kz`** → Frontend (Vue.js application) + Backend API (on port 8000)
+
+**API Endpoints**: All API calls should be made to `https://dorm.sdu.edu.kz:8000/api/*`
+
+**Frontend**: The Vue.js application is served from the same domain.
+
+### Troubleshooting
+
+**Permission Denied Error**: If you see `file_put_contents(): Failed to open stream: Permission denied`:
+```bash
+# Fix storage directory permissions
+docker exec -it crm-api chown -R www-data:www-data /var/www/html/storage
+docker exec -it crm-api chmod -R 775 /var/www/html/storage
+```
+
+**Port Access**: The backend should NOT be directly accessible on port 8000 in production. Use the reverse proxy configuration instead.
+
 ## 🧪 Testing
 
 ### Running Tests
