@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\Room;
 use App\Models\Bed;
+use App\Models\RoomType;
 use App\Services\DormitoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -98,32 +99,46 @@ class DormitoryServiceTest extends TestCase
 
     public function test_get_dormitory_by_id_with_rooms_and_beds()
     {
+        // Get a room type for creating rooms
+        $roomType = RoomType::first();
+        if (!$roomType) {
+            // Create a default room type if none exists
+            $roomType = RoomType::create([
+                'name' => 'standard',
+                'beds' => [['id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false]],
+                'capacity' => 2,
+                'price' => 0.00
+            ]);
+        }
+
         // Create rooms and beds for the dormitory
         $room1 = Room::create([
             'number' => '101',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
-            'notes' => 'First floor room'
+            'notes' => 'First floor room',
+            'room_type_id' => $roomType->id
         ]);
         
         $room2 = Room::create([
             'number' => '102',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
-            'notes' => 'Another first floor room'
+            'notes' => 'Another first floor room',
+            'room_type_id' => $roomType->id
         ]);
         
         // Create beds for room 1
         Bed::create([
             'room_id' => $room1->id,
-            'number' => '1',
+            'bed_number' => '1',
             'is_occupied' => true,
-            'user_id' => 1
+            'user_id' => null
         ]);
         
         Bed::create([
             'room_id' => $room1->id,
-            'number' => '2',
+            'bed_number' => '2',
             'is_occupied' => false,
             'user_id' => null
         ]);
@@ -131,9 +146,9 @@ class DormitoryServiceTest extends TestCase
         // Create beds for room 2
         Bed::create([
             'room_id' => $room2->id,
-            'number' => '1',
+            'bed_number' => '1',
             'is_occupied' => true,
-            'user_id' => 2
+            'user_id' => null
         ]);
         
         $result = $this->dormitoryService->getById($this->dormitory->id);
@@ -229,39 +244,53 @@ class DormitoryServiceTest extends TestCase
 
     public function test_list_dormitories_with_computed_fields()
     {
+        // Get a room type for creating rooms
+        $roomType = RoomType::first();
+        if (!$roomType) {
+            // Create a default room type if none exists
+            $roomType = RoomType::create([
+                'name' => 'standard',
+                'beds' => [['id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false]],
+                'capacity' => 2,
+                'price' => 0.00
+            ]);
+        }
+
         // Create rooms and beds for the dormitory
         $room1 = Room::create([
             'number' => '101',
             'dormitory_id' => $this->dormitory->id,
-            'floor' => 1
+            'floor' => 1,
+            'room_type_id' => $roomType->id
         ]);
         
         $room2 = Room::create([
             'number' => '102',
             'dormitory_id' => $this->dormitory->id,
-            'floor' => 1
+            'floor' => 1,
+            'room_type_id' => $roomType->id
         ]);
         
         // Create occupied and free beds
         Bed::create([
             'room_id' => $room1->id,
-            'number' => '1',
+            'bed_number' => '1',
             'is_occupied' => true,
-            'user_id' => 1
+            'user_id' => null
         ]);
         
         Bed::create([
             'room_id' => $room1->id,
-            'number' => '2',
+            'bed_number' => '2',
             'is_occupied' => false,
             'user_id' => null
         ]);
         
         Bed::create([
             'room_id' => $room2->id,
-            'number' => '1',
+            'bed_number' => '1',
             'is_occupied' => true,
-            'user_id' => 2
+            'user_id' => null
         ]);
         
         $result = $this->dormitoryService->listDormitories();
@@ -334,19 +363,33 @@ class DormitoryServiceTest extends TestCase
 
     public function test_get_rooms_for_dormitory()
     {
+        // Get a room type for creating rooms
+        $roomType = RoomType::first();
+        if (!$roomType) {
+            // Create a default room type if none exists
+            $roomType = RoomType::create([
+                'name' => 'standard',
+                'beds' => [['id' => 1, 'x' => 50, 'y' => 50, 'occupied' => false]],
+                'capacity' => 2,
+                'price' => 0.00
+            ]);
+        }
+
         // Create rooms for the dormitory
         $room1 = Room::create([
             'number' => '101',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
-            'notes' => 'First floor room'
+            'notes' => 'First floor room',
+            'room_type_id' => $roomType->id
         ]);
         
         $room2 = Room::create([
             'number' => '102',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
-            'notes' => 'Another first floor room'
+            'notes' => 'Another first floor room',
+            'room_type_id' => $roomType->id
         ]);
         
         $result = $this->dormitoryService->getRoomsForDormitory($this->dormitory->id);

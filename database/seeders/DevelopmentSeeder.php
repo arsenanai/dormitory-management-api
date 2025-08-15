@@ -21,6 +21,12 @@ class DevelopmentSeeder extends Seeder {
 	public function run(): void {
 		// Get admin user for message sender and payment approvals
 		$adminUser = User::where( 'role_id', Role::where( 'name', 'admin' )->first()->id )->first();
+		if (!$adminUser) {
+			$adminUser = User::where( 'role_id', Role::where( 'name', 'sudo' )->first()->id )->first();
+		}
+		if (!$adminUser) {
+			throw new \Exception('No admin or sudo user found. Please ensure users are seeded first.');
+		}
 
 		// Create sample countries, regions, cities
 		$kazakhstan = Country::firstOrCreate( [ 'name' => 'Kazakhstan' ] );
@@ -248,7 +254,7 @@ class DevelopmentSeeder extends Seeder {
 
 		// Create sample messages
 		Message::firstOrCreate( [ 
-			'sender_id'      => $adminUser ? $adminUser->id : 1,
+			'sender_id'      => $adminUser->id,
 			'title'          => 'Welcome to Dormitory',
 			'content'        => 'Welcome to our dormitory! Please read the rules and regulations.',
 			'recipient_type' => 'all',
@@ -257,7 +263,7 @@ class DevelopmentSeeder extends Seeder {
 		] );
 
 		Message::firstOrCreate( [ 
-			'sender_id'      => $adminUser ? $adminUser->id : 1,
+			'sender_id'      => $adminUser->id,
 			'title'          => 'Floor Meeting',
 			'content'        => 'There will be a floor meeting tomorrow at 7 PM.',
 			'recipient_type' => 'dormitory',

@@ -25,6 +25,7 @@ class DormitoryCrudTest extends TestCase {
 		$payload = [ 
 			'name'     => 'Alpha Dorm',
 			'capacity' => 100,
+			'gender'   => 'mixed'
 		];
 
 		$response = $this->postJson( '/api/dormitories', $payload, [ 

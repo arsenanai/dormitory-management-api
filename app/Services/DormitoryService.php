@@ -8,7 +8,14 @@ use Illuminate\Http\JsonResponse;
 
 class DormitoryService {
 	public function createDormitory( array $data ) {
-		return Dormitory::create( $data );
+		$dorm = Dormitory::create( $data );
+		
+		// Load admin relationship if admin_id is provided
+		if (isset($data['admin_id']) && $data['admin_id']) {
+			return $dorm->fresh()->load('admin');
+		}
+		
+		return $dorm;
 	}
 
 	public function getById( $id ) {
@@ -24,7 +31,8 @@ class DormitoryService {
 		$dorm->update( $data );
 		\Log::info('Dormitory updated', ['dormitory_after_update' => $dorm->fresh()->toArray()]);
 		
-		return $dorm;
+		// Load the admin relationship for the response
+		return $dorm->fresh()->load('admin');
 	}
 
 	public function listDormitories(): JsonResponse {
@@ -33,11 +41,11 @@ class DormitoryService {
 		// Transform the data to include additional computed fields
 		$dormitories = $dormitories->map( function ($dormitory) {
 			$dormitory->registered = $dormitory->rooms->sum( function ($room) {
-				return $room->beds->whereNotNull( 'user_id' )->count();
+				return $room->beds->where( 'is_occupied', true )->count();
 			} );
 
 			$dormitory->freeBeds = $dormitory->rooms->sum( function ($room) {
-				return $room->beds->whereNull( 'user_id' )->count();
+				return $room->beds->where( 'is_occupied', false )->count();
 			} );
 
 			$dormitory->rooms_count = $dormitory->rooms->count();
@@ -62,7 +70,7 @@ class DormitoryService {
 		$admin = User::findOrFail( $adminId );
 		$dorm->admin()->associate( $admin );
 		$dorm->save();
-		return $dorm;
+		return $dorm->fresh()->load('admin');
 	}
 
 	public function getRoomsForDormitory( $dormitoryId ) {
