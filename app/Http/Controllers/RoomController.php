@@ -15,6 +15,7 @@ class RoomController extends Controller {
 		'notes'        => 'nullable|string',
 		'dormitory_id' => 'required|exists:dormitories,id',
 		'room_type_id' => 'required|exists:room_types,id',
+		'quota'        => 'nullable|integer|min:1',
 	];
 
 	public function __construct( private RoomService $service ) {
@@ -29,6 +30,18 @@ class RoomController extends Controller {
 
 	public function store( Request $request ) {
 		$validated = $request->validate( $this->rules );
+		
+		// Validate quota doesn't exceed room type capacity
+		if (isset($validated['quota'])) {
+			$roomType = \App\Models\RoomType::find($validated['room_type_id']);
+			if ($roomType && $validated['quota'] > $roomType->capacity) {
+				return response()->json([
+					'message' => 'Room quota cannot exceed room type capacity',
+					'errors' => ['quota' => ['Room quota cannot exceed room type capacity']]
+				], 422);
+			}
+		}
+		
 		$room = $this->service->createRoom( $validated );
 		return response()->json( $room, 201 );
 	}
@@ -40,6 +53,18 @@ class RoomController extends Controller {
 			$this->rules
 		);
 		$validated = $request->validate( $updateRules );
+		
+		// Validate quota doesn't exceed room type capacity
+		if (isset($validated['quota'])) {
+			$roomType = \App\Models\RoomType::find($validated['room_type_id'] ?? $room->room_type_id);
+			if ($roomType && $validated['quota'] > $roomType->capacity) {
+				return response()->json([
+					'message' => 'Room quota cannot exceed room type capacity',
+					'errors' => ['quota' => ['Room quota cannot exceed room type capacity']]
+				], 422);
+			}
+		}
+		
 		$room = $this->service->updateRoom( $room, $validated );
 		return response()->json( $room, 200 );
 	}

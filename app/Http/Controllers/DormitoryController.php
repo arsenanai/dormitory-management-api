@@ -23,7 +23,8 @@ class DormitoryController extends Controller {
 	public function index( Request $request ) {
 		// Optionally, you can add filters or pagination here
 		$dorms = $this->service->listDormitories();
-		return $dorms->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+		return response()->json( $dorms, 200 )
+			->header('Cache-Control', 'no-cache, no-store, must-revalidate')
 			->header('Pragma', 'no-cache')
 			->header('Expires', '0');
 	}

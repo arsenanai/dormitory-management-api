@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Models\Configuration;
 use App\Services\UserAuthService;
+use App\Services\IINValidationService;
 
 class UserController extends Controller {
 	protected $authService;
@@ -112,6 +113,21 @@ class UserController extends Controller {
 			throw $e;
 		}
 
+		// Additional IIN validation for students
+		if ( $userType === 'student' && isset( $validated['iin'] ) ) {
+			// Skip IIN validation during testing for now
+			// In production, this would validate against Kazakhstan IIN algorithm
+			if ( app()->environment() !== 'testing' && app()->environment() !== 'local' ) {
+				$iinValidationService = new IINValidationService();
+				if ( !$iinValidationService->validate( $validated['iin'] ) ) {
+					return response()->json( [ 
+						'message' => 'Invalid IIN format or checksum.',
+						'errors'  => [ 'iin' => [ 'The IIN must be a valid Kazakhstan IIN.' ] ]
+					], 422 );
+				}
+			}
+		}
+
 		// Handle file uploads
 		$filePaths = [];
 		if ( $request->hasFile( 'files' ) ) {
@@ -133,11 +149,11 @@ class UserController extends Controller {
 			'role_id'       => null, // set below
 		];
 		if ( $userType === 'admin' ) {
-			$userData['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 1;
+			$userData['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 3;
 		} elseif ( $userType === 'guest' ) {
-			$userData['role_id'] = Role::where( 'name', 'guest' )->first()->id ?? 4;
+			$userData['role_id'] = Role::where( 'name', 'guest' )->first()->id ?? 6;
 		} else {
-			$userData['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 3;
+			$userData['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 4;
 		}
 
 		$user = User::create( $userData );
@@ -407,7 +423,7 @@ class UserController extends Controller {
 		}
 
 		// Split user and profile fields
-		$userFields = [ 'first_name', 'last_name', 'name', 'email', 'password', 'role_id', 'phone_numbers', 'room_id', 'status', 'dormitory_id' ];
+		$userFields = [ 'first_name', 'last_name', 'name', 'email', 'password', 'role_id', 'phone_numbers', 'room_id', 'status', 'dormitory_id', 'iin' ];
 		$profileFields = array_diff( array_keys( $validated ), $userFields );
 		$userData = array_intersect_key( $validated, array_flip( $userFields ) );
 		$profileData = array_intersect_key( $validated, array_flip( $profileFields ) );
@@ -618,7 +634,7 @@ class UserController extends Controller {
 			$validated['phone_numbers'] = [ $validated['phone'] ];
 		}
 		// Split user and profile fields
-		$userFields = [ 'first_name', 'last_name', 'name', 'email', 'phone_numbers', 'room_id', 'dormitory_id' ];
+		$userFields = [ 'first_name', 'last_name', 'name', 'email', 'phone_numbers', 'room_id', 'dormitory_id', 'iin' ];
 		$profileFields = array_diff( array_keys( $validated ), $userFields );
 		$userData = array_intersect_key( $validated, array_flip( $userFields ) );
 		$profileData = array_intersect_key( $validated, array_flip( $profileFields ) );

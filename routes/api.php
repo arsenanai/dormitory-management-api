@@ -12,6 +12,9 @@ use App\Http\Controllers\RoomTypeController;
 use App\Http\Controllers\SemesterPaymentController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Api\BloodTypeController;
+use App\Http\Controllers\RegionController;
+use App\Http\Controllers\CityController;
 
 // Public routes
 Route::post( '/login', [ UserController::class, 'login' ] );
@@ -22,6 +25,7 @@ Route::get( '/rooms/available', [ \App\Http\Controllers\RoomController::class, '
 Route::get( '/room-types', [ RoomTypeController::class, 'index' ] );
 Route::get( '/dormitories', [ DormitoryController::class, 'index' ] );
 Route::get( '/dormitories/{dormitory}/rooms', [ DormitoryController::class, 'rooms' ] );
+Route::get( '/blood-types', [ BloodTypeController::class, 'index' ] );
 
 // Protected routes
 Route::middleware( [ 'auth:sanctum' ] )->group( function () {
@@ -134,6 +138,13 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::apiResource( 'students', StudentController::class);
 		Route::patch( '/students/{id}/approve', [ StudentController::class, 'approve' ] );
 
+		// Room management (admins and sudo can manage rooms)
+		Route::apiResource( 'rooms', RoomController::class);
+
+		// Region and city management (admins and sudo can manage)
+		Route::apiResource( 'regions', RegionController::class);
+		Route::apiResource( 'cities', CityController::class);
+
 	} );
 
 	// Sudo-only routes
@@ -153,9 +164,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::post( '/room-types', [ RoomTypeController::class, 'store' ] );
 		Route::put( '/room-types/{roomType}', [ RoomTypeController::class, 'update' ] );
 		Route::delete( '/room-types/{roomType}', [ RoomTypeController::class, 'destroy' ] );
-
-		// Room management
-		Route::apiResource( 'rooms', RoomController::class);
 
 		// Configuration management
 		Route::get( '/configurations', [ ConfigurationController::class, 'index' ] );

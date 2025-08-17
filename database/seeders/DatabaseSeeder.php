@@ -17,6 +17,8 @@ class DatabaseSeeder extends Seeder {
 			StudentSeeder::class,
 			GuestSeeder::class,
 			ConfigurationSeeder::class,
+			BloodTypeSeeder::class, // Add blood types
+			KazakhstanSeeder::class, // Add Kazakhstan regions and cities
 			DevelopmentSeeder::class, // Only domain-specific data, no admin/sudo users
 			ProductionSeeder::class,  // Only domain-specific data, no admin/sudo users
 		] );

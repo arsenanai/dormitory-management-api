@@ -25,7 +25,7 @@ class RoomService {
 		}
 
 		// Pagination
-		return $query->with( 'beds' )->paginate( $perPage );
+		return $query->with( [ 'beds', 'dormitory', 'roomType' ] )->paginate( $perPage );
 	}
 
 	public function createRoom( array $data ) {

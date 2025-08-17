@@ -35,7 +35,7 @@ class DormitoryService {
 		return $dorm->fresh()->load('admin');
 	}
 
-	public function listDormitories(): JsonResponse {
+	public function listDormitories() {
 		$dormitories = Dormitory::with( [ 'admin', 'rooms.beds' ] )->get();
 
 		// Transform the data to include additional computed fields
@@ -53,10 +53,7 @@ class DormitoryService {
 			return $dormitory;
 		} );
 
-		return response()->json( [ 
-			'success' => true,
-			'data'    => $dormitories
-		] );
+		return $dormitories;
 	}
 
 	public function deleteDormitory( $id ) {
