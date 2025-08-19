@@ -92,6 +92,7 @@ class DevelopmentSeeder extends Seeder {
 					'dormitory_id' => $dormitory1->id,
 					'room_type_id' => $roomNum <= 8 ? $standardRoomType->id : $luxRoomType->id,
 					'floor'        => $floor,
+					'quota'        => $roomNum <= 8 ? 2 : 1, // Set quota based on room type
 				] );
 
 				// Create beds for this room
@@ -111,6 +112,7 @@ class DevelopmentSeeder extends Seeder {
 			'dormitory_id' => $testDormitory->id,
 			'room_type_id' => $standardRoomType->id,
 			'floor'        => 2,
+			'quota'        => 2, // Standard room has 2 beds
 		] );
 
 		// Create test beds for E2E tests

@@ -153,27 +153,31 @@ class MessageService {
 		$query = Message::where( 'status', 'sent' )
 			->where( function ($q) use ($user) {
 				// Messages for all students
-				$q->where( 'recipient_type', 'all' )
-					// Messages for user's dormitory
-					->orWhere( function ($subQ) use ($user) {
-					$subQ->where( 'recipient_type', 'dormitory' )
-						->where( 'dormitory_id', $user->room?->dormitory_id );
-				} )
-					// Messages for user's room
-					->orWhere( function ($subQ) use ($user) {
-					$subQ->where( 'recipient_type', 'room' )
-						->where( 'room_id', $user->room_id );
-				} )
-					// Individual messages - multiple patterns for SQLite compatibility
-					->orWhere( function ($subQ) use ($user) {
+				$q->where( 'recipient_type', 'all' );
+				
+				// Messages for user's dormitory (only if user has a room with dormitory)
+				if ($user->room && $user->room->dormitory_id) {
+					$q->orWhere( function ($subQ) use ($user) {
+						$subQ->where( 'recipient_type', 'dormitory' )
+							->where( 'dormitory_id', $user->room->dormitory_id );
+					} );
+				}
+				
+				// Messages for user's room (only if user has a room)
+				if ($user->room_id) {
+					$q->orWhere( function ($subQ) use ($user) {
+						$subQ->where( 'recipient_type', 'room' )
+							->where( 'room_id', $user->room_id );
+					} );
+				}
+				
+				// Individual messages - PostgreSQL compatible approach for TEXT JSON fields
+				$q->orWhere( function ($subQ) use ($user) {
 					$subQ->where( 'recipient_type', 'individual' )
 						->where( function ($innerQ) use ($user) {
+							// Use LIKE queries that work with TEXT fields containing JSON
 							$innerQ->where( 'recipient_ids', 'LIKE', '%"' . $user->id . '"%' )
-								->orWhere( 'recipient_ids', '=', json_encode( [ $user->id ] ) )
-								->orWhere( 'recipient_ids', '=', json_encode( [ (string) $user->id ] ) )
-								->orWhere( 'recipient_ids', 'LIKE', '%[' . $user->id . '%' )
-								->orWhere( 'recipient_ids', 'LIKE', '%,' . $user->id . '%' )
-								->orWhere( 'recipient_ids', 'LIKE', '%' . $user->id . ']%' );
+								->orWhere( 'recipient_ids', 'LIKE', '%' . $user->id . '%' );
 						} );
 				} );
 			} )
@@ -218,10 +222,10 @@ class MessageService {
 						$subQ->where( 'recipient_type', 'room' )
 							->where( 'room_id', $user->room_id );
 					} )
-					// Individual messages via recipient_ids
+					// Individual messages via recipient_ids - PostgreSQL compatible
 					->orWhere( function ($subQ) use ($user) {
 						$subQ->where( 'recipient_type', 'individual' )
-							->whereJsonContains( 'recipient_ids', $user->id );
+							->where( 'recipient_ids', 'LIKE', '%"' . $user->id . '"%' );
 					} );
 			} );
 		} )

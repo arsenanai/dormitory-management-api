@@ -280,7 +280,7 @@ class DashboardServiceTest extends TestCase {
 			'semester'         => '2025-fall',
 			'year'             => 2025,
 			'semester_type'    => 'fall',
-			'amount'           => 50000,
+			'amount'           => 80000,
 			'payment_approved' => true,
 			'payment_status'   => 'approved',
 			'created_at'       => now(),
@@ -304,7 +304,7 @@ class DashboardServiceTest extends TestCase {
 		$responseData = json_decode( $response->getContent(), true );
 
 		$this->assertEquals( 2, $responseData['payments']['total_payments'] );
-		$this->assertEquals( 80000, $responseData['payments']['total_amount'] );
+		$this->assertEquals( 110000, $responseData['payments']['total_amount'] );
 		$this->assertEquals( 80000, $responseData['payments']['this_month_amount'] ?? 80000 );
 	}
 

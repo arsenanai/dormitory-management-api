@@ -295,13 +295,9 @@ class DormitoryServiceTest extends TestCase
         
         $result = $this->dormitoryService->listDormitories();
         
-        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $result);
         
-        $data = $result->getData();
-        $this->assertTrue($data->success);
-        $this->assertIsArray($data->data);
-        
-        $dormitory = $data->data[0];
+        $dormitory = $result->first();
         $this->assertEquals($this->dormitory->id, $dormitory->id);
         $this->assertEquals('Test Dormitory', $dormitory->name);
         
@@ -413,13 +409,9 @@ class DormitoryServiceTest extends TestCase
         // Test with dormitory that has no rooms
         $result = $this->dormitoryService->listDormitories();
         
-        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $result);
         
-        $data = $result->getData();
-        $this->assertTrue($data->success);
-        $this->assertIsArray($data->data);
-        
-        $dormitory = $data->data[0];
+        $dormitory = $result->first();
         $this->assertEquals($this->dormitory->id, $dormitory->id);
         
         // Verify computed fields for empty dormitory

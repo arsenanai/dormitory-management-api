@@ -53,6 +53,7 @@ class DashboardService {
 			'unread_messages'        => $unreadMessages,
 			'recent_messages'        => $messageStats['recent_messages'],
 			'occupancy_rate'         => $roomStats['occupancy_rate'],
+			'quota_students'         => 0, // Placeholder for quota students count
 		];
 
 		return response()->json( $stats );
