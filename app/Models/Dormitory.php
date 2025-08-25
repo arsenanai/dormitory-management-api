@@ -15,13 +15,11 @@ class Dormitory extends Model {
 		'admin_id',
 		'address',
 		'description',
-		'quota',
 		'phone',
 	];
 
 	protected $casts = [ 
 		'capacity' => 'integer',
-		'quota'    => 'integer',
 		'admin_id' => 'integer',
 	];
 

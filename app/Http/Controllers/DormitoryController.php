@@ -7,34 +7,48 @@ use Illuminate\Http\Request;
 
 class DormitoryController extends Controller {
 	private array $rules = [ 
-		'name'     => 'required|string|max:255',
-		'capacity' => 'required|integer|min:1',
-		'gender'   => 'required|in:male,female,mixed',
-		'admin_id' => 'nullable|integer|exists:users,id',
-		'address'  => 'nullable|string|max:500',
+		'name'        => 'required|string|max:255',
+		'capacity'    => 'required|integer|min:1',
+		'gender'      => 'required|in:male,female,mixed',
+		'admin_id'    => 'nullable|integer|exists:users,id',
+		'address'     => 'nullable|string|max:500',
 		'description' => 'nullable|string|max:1000',
-		'quota'    => 'nullable|integer|min:0',
-		'phone'    => 'nullable|string|max:20',
+		'phone'       => 'nullable|string|max:20',
 	];
 
 	public function __construct( private DormitoryService $service ) {
 	}
 
 	public function index( Request $request ) {
+		// Get authenticated user for role-based filtering
+		$user = auth()->user();
+
 		// Optionally, you can add filters or pagination here
-		$dorms = $this->service->listDormitories();
+		$dorms = $this->service->listDormitories( $user );
 		return response()->json( $dorms, 200 )
-			->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-			->header('Pragma', 'no-cache')
-			->header('Expires', '0');
+			->header( 'Cache-Control', 'no-cache, no-store, must-revalidate' )
+			->header( 'Pragma', 'no-cache' )
+			->header( 'Expires', '0' );
+	}
+
+	/**
+	 * Get all dormitories for public access (student registration, etc.)
+	 * This endpoint bypasses role-based filtering
+	 */
+	public function getAllForPublic() {
+		$dorms = $this->service->getAllDormitoriesForPublic();
+		return response()->json( $dorms, 200 )
+			->header( 'Cache-Control', 'no-cache, no-store, must-revalidate' )
+			->header( 'Pragma', 'no-cache' )
+			->header( 'Expires', '0' );
 	}
 
 	public function show( $id ) {
 		$dorm = $this->service->getById( $id );
 		return response()->json( $dorm, 200 )
-			->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-			->header('Pragma', 'no-cache')
-			->header('Expires', '0');
+			->header( 'Cache-Control', 'no-cache, no-store, must-revalidate' )
+			->header( 'Pragma', 'no-cache' )
+			->header( 'Expires', '0' );
 	}
 
 	public function store( Request $request ) {
@@ -44,22 +58,22 @@ class DormitoryController extends Controller {
 	}
 
 	public function update( Request $request, $id ) {
-		\Log::info('Dormitory update called', ['id' => $id, 'request_data' => $request->all()]);
-		
+		\Log::info( 'Dormitory update called', [ 'id' => $id, 'request_data' => $request->all() ] );
+
 		$updateRules = array_map(
 			fn( $rule ) => 'sometimes|' . $rule,
 			$this->rules
 		);
 		$validated = $request->validate( $updateRules );
-		\Log::info('Dormitory update validated', ['validated_data' => $validated]);
-		
+		\Log::info( 'Dormitory update validated', [ 'validated_data' => $validated ] );
+
 		$dorm = $this->service->updateDormitory( $id, $validated );
-		\Log::info('Dormitory update result', ['result' => $dorm->toArray()]);
-		
+		\Log::info( 'Dormitory update result', [ 'result' => $dorm->toArray() ] );
+
 		return response()->json( $dorm, 200 )
-			->header('Cache-Control', 'no-cache, no-store, must-revalidate')
-			->header('Pragma', 'no-cache')
-			->header('Expires', '0');
+			->header( 'Cache-Control', 'no-cache, no-store, must-revalidate' )
+			->header( 'Pragma', 'no-cache' )
+			->header( 'Expires', '0' );
 	}
 
 	public function destroy( $id ) {
@@ -75,5 +89,57 @@ class DormitoryController extends Controller {
 	public function rooms( Request $request, $id ) {
 		$rooms = $this->service->getRoomsForDormitory( $id );
 		return response()->json( $rooms, 200 );
+	}
+
+	/**
+	 * Get dormitory quota information for admin management
+	 */
+	public function getQuotaInfo( Request $request, $dormitory ) {
+		try {
+			$user = auth()->user();
+			$quotaInfo = $this->service->getDormitoryQuotaInfo( $dormitory, $user );
+			return response()->json( $quotaInfo, 200 );
+		} catch (\Exception $e) {
+			return response()->json( [ 'error' => $e->getMessage() ], 403 );
+		}
+	}
+
+	/**
+	 * Update room quota (admin only)
+	 */
+	public function updateRoomQuota( Request $request, $dormitory, $room ) {
+		$request->validate( [ 
+			'quota' => 'required|integer|min:1'
+		] );
+
+		$user = auth()->user();
+		$room = $this->service->updateRoomQuota( $dormitory, $room, $request->input( 'quota' ), $user );
+		return response()->json( $room, 200 );
+	}
+
+	/**
+	 * Get dormitory details with rooms for registration form (public access)
+	 */
+	public function getForRegistration( $id ) {
+		try {
+			$dormitory = $this->service->getById( $id );
+			if ( ! $dormitory ) {
+				return response()->json( [ 'error' => 'Dormitory not found' ], 404 );
+			}
+
+			// Load rooms with beds for this dormitory
+			$rooms = $this->service->getRoomsForDormitory( $id );
+
+			$dormitoryData = $dormitory->toArray();
+			$dormitoryData['rooms'] = $rooms;
+
+			return response()->json( [ 'data' => $dormitoryData ], 200 )
+				->header( 'Cache-Control', 'no-cache, no-store, must-revalidate' )
+				->header( 'Pragma', 'no-cache' )
+				->header( 'Expires', '0' );
+		} catch (\Exception $e) {
+			\Log::error( 'Failed to get dormitory for registration', [ 'id' => $id, 'error' => $e->getMessage() ] );
+			return response()->json( [ 'error' => 'Failed to load dormitory data' ], 500 );
+		}
 	}
 }

@@ -26,6 +26,16 @@ class RoomTypeController extends Controller {
 		return response()->json( $roomTypes, 200 );
 	}
 
+	public function show( $id ) {
+		$roomType = $this->service->findRoomType( $id );
+		
+		if ( ! $roomType ) {
+			return response()->json( [ 'message' => 'Room type not found' ], 404 );
+		}
+		
+		return response()->json( $roomType, 200 );
+	}
+
 	public function store( Request $request ) {
 		// For creation, name, capacity, and price are required
 		$rules = $this->rules;

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Models\AdminProfile;
 
 class AdminService {
@@ -11,7 +12,7 @@ class AdminService {
 		// Only list users with the 'admin' role (exclude 'sudo')
 		return User::whereHas( 'role', function ($q) {
 			$q->where( 'name', 'admin' );
-		} )->get( [ 'id', 'name', 'email', 'role_id' ] );
+		} )->with( 'adminProfile' )->get( [ 'id', 'name', 'first_name', 'last_name', 'email', 'role_id', 'dormitory_id' ] );
 	}
 
 	public function getAdminById( $id ) {
@@ -22,12 +23,21 @@ class AdminService {
 	}
 
 	public function createAdmin( array $data ) {
-		$userFields = [ 'name', 'email', 'password', 'role_id' ];
+		$userFields = [ 'name', 'last_name', 'email', 'password', 'role_id', 'phone_numbers' ];
 		$profileFields = [ 'position', 'department', 'office_phone', 'office_location' ];
 		$userData = array_intersect_key( $data, array_flip( $userFields ) );
 		$profileData = array_intersect_key( $data, array_flip( $profileFields ) );
+
+		// Debug logging
+		Log::info( 'AdminService::createAdmin - Input data:', $data );
+		Log::info( 'AdminService::createAdmin - User data:', $userData );
+
 		$userData['password'] = Hash::make( $userData['password'] );
 		$user = User::create( $userData );
+
+		// Debug logging
+		Log::info( 'AdminService::createAdmin - Created user:', $user->toArray() );
+
 		$profileData['user_id'] = $user->id;
 		AdminProfile::create( $profileData );
 		return $user->load( 'adminProfile' );

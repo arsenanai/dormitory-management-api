@@ -21,9 +21,9 @@ class Room extends Model {
 	];
 
 	protected $casts = [ 
-		'floor' => 'integer',
+		'floor'       => 'integer',
 		'is_occupied' => 'boolean',
-		'quota' => 'integer',
+		'quota'       => 'integer',
 	];
 
 	public function dormitory(): BelongsTo {
@@ -31,7 +31,7 @@ class Room extends Model {
 	}
 
 	public function roomType(): BelongsTo {
-		return $this->belongsTo( RoomType::class);
+		return $this->belongsTo( RoomType::class, 'room_type_id' );
 	}
 
 	public function beds(): HasMany {
@@ -39,8 +39,7 @@ class Room extends Model {
 	}
 
 	// Get default quota from room type if not set
-	public function getQuotaAttribute($value)
-	{
+	public function getQuotaAttribute( $value ) {
 		return $value ?? $this->roomType?->capacity ?? 0;
 	}
 }

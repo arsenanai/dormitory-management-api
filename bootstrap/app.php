@@ -17,11 +17,15 @@ return Application::configure( basePath: dirname( __DIR__ ) )
 			'role' => RoleMiddleware::class,
 		] );
 
-		// Apply CORS middleware to API routes
+		// Remove CSRF validation from all routes
+		$middleware->remove( \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+
+		// Ensure API routes return JSON responses
 		$middleware->api( prepend: [ 
-			\Illuminate\Http\Middleware\HandleCors::class,
 			\Illuminate\Routing\Middleware\ThrottleRequests::class . ':60,1'
 		] );
+
+
 	} )
 	->withExceptions( function (Exceptions $exceptions) {
 		//

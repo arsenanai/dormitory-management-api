@@ -6,13 +6,12 @@ return [
 	'allowed_origins'          => [ 
 		env( 'SPA_URL', 'http://localhost:3000' ),
 		env( 'FRONTEND_URL', 'http://localhost:3000' ),
-		'http://localhost:8080',
-		'http://localhost:5173',
+		'http://localhost:3000',
 		'http://127.0.0.1:3000',
 		'https://dorm.sdu.edu.kz'
 	],
 	'allowed_origins_patterns' => [ 
-		'https://*.sdu.edu.kz'
+		'https://.*.sdu.edu.kz'
 	],
 	'allowed_headers'          => [ '*' ],
 	'exposed_headers'          => [],

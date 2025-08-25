@@ -93,7 +93,7 @@ class UserAuthService {
 
 		// Separate user fields from profile fields
 		$userFields = [ 'name', 'first_name', 'last_name', 'email', 'phone_numbers', 'room_id', 'password', 'status', 'role_id' ];
-		$profileFields = [ 'faculty', 'specialist', 'enrollment_year', 'gender', 'deal_number', 'city_id', 'files', 'agree_to_dormitory_rules' ];
+		$profileFields = [ 'faculty', 'specialist', 'enrollment_year', 'gender', 'deal_number', 'city_id', 'country', 'region', 'city', 'files', 'agree_to_dormitory_rules' ];
 
 		// Create user record
 		$userData = array_intersect_key( $data, array_flip( $userFields ) );

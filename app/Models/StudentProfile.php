@@ -43,7 +43,10 @@ class StudentProfile extends Model {
 		'date_of_birth',
 		'gender',
 		'files',
-		'city_id',
+		'city_id', // Keep for backward compatibility
+		'country',
+		'region',
+		'city',
 	];
 
 	protected $casts = [ 

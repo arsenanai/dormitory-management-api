@@ -1,6 +1,7 @@
 <?php
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BedController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
@@ -22,10 +23,38 @@ Route::post( '/register', [ UserController::class, 'register' ] );
 Route::post( '/password/reset-link', [ UserController::class, 'sendPasswordResetLink' ] );
 Route::post( '/password/reset', [ UserController::class, 'resetPassword' ] );
 Route::get( '/rooms/available', [ \App\Http\Controllers\RoomController::class, 'available' ] );
-Route::get( '/room-types', [ RoomTypeController::class, 'index' ] );
 Route::get( '/dormitories', [ DormitoryController::class, 'index' ] );
+Route::get( '/dormitories/public', [ DormitoryController::class, 'getAllForPublic' ] );
 Route::get( '/dormitories/{dormitory}/rooms', [ DormitoryController::class, 'rooms' ] );
+Route::get( '/dormitories/{dormitory}/registration', [ DormitoryController::class, 'getForRegistration' ] );
 Route::get( '/blood-types', [ BloodTypeController::class, 'index' ] );
+// Public room type access (for forms)
+Route::get( '/room-types', [ RoomTypeController::class, 'index' ] );
+Route::get( '/room-types/{roomType}', [ RoomTypeController::class, 'show' ] );
+
+// Debug route to test API functionality
+Route::post( '/debug/test', function () {
+	return response()->json( [ 'message' => 'Debug route working', 'timestamp' => now() ] );
+} );
+
+// Debug route to test room relationships
+Route::get( '/debug/room/{id}', function ($id) {
+	$room = \App\Models\Room::find( $id );
+	if ( ! $room ) {
+		return response()->json( [ 'error' => 'Room not found' ], 404 );
+	}
+
+	$roomType = \App\Models\RoomType::find( $room->room_type_id );
+
+	return response()->json( [ 
+		'room_id'                    => $room->id,
+		'room_number'                => $room->number,
+		'room_type_id'               => $room->room_type_id,
+		'room_type_direct'           => $roomType,
+		'room_type_via_relationship' => $room->roomType,
+		'room_with_relationship'     => $room->load( 'roomType' ),
+	] );
+} );
 
 // Protected routes
 Route::middleware( [ 'auth:sanctum' ] )->group( function () {
@@ -37,6 +66,24 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/dashboard/dormitory/{dormitoryId}', [ DashboardController::class, 'dormitoryStats' ] );
 		Route::get( '/dashboard/monthly-stats', [ DashboardController::class, 'monthlyStats' ] );
 		Route::get( '/dashboard/payment-analytics', [ DashboardController::class, 'paymentAnalytics' ] );
+
+		// Debug route to test role middleware
+		Route::post( '/debug/role-test', function () {
+			return response()->json( [ 'message' => 'Role middleware working', 'user' => auth()->user()->id, 'role' => auth()->user()->role->name ] );
+		} );
+	} );
+
+	// Room management (admin, sudo can access rooms)
+	Route::middleware( [ 'role:admin,sudo' ] )->group( function () {
+		Route::get( '/rooms', [ RoomController::class, 'index' ] );
+		Route::get( '/rooms/{room}', [ RoomController::class, 'show' ] );
+		Route::post( '/rooms', [ RoomController::class, 'store' ] );
+		Route::put( '/rooms/{room}', [ RoomController::class, 'update' ] );
+		Route::delete( '/rooms/{room}', [ RoomController::class, 'destroy' ] );
+		Route::get( '/rooms/available', [ RoomController::class, 'available' ] );
+
+		// Bed management
+		Route::put( '/beds/{bed}', [ BedController::class, 'update' ] );
 	} );
 
 	Route::middleware( [ 'role:guard' ] )->group( function () {
@@ -106,6 +153,13 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		// User management
 		Route::apiResource( 'users', UserController::class);
 
+		// Protected dormitory access (with role-based filtering)
+		Route::get( '/dormitories/authenticated', [ DormitoryController::class, 'index' ] );
+
+		// Dormitory quota management (admin only)
+		Route::get( '/dormitories/{dormitory}/quota', [ DormitoryController::class, 'getQuotaInfo' ] );
+		Route::put( '/dormitories/{dormitory}/rooms/{room}/quota', [ DormitoryController::class, 'updateRoomQuota' ] );
+
 		// Accounting routes
 		Route::get( '/accounting', [ AccountingController::class, 'index' ] );
 		Route::get( '/accounting/student/{studentId}', [ AccountingController::class, 'studentAccounting' ] );
@@ -139,7 +193,9 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::patch( '/students/{id}/approve', [ StudentController::class, 'approve' ] );
 
 		// Room management (admins and sudo can manage rooms)
-		Route::apiResource( 'rooms', RoomController::class);
+		Route::post( '/rooms', [ RoomController::class, 'store' ] );
+		Route::put( '/rooms/{room}', [ RoomController::class, 'update' ] );
+		Route::delete( '/rooms/{room}', [ RoomController::class, 'destroy' ] );
 
 		// Region and city management (admins and sudo can manage)
 		Route::apiResource( 'regions', RegionController::class);
@@ -160,7 +216,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::put( '/dormitories/{dormitory}', [ DormitoryController::class, 'update' ] );
 		Route::delete( '/dormitories/{dormitory}', [ DormitoryController::class, 'destroy' ] );
 
-		// Room type management (admin operations only)
+		// Room type management (sudo only)
 		Route::post( '/room-types', [ RoomTypeController::class, 'store' ] );
 		Route::put( '/room-types/{roomType}', [ RoomTypeController::class, 'update' ] );
 		Route::delete( '/room-types/{roomType}', [ RoomTypeController::class, 'destroy' ] );

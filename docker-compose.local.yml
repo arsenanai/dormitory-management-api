@@ -16,6 +16,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-dormitory_management}"]
       timeout: 20s
       retries: 5
+    networks:
+      - crm_local_net
 
   # Backend API - Laravel
   api:
@@ -33,7 +35,7 @@ services:
       APP_ENV: ${APP_ENV:-local}
       APP_DEBUG: ${APP_DEBUG:-true}
       DB_CONNECTION: pgsql
-      DB_HOST: db
+      DB_HOST: crm-db-local
       DB_PORT: 5432
       DB_DATABASE: ${DB_DATABASE:-dormitory_management}
       DB_USERNAME: ${DB_USERNAME:-postgres}

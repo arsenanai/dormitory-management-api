@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Dormitory;
 
 class AdminSeeder extends Seeder {
 	public function run(): void {
@@ -24,7 +25,17 @@ class AdminSeeder extends Seeder {
 
 		// Create a default admin user
 		$adminRole = Role::where( 'name', 'admin' )->first();
-		User::firstOrCreate( [ 
+
+		// Get or create a dormitory for the admin
+		$dormitory = Dormitory::firstOrCreate( [ 
+			'name'        => 'A Block',
+			'address'     => 'Test Address for E2E',
+			'description' => 'Test dormitory for E2E tests',
+			'gender'      => 'mixed',
+			'capacity'    => 50,
+		] );
+
+		$adminUser = User::firstOrCreate( [ 
 			'email' => env( 'ADMIN_EMAIL', 'admin@email.com' ),
 		], [ 
 			'name'              => env( 'ADMIN_NAME', 'Admin' ),
@@ -33,6 +44,17 @@ class AdminSeeder extends Seeder {
 			'role_id'           => $adminRole ? $adminRole->id : 2,
 			'status'            => 'active',
 			'email_verified_at' => now(),
+		] );
+
+		// Create AdminProfile for the admin user
+		\App\Models\AdminProfile::firstOrCreate( [ 
+			'user_id' => $adminUser->id,
+		], [ 
+			'position'        => 'Dormitory Administrator',
+			'department'      => 'Student Housing',
+			'office_phone'    => '+7 777 123 45 67',
+			'office_location' => 'Main Office',
+			'dormitory_id'    => $dormitory->id, // Assign admin to dormitory via AdminProfile
 		] );
 	}
 }

@@ -35,6 +35,9 @@ class UserController extends Controller {
 		'password'                 => 'required|string|min:6|confirmed',
 		'deal_number'              => 'nullable|string|max:255',
 		'city_id'                  => 'nullable|integer|exists:cities,id',
+		'country'                  => 'nullable|string|max:255',
+		'region'                   => 'nullable|string|max:255',
+		'city'                     => 'nullable|string|max:255',
 		'files'                    => 'nullable|array|max:4',
 		'files.*'                  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
 		'agree_to_dormitory_rules' => 'required|accepted',
@@ -119,7 +122,7 @@ class UserController extends Controller {
 			// In production, this would validate against Kazakhstan IIN algorithm
 			if ( app()->environment() !== 'testing' && app()->environment() !== 'local' ) {
 				$iinValidationService = new IINValidationService();
-				if ( !$iinValidationService->validate( $validated['iin'] ) ) {
+				if ( ! $iinValidationService->validate( $validated['iin'] ) ) {
 					return response()->json( [ 
 						'message' => 'Invalid IIN format or checksum.',
 						'errors'  => [ 'iin' => [ 'The IIN must be a valid Kazakhstan IIN.' ] ]
@@ -172,6 +175,9 @@ class UserController extends Controller {
 				'gender'                   => $validated['gender'],
 				'deal_number'              => $validated['deal_number'] ?? null,
 				'city_id'                  => $validated['city_id'] ?? null,
+				'country'                  => $validated['country'] ?? null,
+				'region'                   => $validated['region'] ?? null,
+				'city'                     => $validated['city'] ?? null,
 				'files'                    => ! empty( $filePaths ) ? json_encode( $filePaths ) : null,
 				'agree_to_dormitory_rules' => $validated['agree_to_dormitory_rules'],
 			];
@@ -263,6 +269,9 @@ class UserController extends Controller {
 			'violations'        => 'nullable|string',
 			'deal_number'       => 'nullable|string|max:255',
 			'city_id'           => 'nullable|integer|exists:cities,id',
+			'country'           => 'nullable|string|max:255',
+			'region'            => 'nullable|string|max:255',
+			'city'              => 'nullable|string|max:255',
 		];
 
 		$validated = $request->validate( $rules );
@@ -388,6 +397,9 @@ class UserController extends Controller {
 			'violations'              => 'nullable|string',
 			'deal_number'             => 'nullable|string|max:255',
 			'city_id'                 => 'nullable|integer|exists:cities,id',
+			'country'                 => 'nullable|string|max:255',
+			'region'                  => 'nullable|string|max:255',
+			'city'                    => 'nullable|string|max:255',
 			'files'                   => 'nullable|array|max:4',
 			'files.*'                 => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
 			// Guest-specific fields
@@ -606,6 +618,9 @@ class UserController extends Controller {
 			'violations'              => 'nullable|string',
 			'deal_number'             => 'nullable|string|max:255',
 			'city_id'                 => 'nullable|integer|exists:cities,id',
+			'country'                 => 'nullable|string|max:255',
+			'region'                  => 'nullable|string|max:255',
+			'city'                    => 'nullable|string|max:255',
 			'files'                   => 'nullable|array|max:4',
 			'files.*'                 => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
 			// Guest-specific fields

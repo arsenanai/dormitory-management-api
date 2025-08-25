@@ -59,7 +59,6 @@ class DevelopmentSeeder extends Seeder {
 			'address'     => 'Almaty, Al-Farabi Avenue, 71',
 			'description' => 'Main student dormitory',
 			'gender'      => 'mixed',
-			'quota'       => 200,
 			'capacity'    => 200,
 		] );
 
@@ -68,7 +67,6 @@ class DevelopmentSeeder extends Seeder {
 			'address'     => 'Almaty, Nazarbayev Avenue, 123',
 			'description' => 'Second student dormitory',
 			'gender'      => 'male',
-			'quota'       => 150,
 			'capacity'    => 200,
 		] );
 
@@ -78,7 +76,6 @@ class DevelopmentSeeder extends Seeder {
 			'address'     => 'Test Address for E2E',
 			'description' => 'Test dormitory for E2E tests',
 			'gender'      => 'mixed',
-			'quota'       => 50,
 			'capacity'    => 50,
 		] );
 

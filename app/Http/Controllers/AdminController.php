@@ -43,6 +43,9 @@ class AdminController extends Controller {
 		$rules = array_merge(
 			$this->rules,
 			[ 
+				'surname'         => 'nullable|string|max:255',
+				'phone_numbers'   => 'nullable|array',
+				'phone_numbers.*' => 'nullable|string|max:20',
 				'position'        => 'nullable|string|max:255',
 				'department'      => 'nullable|string|max:255',
 				'office_phone'    => 'nullable|string|max:255',
@@ -50,6 +53,13 @@ class AdminController extends Controller {
 			]
 		);
 		$validated = $request->validate( $rules );
+
+		// Handle surname mapping to last_name
+		if ( isset( $validated['surname'] ) ) {
+			$validated['last_name'] = $validated['surname'];
+			unset( $validated['surname'] );
+		}
+
 		$data = array_merge( $this->defaults, $validated );
 		$data['role_id'] = $this->adminRoleId;
 		$admin = $this->service->createAdmin( $data );

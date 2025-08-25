@@ -16,11 +16,19 @@ class StudentService {
 	 */
 	public function getStudentsWithFilters( array $filters = [] ) {
 		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
-			->with( [ 'role', 'city', 'city.region', 'city.region.country', 'room', 'room.dormitory' ] );
+			->with( [ 'role', 'studentProfile', 'room', 'room.dormitory' ] );
+
+		// Auto restrict by dormitory for admin role if not explicitly filtered
+		$authUser = \Illuminate\Support\Facades\Auth::user();
+		if ( $authUser && optional( $authUser->role )->name === 'admin' && $authUser->dormitory_id && ! isset( $filters['dormitory_id'] ) ) {
+			$filters['dormitory_id'] = (int) $authUser->dormitory_id;
+		}
 
 		// Apply filters
 		if ( isset( $filters['faculty'] ) ) {
-			$query->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
+			$query->whereHas( 'studentProfile', function ($q) use ($filters) {
+				$q->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
+			} );
 		}
 
 		if ( isset( $filters['room_id'] ) ) {
@@ -94,6 +102,9 @@ class StudentService {
 			'violations'               => $data['violations'] ?? null,
 			'deal_number'              => $data['deal_number'] ?? null,
 			'city_id'                  => $data['city_id'] ?? null,
+			'country'                  => $data['country'] ?? null,
+			'region'                   => $data['region'] ?? null,
+			'city'                     => $data['city'] ?? null,
 			'files'                    => ! empty( $filePaths ) ? json_encode( $filePaths ) : null,
 			'agree_to_dormitory_rules' => $data['agree_to_dormitory_rules'] ?? false,
 		];
@@ -166,7 +177,7 @@ class StudentService {
 		$profileFields = [ 
 			'faculty', 'specialist', 'enrollment_year', 'gender', 'blood_type',
 			'parent_name', 'parent_phone', 'mentor_name', 'mentor_email',
-			'violations', 'deal_number', 'city_id', 'files', 'agree_to_dormitory_rules'
+			'violations', 'deal_number', 'city_id', 'country', 'region', 'city', 'files', 'agree_to_dormitory_rules'
 		];
 
 		$profileData = array_intersect_key( $data, array_flip( $profileFields ) );

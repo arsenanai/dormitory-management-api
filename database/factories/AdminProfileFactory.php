@@ -16,6 +16,7 @@ class AdminProfileFactory extends Factory {
 			'department'      => $this->faker->word,
 			'office_phone'    => $this->faker->phoneNumber,
 			'office_location' => $this->faker->address,
+			'dormitory_id'    => null, // Will be set when needed
 		];
 	}
 }
