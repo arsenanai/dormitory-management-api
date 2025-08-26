@@ -56,46 +56,8 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.interned_strings_buffer=8" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.max_accelerated_files=4000" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Configure Nginx with proper CORS for local development
-RUN mkdir -p /etc/nginx/conf.d && \
-    echo 'events {' > /etc/nginx/nginx.conf && \
-    echo '    worker_connections 1024;' >> /etc/nginx/nginx.conf && \
-    echo '}' >> /etc/nginx/nginx.conf && \
-    echo '' >> /etc/nginx/nginx.conf && \
-    echo 'http {' >> /etc/nginx/nginx.conf && \
-    echo '    include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
-    echo '    default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
-    echo '    sendfile on;' >> /etc/nginx/nginx.conf && \
-    echo '    keepalive_timeout 65;' >> /etc/nginx/nginx.conf && \
-    echo '    include /etc/nginx/conf.d/*.conf;' >> /etc/nginx/nginx.conf && \
-    echo '}' >> /etc/nginx/nginx.conf && \
-    echo 'server {' > /etc/nginx/conf.d/default.conf && \
-    echo '    listen 80;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    server_name localhost;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    root /var/www/html/public;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    index index.php index.html;' >> /etc/nginx/conf.d/default.conf && \
-    echo '' >> /etc/nginx/conf.d/default.conf && \
-    echo '    # Handle API routes' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location /api {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        try_files $uri $uri/ /index.php?$query_string;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location / {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        try_files $uri $uri/ /index.php?$query_string;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location ~ \.php$ {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        fastcgi_pass 127.0.0.1:9000;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        fastcgi_index index.php;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        include fastcgi_params;' >> /etc/nginx/conf.d/default.conf && \
-    echo '        # Let Laravel handle CORS headers' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '' >> /etc/nginx/conf.d/default.conf && \
-    echo '    location ~ /\.(?!well-known).* {' >> /etc/nginx/conf.d/default.conf && \
-    echo '        deny all;' >> /etc/nginx/conf.d/default.conf && \
-    echo '    }' >> /etc/nginx/conf.d/default.conf && \
-    echo '}' >> /etc/nginx/conf.d/default.conf
+# Copy the custom nginx configuration
+COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
 
 # Create startup script
 RUN echo '#!/bin/sh' > /start.sh && \
