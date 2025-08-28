@@ -201,6 +201,15 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::apiResource( 'regions', RegionController::class);
 		Route::apiResource( 'cities', CityController::class);
 
+		// Configuration settings accessible to admin and sudo
+		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
+		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
+		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
+		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
+		// Kaspi integration settings (admin and sudo can manage)
+		Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
+		Route::put( '/configurations/kaspi', [ ConfigurationController::class, 'updateKaspiSettings' ] );
+
 	} );
 
 	// Sudo-only routes
@@ -230,13 +239,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/configurations/smtp', [ ConfigurationController::class, 'getSmtpSettings' ] );
 		Route::put( '/configurations/smtp', [ ConfigurationController::class, 'updateSmtpSettings' ] );
 
-		// Card reader settings
-		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
-		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
-
-		// 1C integration settings
-		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
-		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
+		// (moved to admin+sudo group above)
 
 		// Language file management
 		Route::get( '/configurations/languages', [ ConfigurationController::class, 'getInstalledLanguages' ] );

@@ -50,7 +50,26 @@ class User extends Authenticatable {
 
 	// Accessor for phone field (backward compatibility)
 	public function getPhoneAttribute( $value ) {
-		return $value;
+		if ( $this->phone_numbers && is_array( $this->phone_numbers ) && count( $this->phone_numbers ) > 0 ) {
+			return $this->phone_numbers[0];
+		}
+		return null;
+	}
+
+	// Accessor for check_in_date field (maps to guestProfile.visit_start_date)
+	public function getCheckInDateAttribute( $value ) {
+		if ( $this->guestProfile ) {
+			return $this->guestProfile->visit_start_date;
+		}
+		return null;
+	}
+
+	// Accessor for check_out_date field (maps to guestProfile.visit_end_date)
+	public function getCheckOutDateAttribute( $value ) {
+		if ( $this->guestProfile ) {
+			return $this->guestProfile->visit_end_date;
+		}
+		return null;
 	}
 
 	public function role() {

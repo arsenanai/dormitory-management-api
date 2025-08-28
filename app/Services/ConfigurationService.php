@@ -136,6 +136,30 @@ class ConfigurationService {
 	}
 
 	/**
+	 * Get Kaspi integration settings
+	 */
+	public function getKaspiSettings() {
+		return [ 
+			'kaspi_enabled'     => $this->getConfiguration( 'kaspi_enabled' ),
+			'kaspi_api_key'     => $this->getConfiguration( 'kaspi_api_key' ),
+			'kaspi_merchant_id' => $this->getConfiguration( 'kaspi_merchant_id' ),
+			'kaspi_webhook_url' => $this->getConfiguration( 'kaspi_webhook_url' ),
+		];
+	}
+
+	/**
+	 * Update Kaspi integration settings
+	 */
+	public function updateKaspiSettings( array $settings ) {
+		foreach ( $settings as $key => $value ) {
+			$type = $key === 'kaspi_enabled' ? 'boolean' : 'string';
+			$this->setConfiguration( $key, $value, $type, 'Kaspi Integration Configuration' );
+		}
+
+		return $this->getKaspiSettings();
+	}
+
+	/**
 	 * Upload and install language file
 	 */
 	public function uploadLanguageFile( $file, $language ) {

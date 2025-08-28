@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Http\Resources\StudentResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
@@ -20,8 +21,12 @@ class StudentService {
 
 		// Auto restrict by dormitory for admin role if not explicitly filtered
 		$authUser = \Illuminate\Support\Facades\Auth::user();
-		if ( $authUser && optional( $authUser->role )->name === 'admin' && $authUser->dormitory_id && ! isset( $filters['dormitory_id'] ) ) {
-			$filters['dormitory_id'] = (int) $authUser->dormitory_id;
+		if ( $authUser && optional( $authUser->role )->name === 'admin' && ! isset( $filters['dormitory_id'] ) ) {
+			// Get dormitory_id from AdminProfile relationship
+			$adminDormitoryId = $authUser->adminProfile?->dormitory_id;
+			if ( $adminDormitoryId ) {
+				$filters['dormitory_id'] = (int) $adminDormitoryId;
+			}
 		}
 
 		// Apply filters
@@ -47,7 +52,14 @@ class StudentService {
 
 		$perPage = $filters['per_page'] ?? 20;
 
-		return response()->json( $query->paginate( $perPage ) );
+		$students = $query->paginate( $perPage );
+
+		// Transform the data using StudentResource
+		$transformedData = $students->through( function ($student) {
+			return new StudentResource( $student );
+		} );
+
+		return response()->json( $transformedData );
 	}
 
 	/**
@@ -121,16 +133,27 @@ class StudentService {
 		$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
 			->with( [ 
 				'role',
+				'studentProfile',
 				'city',
 				'city.region',
 				'city.region.country',
 				'room',
 				'room.dormitory',
+				'room.beds',
 				'payments' => function ($q) {
 					$q->orderBy( 'created_at', 'desc' );
 				}
 			] )
 			->findOrFail( $id );
+
+		// Add bed information if student has a bed assigned
+		if ( $student->room ) {
+			$assignedBed = $student->room->beds->where( 'user_id', $student->id )->first();
+			if ( $assignedBed ) {
+				$student->bed = $assignedBed;
+				$student->bed_id = $assignedBed->id;
+			}
+		}
 
 		return response()->json( $student );
 	}
@@ -227,6 +250,16 @@ class StudentService {
 		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
 			->with( [ 'role', 'city', 'room', 'room.dormitory' ] );
 
+		// Auto restrict by dormitory for admin role if not explicitly filtered
+		$authUser = \Illuminate\Support\Facades\Auth::user();
+		if ( $authUser && optional( $authUser->role )->name === 'admin' && ! isset( $filters['dormitory_id'] ) ) {
+			// Get dormitory_id from AdminProfile relationship
+			$adminDormitoryId = $authUser->adminProfile?->dormitory_id;
+			if ( $adminDormitoryId ) {
+				$filters['dormitory_id'] = (int) $adminDormitoryId;
+			}
+		}
+
 		// Apply same filters as getStudentsWithFilters
 		if ( isset( $filters['faculty'] ) ) {
 			$query->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
@@ -279,6 +312,131 @@ class StudentService {
 		return response( $csvContent )
 			->header( 'Content-Type', 'text/csv' )
 			->header( 'Content-Disposition', 'attachment; filename="' . $filename . '"' );
+	}
+
+	/**
+	 * Get students by dormitory
+	 */
+	public function getStudentsByDormitory( array $filters = [] ) {
+		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
+			->with( [ 'role', 'studentProfile', 'room', 'room.dormitory' ] );
+
+		// Auto restrict by dormitory for admin role if not explicitly filtered
+		$authUser = \Illuminate\Support\Facades\Auth::user();
+		if ( $authUser && optional( $authUser->role )->name === 'admin' && ! isset( $filters['dormitory_id'] ) ) {
+			// Get dormitory_id from AdminProfile relationship
+			$adminDormitoryId = $authUser->adminProfile?->dormitory_id;
+			if ( $adminDormitoryId ) {
+				$filters['dormitory_id'] = (int) $adminDormitoryId;
+			}
+		}
+
+		// Apply filters
+		if ( isset( $filters['dormitory_id'] ) ) {
+			$query->whereHas( 'room', function ($q) use ($filters) {
+				$q->where( 'dormitory_id', $filters['dormitory_id'] );
+			} );
+		}
+
+		if ( isset( $filters['status'] ) ) {
+			$query->where( 'status', $filters['status'] );
+		}
+
+		$perPage = $filters['per_page'] ?? 20;
+
+		$students = $query->paginate( $perPage );
+
+		// Transform the data using StudentResource
+		$transformedData = $students->through( function ($student) {
+			return new StudentResource( $student );
+		} );
+
+		return response()->json( $transformedData );
+	}
+
+	/**
+	 * Get unassigned students
+	 */
+	public function getUnassignedStudents( array $filters = [] ) {
+		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
+			->whereNull( 'room_id' )
+			->with( [ 'role', 'studentProfile' ] );
+
+		// Apply filters
+		if ( isset( $filters['faculty'] ) ) {
+			$query->whereHas( 'studentProfile', function ($q) use ($filters) {
+				$q->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
+			} );
+		}
+
+		if ( isset( $filters['status'] ) ) {
+			$query->where( 'status', $filters['status'] );
+		}
+
+		$perPage = $filters['per_page'] ?? 20;
+
+		$students = $query->paginate( $perPage );
+
+		// Transform the data using StudentResource
+		$transformedData = $students->through( function ($student) {
+			return new StudentResource( $student );
+		} );
+
+		return response()->json( $transformedData );
+	}
+
+	/**
+	 * Update student access
+	 */
+	public function updateStudentAccess( $id, array $data ) {
+		$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
+			->findOrFail( $id );
+
+		$student->update( $data );
+
+		return response()->json( [ 
+			'message' => 'Student access updated successfully',
+			'student' => $student->load( [ 'role', 'room', 'studentProfile' ] )
+		] );
+	}
+
+	/**
+	 * Get student statistics
+	 */
+	public function getStudentStatistics( array $filters = [] ) {
+		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) );
+
+		// Auto restrict by dormitory for admin role if not explicitly filtered
+		$authUser = \Illuminate\Support\Facades\Auth::user();
+		if ( $authUser && optional( $authUser->role )->name === 'admin' && ! isset( $filters['dormitory_id'] ) ) {
+			// Get dormitory_id from AdminProfile relationship
+			$adminDormitoryId = $authUser->adminProfile?->dormitory_id;
+			if ( $adminDormitoryId ) {
+				$filters['dormitory_id'] = (int) $adminDormitoryId;
+			}
+		}
+
+		// Apply filters
+		if ( isset( $filters['dormitory_id'] ) ) {
+			$query->whereHas( 'room', function ($q) use ($filters) {
+				$q->where( 'dormitory_id', $filters['dormitory_id'] );
+			} );
+		}
+
+		if ( isset( $filters['faculty'] ) ) {
+			$query->whereHas( 'studentProfile', function ($q) use ($filters) {
+				$q->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
+			} );
+		}
+
+		$stats = [ 
+			'total'     => $query->count(),
+			'active'    => ( clone $query )->where( 'status', 'active' )->count(),
+			'pending'   => ( clone $query )->where( 'status', 'pending' )->count(),
+			'suspended' => ( clone $query )->where( 'status', 'suspended' )->count(),
+		];
+
+		return response()->json( $stats );
 	}
 
 	/**

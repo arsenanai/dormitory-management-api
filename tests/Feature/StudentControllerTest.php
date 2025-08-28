@@ -246,4 +246,72 @@ class StudentControllerTest extends TestCase {
 		$response->assertStatus( 422 )
 			->assertJsonValidationErrors( [ 'name', 'email', 'iin' ] );
 	}
+
+	/** @test */
+	public function student_update_succeeds_with_nested_payload_structure() {
+		// This test verifies that nested payload structure now works correctly
+		$nestedPayload = [
+			'user' => [
+				'name' => 'Updated Name',
+				'email' => 'updated@test.com',
+				'phone_numbers' => ['+77012345678']
+			],
+			'profile' => [
+				'faculty' => 'Updated Faculty',
+				'blood_type' => 'A+'
+			]
+		];
+
+		$response = $this->actingAs( $this->admin, 'sanctum' )
+			->putJson( "/api/students/{$this->student->id}", $nestedPayload );
+
+		// The response should succeed and data should be updated
+		$response->assertStatus( 200 )
+			->assertJsonFragment(['name' => 'Updated Name']);
+		
+		// The student data should be updated
+		$this->assertDatabaseHas( 'users', [
+			'id' => $this->student->id,
+			'name' => 'Updated Name',
+			'email' => 'updated@test.com'
+		]);
+		
+		// Profile data should also be updated
+		$this->assertDatabaseHas( 'student_profiles', [
+			'user_id' => $this->student->id,
+			'faculty' => 'Updated Faculty',
+			'blood_type' => 'A+'
+		]);
+	}
+
+	/** @test */
+	public function student_update_succeeds_with_flat_payload_structure() {
+		// This test shows the correct flat structure that should work
+		$flatPayload = [
+			'name' => 'Updated Name',
+			'email' => 'updated@test.com',
+			'phone_numbers' => ['+77012345678'],
+			'faculty' => 'Updated Faculty',
+			'blood_type' => 'A+'
+		];
+
+		$response = $this->actingAs( $this->admin, 'sanctum' )
+			->putJson( "/api/students/{$this->student->id}", $flatPayload );
+
+		$response->assertStatus( 200 )
+			->assertJsonFragment(['name' => 'Updated Name']);
+
+		// The student data should be updated
+		$this->assertDatabaseHas( 'users', [
+			'id' => $this->student->id,
+			'name' => 'Updated Name',
+			'email' => 'updated@test.com'
+		]);
+
+		$this->assertDatabaseHas( 'student_profiles', [
+			'user_id' => $this->student->id,
+			'faculty' => 'Updated Faculty',
+			'blood_type' => 'A+'
+		]);
+	}
 }

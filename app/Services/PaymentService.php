@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\SemesterPayment;
+use App\Models\Payment;
 use App\Models\User;
+use App\Http\Resources\PaymentResource;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentService {
@@ -11,7 +12,7 @@ class PaymentService {
 	 * Get payments with filters and pagination
 	 */
 	public function getPaymentsWithFilters( array $filters = [] ) {
-		$query = SemesterPayment::with( [ 'user' ] );
+		$query = Payment::with( [ 'user' ] );
 
 		// Apply filters
 		if ( isset( $filters['user_id'] ) ) {
@@ -36,7 +37,14 @@ class PaymentService {
 
 		$perPage = $filters['per_page'] ?? 20;
 
-		return response()->json( $query->orderBy( 'payment_date', 'desc' )->paginate( $perPage ) );
+		$payments = $query->orderBy( 'paid_date', 'desc' )->paginate( $perPage );
+
+		// Transform the data using PaymentResource
+		$transformedData = $payments->through( function ($payment) {
+			return new PaymentResource( $payment );
+		} );
+
+		return response()->json( $transformedData );
 	}
 
 	/**
@@ -60,7 +68,7 @@ class PaymentService {
 			$data['due_date'] = $contractDate->modify( '+3 months' )->format( 'Y-m-d' );
 		}
 
-		$payment = SemesterPayment::create( $data );
+		$payment = Payment::create( $data );
 
 		return response()->json( $payment->load( 'user' ), 201 );
 	}
@@ -69,7 +77,7 @@ class PaymentService {
 	 * Get payment details
 	 */
 	public function getPaymentDetails( $id ) {
-		$payment = SemesterPayment::with( [ 'user' ] )->findOrFail( $id );
+		$payment = Payment::with( [ 'user' ] )->findOrFail( $id );
 		return response()->json( $payment );
 	}
 
@@ -77,7 +85,7 @@ class PaymentService {
 	 * Update payment
 	 */
 	public function updatePayment( $id, array $data ) {
-		$payment = SemesterPayment::findOrFail( $id );
+		$payment = Payment::findOrFail( $id );
 
 		// Handle receipt file upload
 		if ( isset( $data['receipt_file'] ) ) {
@@ -97,7 +105,7 @@ class PaymentService {
 	 * Delete payment
 	 */
 	public function deletePayment( $id ) {
-		$payment = SemesterPayment::findOrFail( $id );
+		$payment = Payment::findOrFail( $id );
 
 		// Delete associated receipt file
 		if ( $payment->receipt_file ) {
@@ -112,7 +120,7 @@ class PaymentService {
 	 * Export payments to CSV
 	 */
 	public function exportPayments( array $filters = [] ) {
-		$query = SemesterPayment::with( [ 'user' ] );
+		$query = Payment::with( [ 'user' ] );
 
 		// Apply same filters as getPaymentsWithFilters
 		if ( isset( $filters['user_id'] ) ) {

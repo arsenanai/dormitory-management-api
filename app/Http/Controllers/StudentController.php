@@ -177,27 +177,53 @@ class StudentController extends Controller {
 	 * }
 	 */
 	public function update( Request $request, int $id ): JsonResponse {
+		// Handle both nested and flat payload structures
+		$data = $request->all();
+
+		// If nested structure is provided, flatten it
+		if ( isset( $data['user'] ) || isset( $data['profile'] ) ) {
+			$flattenedData = [];
+
+			// Extract user fields
+			if ( isset( $data['user'] ) ) {
+				$flattenedData = array_merge( $flattenedData, $data['user'] );
+			}
+
+			// Extract profile fields
+			if ( isset( $data['profile'] ) ) {
+				$flattenedData = array_merge( $flattenedData, $data['profile'] );
+			}
+
+			// Replace the request data with flattened data
+			$request->replace( $flattenedData );
+		}
+
 		$validated = $request->validate( [ 
-			'name'            => 'sometimes|string|max:255',
-			'faculty'         => 'sometimes|string|max:255',
-			'specialist'      => 'sometimes|string|max:255',
-			'enrollment_year' => 'sometimes|integer|digits:4',
-			'gender'          => 'sometimes|in:male,female',
-			'email'           => 'sometimes|email|max:255|unique:users,email,' . $id,
-			'phone_numbers'   => 'nullable|array',
-			'phone_numbers.*' => 'string',
-			'room_id'         => 'nullable|exists:rooms,id',
-			'deal_number'     => 'nullable|string|max:255',
-			'city_id'         => 'nullable|integer|exists:cities,id',
-			'country'         => 'nullable|string|max:255',
-			'region'          => 'nullable|string|max:255',
-			'city'            => 'nullable|string|max:255',
-			'blood_type'      => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-			'violations'      => 'nullable|string|max:1000',
-			'parent_name'     => 'nullable|string|max:255',
-			'parent_phone'    => 'nullable|string|max:20',
-			'mentor_name'     => 'nullable|string|max:255',
-			'mentor_email'    => 'nullable|email|max:255',
+			'name'                     => 'sometimes|string|max:255',
+			'faculty'                  => 'nullable|string|max:255',
+			'specialist'               => 'nullable|string|max:255',
+			'enrollment_year'          => 'nullable|integer|digits:4',
+			'gender'                   => 'nullable|in:male,female',
+			'email'                    => 'sometimes|email|max:255|unique:users,email,' . $id,
+			'phone_numbers'            => 'nullable|array',
+			'phone_numbers.*'          => 'string',
+			'room_id'                  => 'nullable|exists:rooms,id',
+			'bed_id'                   => 'nullable|exists:beds,id',
+			'deal_number'              => 'nullable|string|max:255',
+			'city_id'                  => 'nullable|integer|exists:cities,id',
+			'country'                  => 'nullable|string|max:255',
+			'region'                   => 'nullable|string|max:255',
+			'city'                     => 'nullable|string|max:255',
+			'blood_type'               => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+			'violations'               => 'nullable|string|max:1000',
+			'parent_name'              => 'nullable|string|max:255',
+			'parent_phone'             => 'nullable|string|max:20',
+			'parent_email'             => 'nullable|email|max:255',
+			'mentor_name'              => 'nullable|string|max:255',
+			'mentor_email'             => 'nullable|email|max:255',
+			'allergies'                => 'nullable|string|max:1000',
+			'status'                   => 'nullable|in:pending,active,suspended',
+			'agree_to_dormitory_rules' => 'nullable|boolean',
 		] );
 
 		return $this->studentService->updateStudent( $id, $validated );

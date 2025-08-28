@@ -21,6 +21,7 @@ class GuestProfile extends Model {
 		'emergency_contact_phone',
 		'is_approved',
 		'daily_rate',
+		'reminder',
 	];
 
 	protected $casts = [ 

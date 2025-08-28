@@ -28,44 +28,69 @@ class GuestService {
 		}
 
 		if ( isset( $filters['check_in_date'] ) ) {
-			$query->whereDate( 'check_in_date', '>=', $filters['check_in_date'] );
+			$query->whereHas( 'guestProfile', function ($q) use ($filters) {
+				$q->whereDate( 'visit_start_date', '>=', $filters['check_in_date'] );
+			} );
 		}
 
 		if ( isset( $filters['check_out_date'] ) ) {
-			$query->whereDate( 'check_out_date', '<=', $filters['check_out_date'] );
+			$query->whereHas( 'guestProfile', function ($q) use ($filters) {
+				$q->whereDate( 'visit_end_date', '<=', $filters['check_out_date'] );
+			} );
 		}
 
 		if ( isset( $filters['search'] ) ) {
 			$query->where( function ($q) use ($filters) {
 				$q->where( 'name', 'like', '%' . $filters['search'] . '%' )
 					->orWhere( 'email', 'like', '%' . $filters['search'] . '%' )
-					->orWhere( 'phone', 'like', '%' . $filters['search'] . '%' );
+					->orWhereRaw( "phone_numbers::text ILIKE ?", [ '%' . $filters['search'] . '%' ] );
 			} );
 		}
 
 		$perPage = $filters['per_page'] ?? 15;
-		return $query->orderBy( 'check_in_date', 'desc' )->paginate( $perPage );
+		return $query->orderBy( 'created_at', 'desc' )->paginate( $perPage );
 	}
 
 	/**
 	 * Create a new guest
 	 */
 	public function createGuest( array $data ) {
-		DB::beginTransaction();
-
 		try {
-			$guestRoleId = Role::where( 'name', 'guest' )->first()->id;
-			$data['role_id'] = $guestRoleId;
-			$data['status'] = 'active';
+			\Log::info( 'Starting guest creation...' );
+			$guestRole = Role::where( 'name', 'guest' )->first();
+			\Log::info( 'Guest role found:', [ 'role' => $guestRole ] );
+			$guestRoleId = $guestRole->id;
 
-			$guest = User::create( $data );
+			// Only pass valid User fields
+			$userData = [ 
+				'name'          => $data['name'],
+				'email'         => $data['email'] ?? null,
+				'phone_numbers' => $data['phone'] ? [ $data['phone'] ] : [],
+				'room_id'       => $data['room_id'] ?? null,
+				'role_id'       => $guestRoleId,
+				'status'        => 'active',
+				'password'      => bcrypt( 'guest123' ), // Temporary password for guests
+			];
 
-			// Create guest profile
+			// Debug logging
+			\Log::info( 'Creating guest with userData:', $userData );
+
+			$guest = User::create( $userData );
+
+			// Create guest profile with profile-specific fields
 			GuestProfile::create( [ 
-				'user_id'          => $guest->id,
-				'visit_start_date' => $data['check_in_date'] ?? null,
-				'visit_end_date'   => $data['check_out_date'] ?? null,
-				'daily_rate'       => $data['total_amount'] ?? 0,
+				'user_id'                 => $guest->id,
+				'visit_start_date'        => $data['check_in_date'] ?? null,
+				'visit_end_date'          => $data['check_out_date'] ?? null,
+				'daily_rate'              => $data['total_amount'] ?? 0,
+				'purpose_of_visit'        => $data['notes'] ?? null,
+				'host_name'               => $data['host_name'] ?? null,
+				'host_contact'            => $data['host_contact'] ?? null,
+				'identification_type'     => $data['identification_type'] ?? null,
+				'identification_number'   => $data['identification_number'] ?? null,
+				'emergency_contact_name'  => $data['emergency_contact_name'] ?? null,
+				'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
+				'reminder'                => $data['notes'] ?? null,
 			] );
 
 			// If room is assigned, mark it as occupied
@@ -76,10 +101,9 @@ class GuestService {
 				}
 			}
 
-			DB::commit();
 			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
 		} catch (\Exception $e) {
-			DB::rollBack();
+			\Log::error( 'Error creating guest:', [ 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString() ] );
 			throw $e;
 		}
 	}
@@ -98,7 +122,7 @@ class GuestService {
 			$guest->update( $data );
 
 			// Update guest profile if needed
-			if ( isset( $data['check_in_date'] ) || isset( $data['check_out_date'] ) || isset( $data['total_amount'] ) ) {
+			if ( isset( $data['check_in_date'] ) || isset( $data['check_out_date'] ) || isset( $data['total_amount'] ) || isset( $data['notes'] ) ) {
 				$profileData = [];
 				if ( isset( $data['check_in_date'] ) )
 					$profileData['visit_start_date'] = $data['check_in_date'];
@@ -106,6 +130,8 @@ class GuestService {
 					$profileData['visit_end_date'] = $data['check_out_date'];
 				if ( isset( $data['total_amount'] ) )
 					$profileData['daily_rate'] = $data['total_amount'];
+				if ( isset( $data['notes'] ) )
+					$profileData['purpose_of_visit'] = $data['notes'];
 
 				if ( $guest->guestProfile ) {
 					$guest->guestProfile->update( $profileData );

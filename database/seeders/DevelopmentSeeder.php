@@ -21,11 +21,11 @@ class DevelopmentSeeder extends Seeder {
 	public function run(): void {
 		// Get admin user for message sender and payment approvals
 		$adminUser = User::where( 'role_id', Role::where( 'name', 'admin' )->first()->id )->first();
-		if (!$adminUser) {
+		if ( ! $adminUser ) {
 			$adminUser = User::where( 'role_id', Role::where( 'name', 'sudo' )->first()->id )->first();
 		}
-		if (!$adminUser) {
-			throw new \Exception('No admin or sudo user found. Please ensure users are seeded first.');
+		if ( ! $adminUser ) {
+			throw new \Exception( 'No admin or sudo user found. Please ensure users are seeded first.' );
 		}
 
 		// Create sample countries, regions, cities
@@ -175,7 +175,7 @@ class DevelopmentSeeder extends Seeder {
 					'specialist'                     => $studentData['specialist'] ?? 'Software Engineering',
 					'course'                         => 1,
 					'year_of_study'                  => 1,
-					'enrollment_year'                => '2024',
+					'enrollment_year'                => 2024,
 					'enrollment_date'                => now()->subYears( 1 ),
 					'blood_type'                     => 'O+',
 					'parent_name'                    => 'Parent ' . $studentData['name'],
@@ -201,6 +201,13 @@ class DevelopmentSeeder extends Seeder {
 					'date_of_birth'                  => now()->subYears( 18 ),
 					'files'                          => json_encode( [] ),
 					'city_id'                        => $almaty_city->id,
+					'country'                        => 'Kazakhstan',
+					'region'                         => 'Almaty Region',
+					'city'                           => 'Almaty',
+					'allergies'                      => 'None',
+					'violations'                     => 'None',
+					'status'                         => 'active',
+					'registration_date'              => now()->subMonths( 6 )->format( 'Y-m-d' ),
 				]
 			);
 

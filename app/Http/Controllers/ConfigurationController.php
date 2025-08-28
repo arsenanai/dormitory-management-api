@@ -72,10 +72,10 @@ class ConfigurationController extends Controller {
 	public function updateCardReaderSettings( Request $request ) {
 		$validated = $request->validate( [ 
 			'card_reader_enabled'     => 'required|boolean',
-			'card_reader_host'        => 'required_if:card_reader_enabled,true|string|max:255',
-			'card_reader_port'        => 'required_if:card_reader_enabled,true|integer|min:1|max:65535',
-			'card_reader_timeout'     => 'required|integer|min:1|max:300',
-			'card_reader_locations'   => 'required|array',
+			'card_reader_host'        => 'required_if:card_reader_enabled,true|nullable|string|max:255',
+			'card_reader_port'        => 'required_if:card_reader_enabled,true|nullable|integer|min:1|max:65535',
+			'card_reader_timeout'     => 'required_if:card_reader_enabled,true|nullable|integer|min:1|max:300',
+			'card_reader_locations'   => 'nullable|array',
 			'card_reader_locations.*' => 'string|max:255',
 		] );
 
@@ -97,14 +97,37 @@ class ConfigurationController extends Controller {
 	public function updateOneCSettings( Request $request ) {
 		$validated = $request->validate( [ 
 			'onec_enabled'       => 'required|boolean',
-			'onec_host'          => 'required_if:onec_enabled,true|string|max:255',
-			'onec_database'      => 'required_if:onec_enabled,true|string|max:255',
-			'onec_username'      => 'required_if:onec_enabled,true|string|max:255',
-			'onec_password'      => 'required_if:onec_enabled,true|string|max:255',
-			'onec_sync_interval' => 'required|integer|min:60|max:86400',
+			'onec_host'          => 'required_if:onec_enabled,true|nullable|string|max:255',
+			'onec_database'      => 'required_if:onec_enabled,true|nullable|string|max:255',
+			'onec_username'      => 'required_if:onec_enabled,true|nullable|string|max:255',
+			'onec_password'      => 'required_if:onec_enabled,true|nullable|string|max:255',
+			'onec_sync_interval' => 'required_if:onec_enabled,true|nullable|integer|min:60|max:86400',
 		] );
 
 		$settings = $this->configurationService->updateOneCSettings( $validated );
+		return response()->json( $settings );
+	}
+
+	/**
+	 * Get Kaspi integration settings
+	 */
+	public function getKaspiSettings() {
+		$settings = $this->configurationService->getKaspiSettings();
+		return response()->json( $settings );
+	}
+
+	/**
+	 * Update Kaspi integration settings
+	 */
+	public function updateKaspiSettings( Request $request ) {
+		$validated = $request->validate( [ 
+			'kaspi_enabled'     => 'required|boolean',
+			'kaspi_api_key'     => 'required_if:kaspi_enabled,true|nullable|string|max:255|regex:/^[a-zA-Z0-9_-]*$/',
+			'kaspi_merchant_id' => 'required_if:kaspi_enabled,true|nullable|string|max:255',
+			'kaspi_webhook_url' => 'required_if:kaspi_enabled,true|nullable|url|max:255',
+		] );
+
+		$settings = $this->configurationService->updateKaspiSettings( $validated );
 		return response()->json( $settings );
 	}
 
