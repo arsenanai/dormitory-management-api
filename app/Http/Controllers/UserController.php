@@ -84,6 +84,15 @@ class UserController extends Controller {
 			return response()->json( [ 'message' => 'auth.invalid_credentials' ], 401 );
 		}
 
+		// Load appropriate relationships based on user role
+		if ( $result->role && $result->role->name === 'admin' ) {
+			$result->load( [ 'role', 'adminProfile.dormitory' ] );
+		} elseif ( $result->role && $result->role->name === 'student' ) {
+			$result->load( [ 'role', 'studentProfile' ] );
+		} elseif ( $result->role && $result->role->name === 'guest' ) {
+			$result->load( [ 'role', 'guestProfile' ] );
+		}
+
 		$token = $result->createToken( 'user-token' )->plainTextToken;
 
 		return response()->json( [ 
