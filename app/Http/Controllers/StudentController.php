@@ -60,8 +60,9 @@ class StudentController extends Controller {
 			'room_id'      => 'sometimes|integer',
 			'dormitory_id' => 'sometimes|integer',
 			'status'       => 'sometimes|in:pending,active,suspended',
-			'per_page'     => 'sometimes|integer|min:1|max:100',
+			'per_page'     => 'sometimes|integer|min:1|max:1000',
 			'page'         => 'sometimes|integer|min:1',
+			'fields'       => 'sometimes|string', // Comma-separated list of fields to select
 		] );
 
 		return $this->studentService->getStudentsWithFilters( $filters );

@@ -12,6 +12,25 @@ class StudentResource extends JsonResource {
 	 * @return array<string, mixed>
 	 */
 	public function toArray( Request $request ): array {
+		// Check if this is a lightweight request (fields parameter)
+		$fields = $request->get( 'fields' );
+		if ( $fields && ! empty( $fields ) ) {
+			$fieldArray = explode( ',', $fields );
+			$allowedFields = [ 'id', 'name', 'email' ];
+			$selectedFields = array_intersect( $fieldArray, $allowedFields );
+
+			// Return only selected fields for lightweight response
+			$result = [];
+			if ( in_array( 'id', $selectedFields ) )
+				$result['id'] = $this->id;
+			if ( in_array( 'name', $selectedFields ) )
+				$result['name'] = $this->name;
+			if ( in_array( 'email', $selectedFields ) )
+				$result['email'] = $this->email;
+			return $result;
+		}
+
+		// Full response for normal requests
 		return [ 
 			'id'               => $this->id,
 			'name'             => $this->name,

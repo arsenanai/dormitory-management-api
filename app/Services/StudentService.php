@@ -54,9 +54,12 @@ class StudentService {
 
 		$students = $query->paginate( $perPage );
 
-		// Transform the data using StudentResource
-		$transformedData = $students->through( function ($student) {
-			return new StudentResource( $student );
+		// Get the current request to pass to StudentResource
+		$request = request();
+
+		// Transform the data using StudentResource with request
+		$transformedData = $students->through( function ($student) use ($request) {
+			return new StudentResource( $student, $request );
 		} );
 
 		return response()->json( $transformedData );
