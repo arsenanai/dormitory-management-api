@@ -19,7 +19,7 @@ class PaymentController extends Controller {
 			'payment_method' => 'sometimes|string',
 			'date_from'      => 'sometimes|date',
 			'date_to'        => 'sometimes|date',
-			'per_page'       => 'sometimes|integer|min:1|max:100',
+			'per_page'       => 'sometimes|integer|min:1|max:1000',
 		] );
 
 		return $this->paymentService->getPaymentsWithFilters( $filters );
@@ -69,6 +69,10 @@ class PaymentController extends Controller {
 			'payment_status'            => 'sometimes|in:pending,approved,rejected,expired',
 			'payment_approved'          => 'sometimes|boolean',
 			'dormitory_access_approved' => 'sometimes|boolean',
+			// semester fields
+			'semester'                  => 'sometimes|string|max:255',
+			'year'                      => 'sometimes|integer|min:2020|max:2035',
+			'semester_type'             => 'sometimes|in:fall,spring,summer',
 		] );
 
 		return $this->paymentService->updatePayment( $id, $validated );

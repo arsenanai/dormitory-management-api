@@ -21,7 +21,7 @@ class StudentService {
 
 		// Auto restrict by dormitory for admin role if not explicitly filtered
 		$authUser = \Illuminate\Support\Facades\Auth::user();
-		if ( $authUser && optional( $authUser->role )->name === 'admin' && ! isset( $filters['dormitory_id'] ) ) {
+		if ( $authUser && ( optional( $authUser->role )->name === 'admin' || optional( $authUser->role )->name === 'sudo' ) && ! isset( $filters['dormitory_id'] ) ) {
 			// Get dormitory_id from AdminProfile relationship
 			$adminDormitoryId = $authUser->adminProfile?->dormitory_id;
 			if ( $adminDormitoryId ) {

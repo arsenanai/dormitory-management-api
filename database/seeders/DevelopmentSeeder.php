@@ -61,6 +61,11 @@ class DevelopmentSeeder extends Seeder {
 			'gender'      => 'mixed',
 			'capacity'    => 200,
 		] );
+		// Assign admin to dormitory #1 for moderation context
+		if ( empty( $dormitory1->admin_id ) ) {
+			$dormitory1->admin_id = $adminUser->id;
+			$dormitory1->save();
+		}
 
 		$dormitory2 = Dormitory::firstOrCreate( [ 
 			'name'        => 'Dormitory #2',
@@ -204,10 +209,8 @@ class DevelopmentSeeder extends Seeder {
 					'country'                        => 'Kazakhstan',
 					'region'                         => 'Almaty Region',
 					'city'                           => 'Almaty',
-					'allergies'                      => 'None',
+					'medical_conditions'             => 'None',
 					'violations'                     => 'None',
-					'status'                         => 'active',
-					'registration_date'              => now()->subMonths( 6 )->format( 'Y-m-d' ),
 				]
 			);
 
@@ -241,6 +244,93 @@ class DevelopmentSeeder extends Seeder {
 					'receipt_file'              => null,
 				]
 			);
+
+			// Extra payments for pagination testing across multiple semesters to avoid unique constraint
+			$semesterPool = [ '2025-spring', '2025-summer', '2025-fall', '2024-fall', '2024-spring', '2024-summer' ];
+			for ( $i = 1; $i <= 25; $i++ ) {
+				$sem = $semesterPool[ ( $i - 1 ) % count( $semesterPool ) ];
+				list( $yr, $semType ) = explode( '-', $sem );
+				SemesterPayment::firstOrCreate(
+					[ 
+						'user_id'  => $student->id,
+						'semester' => $sem,
+					],
+					[ 
+						'year'            => (int) $yr,
+						'semester_type'   => $semType,
+						'amount'          => 1000 + $i,
+						'payment_status'  => 'approved',
+						'payment_method'  => 'bank_transfer',
+						'contract_number' => 'SEED-' . $student->id . '-' . $i,
+						'contract_date'   => now()->subDays( $i ),
+						'payment_date'    => now()->subDays( $i ),
+						'due_date'        => now()->addDays( 30 ),
+					]
+				);
+			}
+		}
+
+		// Seed additional students with payments in admin's dormitory for pagination testing
+		for ( $j = 1; $j <= 100; $j++ ) {
+			$email = 'seed' . $j . '@student.local';
+			$existing = User::where( 'email', $email )->first();
+			if ( ! $existing ) {
+				// Find a room with a free bed in dormitory #1
+				$roomWithFreeBed = Room::where( 'dormitory_id', $dormitory1->id )
+					->whereHas( 'beds', function ($q) {
+						$q->whereNull( 'user_id' );
+					} )
+					->with( 'beds' )
+					->first();
+				if ( ! $roomWithFreeBed ) {
+					break;
+				}
+				$student = User::updateOrCreate(
+					[ 'email' => $email ],
+					[ 
+						'name'          => 'Seed Student ' . $j,
+						'email'         => $email,
+						'password'      => Hash::make( 'password' ),
+						'role_id'       => $studentRole->id,
+						'room_id'       => $roomWithFreeBed->id,
+						'first_name'    => 'Seed',
+						'last_name'     => 'Student',
+						'phone_numbers' => json_encode( [ '+7700000000' . $j ] ),
+						'status'        => 'active',
+					]
+				);
+				// occupy a bed
+				$bed = $roomWithFreeBed->beds()->whereNull( 'user_id' )->first();
+				if ( $bed ) {
+					$bed->update( [ 'user_id' => $student->id ] );
+				}
+				// Profile
+				\App\Models\StudentProfile::firstOrCreate(
+					[ 'user_id' => $student->id ],
+					[ 
+						'iin'             => '9900' . str_pad( $student->id, 8, '0', STR_PAD_LEFT ),
+						'student_id'      => 'STU' . str_pad( $student->id, 5, '0', STR_PAD_LEFT ),
+						'faculty'         => 'Engineering',
+						'specialist'      => 'Software Engineering',
+						'enrollment_year' => 2024,
+					]
+				);
+				// Payment for current semester for this student
+				SemesterPayment::firstOrCreate(
+					[ 'user_id' => $student->id, 'semester' => '2025-fall' ],
+					[ 
+						'year'            => 2025,
+						'semester_type'   => 'fall',
+						'amount'          => 10000 + $j,
+						'payment_status'  => 'approved',
+						'payment_method'  => 'bank_transfer',
+						'contract_number' => 'SEED-NEW-' . $j,
+						'contract_date'   => now()->subDays( $j ),
+						'payment_date'    => now()->subDays( $j ),
+						'due_date'        => now()->addDays( 30 ),
+					]
+				);
+			}
 		}
 
 		// Create sample messages
