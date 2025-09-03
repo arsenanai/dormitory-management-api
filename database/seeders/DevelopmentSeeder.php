@@ -333,25 +333,97 @@ class DevelopmentSeeder extends Seeder {
 			}
 		}
 
-		// Create sample messages
-		Message::firstOrCreate( [ 
-			'sender_id'      => $adminUser->id,
-			'title'          => 'Welcome to Dormitory',
-			'content'        => 'Welcome to our dormitory! Please read the rules and regulations.',
-			'recipient_type' => 'all',
-			'status'         => 'sent',
-			'sent_at'        => now()->subDays( 5 ),
-		] );
+		// Create sample messages for pagination testing
+		$messageTitles = [
+			'Welcome to Dormitory',
+			'Floor Meeting',
+			'Maintenance Notice',
+			'Security Update',
+			'WiFi Password Change',
+			'Laundry Room Schedule',
+			'Kitchen Rules Reminder',
+			'Quiet Hours Policy',
+			'Emergency Contact Info',
+			'Parking Regulations',
+			'Guest Policy Update',
+			'Room Inspection Notice',
+			'Fire Safety Reminder',
+			'Water Conservation',
+			'Electricity Usage Alert',
+			'Internet Maintenance',
+			'Cleaning Schedule',
+			'Recreation Room Hours',
+			'Study Room Booking',
+			'Library Access Info',
+			'Transportation Schedule',
+			'Medical Services Info',
+			'Counseling Services',
+			'Career Fair Notice',
+			'Academic Support',
+			'Social Events Calendar',
+			'Sports Tournament',
+			'Cultural Festival',
+			'Student Elections',
+			'Volunteer Opportunities',
+			'Scholarship Information',
+			'Internship Programs',
+			'Job Fair Announcement',
+			'Graduation Ceremony',
+			'Alumni Meeting',
+			'Research Opportunities',
+			'Conference Registration',
+			'Workshop Schedule',
+			'Seminar Announcement',
+			'Training Program',
+			'Certification Course',
+			'Language Classes',
+			'Music Lessons',
+			'Art Workshop',
+			'Photography Club',
+			'Chess Tournament',
+			'Book Club Meeting',
+			'Movie Night',
+			'Game Tournament',
+			'Karaoke Night',
+			'Dance Competition',
+			'Poetry Reading',
+			'Open Mic Night'
+		];
 
-		Message::firstOrCreate( [ 
-			'sender_id'      => $adminUser->id,
-			'title'          => 'Floor Meeting',
-			'content'        => 'There will be a floor meeting tomorrow at 7 PM.',
-			'recipient_type' => 'dormitory',
-			'dormitory_id'   => $dormitory1->id,
-			'status'         => 'sent',
-			'sent_at'        => now()->subDays( 2 ),
-		] );
+		$recipientTypes = ['all', 'dormitory', 'room'];
+		$messageTypes = ['general', 'announcement', 'violation', 'emergency', 'urgent'];
+
+		// Create 50 messages for pagination testing
+		for ($i = 0; $i < 50; $i++) {
+			$recipientType = $recipientTypes[array_rand($recipientTypes)];
+			$messageType = $messageTypes[array_rand($messageTypes)];
+			$title = $messageTitles[array_rand($messageTitles)] . ' #' . ($i + 1);
+			
+			$messageData = [
+				'sender_id'      => $adminUser->id,
+				'title'          => $title,
+				'content'        => 'This is message content for ' . $title . '. Please read carefully and follow the instructions.',
+				'recipient_type' => $recipientType,
+				'type'           => $messageType,
+				'status'         => 'sent',
+				'sent_at'        => now()->subDays(rand(1, 30)),
+			];
+
+			// Add dormitory_id for dormitory messages
+			if ($recipientType === 'dormitory') {
+				$messageData['dormitory_id'] = $dormitory1->id;
+			}
+
+			// Add room_id for room messages (occasionally)
+			if ($recipientType === 'room' && rand(1, 3) === 1) {
+				$messageData['room_id'] = $room->id;
+			}
+
+			Message::firstOrCreate(
+				['title' => $title], // Use title as unique identifier
+				$messageData
+			);
+		}
 
 		// Create sample guest data for E2E tests
 		$guestUser = User::firstOrCreate(

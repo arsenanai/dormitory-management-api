@@ -39,7 +39,7 @@ class MessageService {
 			$query->where( 'status', $filters['status'] );
 		}
 
-		$perPage = $filters['per_page'] ?? 20;
+		$perPage = $filters['per_page'] ?? 10;
 
 		return response()->json( $query->orderBy( 'created_at', 'desc' )->paginate( $perPage ) );
 	}
@@ -94,9 +94,10 @@ class MessageService {
 	public function updateMessage( $id, array $data ) {
 		$message = Message::findOrFail( $id );
 
-		// Only allow updates if message is still in draft
-		if ( $message->status !== 'draft' ) {
-			return response()->json( [ 'error' => 'Cannot update sent messages' ], 422 );
+		// Allow updates for both draft and sent messages
+		// Only prevent updates for messages that have been read by recipients
+		if ( $message->status === 'read' ) {
+			return response()->json( [ 'error' => 'Cannot update messages that have been read by recipients' ], 422 );
 		}
 
 		// Handle recipient IDs for individual messages
@@ -154,23 +155,23 @@ class MessageService {
 			->where( function ($q) use ($user) {
 				// Messages for all students
 				$q->where( 'recipient_type', 'all' );
-				
+
 				// Messages for user's dormitory (only if user has a room with dormitory)
-				if ($user->room && $user->room->dormitory_id) {
+				if ( $user->room && $user->room->dormitory_id ) {
 					$q->orWhere( function ($subQ) use ($user) {
 						$subQ->where( 'recipient_type', 'dormitory' )
 							->where( 'dormitory_id', $user->room->dormitory_id );
 					} );
 				}
-				
+
 				// Messages for user's room (only if user has a room)
-				if ($user->room_id) {
+				if ( $user->room_id ) {
 					$q->orWhere( function ($subQ) use ($user) {
 						$subQ->where( 'recipient_type', 'room' )
 							->where( 'room_id', $user->room_id );
 					} );
 				}
-				
+
 				// Individual messages - PostgreSQL compatible approach for TEXT JSON fields
 				$q->orWhere( function ($subQ) use ($user) {
 					$subQ->where( 'recipient_type', 'individual' )
