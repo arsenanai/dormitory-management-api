@@ -32,10 +32,10 @@ class RoomService {
 			$query->where( 'id', 0 ); // This will return empty result
 		}
 
-		// Additional filtering (dormitory_id is handled by role-based filtering above)
-		// if ( isset( $filters['dormitory_id'] ) ) {
-		// 	$query->where( 'dormitory_id', $filters['dormitory_id'] );
-		// }
+		// Additional filtering
+		if ( isset( $filters['dormitory_id'] ) ) {
+			$query->where( 'dormitory_id', $filters['dormitory_id'] );
+		}
 		if ( isset( $filters['room_type_id'] ) ) {
 			$query->where( 'room_type_id', $filters['room_type_id'] );
 		}

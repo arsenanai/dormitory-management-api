@@ -13,10 +13,13 @@ class RoomCrudTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->seed();
+		// Don't run the full seeder to avoid conflicts with test data
+		// $this->seed();
 	}
 
 	public function test_can_create_room() {
+		// Create necessary test data first
+		$this->createTestData();
 		$token = $this->loginAsSudo();
 		$dormitory = Dormitory::factory()->create();
 		$roomType = RoomType::factory()->create();
@@ -42,6 +45,8 @@ class RoomCrudTest extends TestCase {
 	}
 
 	public function test_can_update_room() {
+		// Create necessary test data first
+		$this->createTestData();
 		$token = $this->loginAsSudo();
 		$room = Room::factory()->create();
 
@@ -59,6 +64,8 @@ class RoomCrudTest extends TestCase {
 	}
 
 	public function test_can_delete_room() {
+		// Create necessary test data first
+		$this->createTestData();
 		$token = $this->loginAsSudo();
 		$room = Room::factory()->create();
 
@@ -73,28 +80,80 @@ class RoomCrudTest extends TestCase {
 	}
 
 	public function test_can_list_rooms() {
+		// Create necessary test data
+		$sudoRole = \App\Models\Role::create( [ 'name' => 'sudo' ] );
+		$sudoUser = \App\Models\User::create( [ 
+			'name'     => 'Sudo User',
+			'email'    => 'sudo@email.com',
+			'password' => bcrypt( 'supersecret' ),
+			'role_id'  => $sudoRole->id,
+			'status'   => 'active'
+		] );
+
 		$token = $this->loginAsSudo();
 
-		// Clear existing rooms to ensure clean test environment
-		Room::query()->delete();
+		// Create rooms with proper dormitory assignment
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
 
-		Room::factory()->create( [ 'number' => 'A101' ] );
-		Room::factory()->create( [ 'number' => 'B202' ] );
+		$room1 = Room::factory()->create( [ 
+			'number'       => 'TEST101',
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
+		$room2 = Room::factory()->create( [ 
+			'number'       => 'TEST202',
+			'dormitory_id' => $dormitory->id,
+			'room_type_id' => $roomType->id
+		] );
 
 		$response = $this->getJson( '/api/rooms', [ 
 			'Authorization' => "Bearer $token",
 		] );
 
 		$response->assertStatus( 200 );
-		$response->assertJsonFragment( [ 'number' => 'A101' ] );
-		$response->assertJsonFragment( [ 'number' => 'B202' ] );
+		$responseData = $response->json();
+		$this->assertArrayHasKey( 'data', $responseData );
+		$this->assertGreaterThan( 0, count( $responseData['data'] ) );
+
+		// Check that our created rooms are in the response
+		$roomNumbers = collect( $responseData['data'] )->pluck( 'number' )->toArray();
+		$this->assertContains( 'TEST101', $roomNumbers );
+		$this->assertContains( 'TEST202', $roomNumbers );
+
+		// Verify the rooms have the expected structure
+		$roomTEST101 = collect( $responseData['data'] )->firstWhere( 'number', 'TEST101' );
+		$roomTEST202 = collect( $responseData['data'] )->firstWhere( 'number', 'TEST202' );
+		$this->assertNotNull( $roomTEST101 );
+		$this->assertNotNull( $roomTEST202 );
+		$this->assertEquals( $room1->id, $roomTEST101['id'] );
+		$this->assertEquals( $room2->id, $roomTEST202['id'] );
 	}
 
 	public function test_can_list_rooms_with_pagination() {
+		// Create necessary test data
+		$sudoRole = \App\Models\Role::create( [ 'name' => 'sudo' ] );
+		$sudoUser = \App\Models\User::create( [ 
+			'name'     => 'Sudo User',
+			'email'    => 'sudo@email.com',
+			'password' => bcrypt( 'supersecret' ),
+			'role_id'  => $sudoRole->id,
+			'status'   => 'active'
+		] );
+
 		$token = $this->loginAsSudo();
 
 		// Create 25 rooms
-		Room::factory()->count( 25 )->create();
+		$dormitory = Dormitory::factory()->create();
+		$roomType = RoomType::factory()->create();
+
+		for ( $i = 1; $i <= 25; $i++ ) {
+			Room::factory()->create( [ 
+				'number'       => 'PAGE' . $i,
+				'dormitory_id' => $dormitory->id,
+				'room_type_id' => $roomType->id
+			] );
+		}
 
 		// Request first page with 10 per page
 		$response = $this->getJson( '/api/rooms?per_page=10', [ 
@@ -107,6 +166,8 @@ class RoomCrudTest extends TestCase {
 	}
 
 	public function test_can_filter_rooms_by_dormitory_and_room_type() {
+		// Create necessary test data first
+		$this->createTestData();
 		$token = $this->loginAsSudo();
 
 		$dorm1 = Dormitory::factory()->create();
@@ -122,19 +183,33 @@ class RoomCrudTest extends TestCase {
 			'Authorization' => "Bearer $token",
 		] );
 		$response->assertStatus( 200 );
-		$response->assertJsonFragment( [ 'number' => 'A101' ] );
-		$response->assertJsonMissing( [ 'number' => 'B202' ] );
+		$responseData = $response->json();
+		$this->assertArrayHasKey( 'data', $responseData );
+		$this->assertGreaterThan( 0, count( $responseData['data'] ) );
+
+		// Check that all returned rooms belong to the specified dormitory
+		foreach ( $responseData['data'] as $room ) {
+			$this->assertEquals( $dorm1->id, $room['dormitory_id'] );
+		}
 
 		// Filter by room_type_id
 		$response = $this->getJson( '/api/rooms?room_type_id=' . $type2->id, [ 
 			'Authorization' => "Bearer $token",
 		] );
 		$response->assertStatus( 200 );
-		$response->assertJsonFragment( [ 'number' => 'B202' ] );
-		$response->assertJsonMissing( [ 'number' => 'A101' ] );
+		$responseData = $response->json();
+		$this->assertArrayHasKey( 'data', $responseData );
+		$this->assertGreaterThan( 0, count( $responseData['data'] ) );
+
+		// Check that all returned rooms belong to the specified room type
+		foreach ( $responseData['data'] as $room ) {
+			$this->assertEquals( $type2->id, $room['room_type_id'] );
+		}
 	}
 
 	public function test_can_filter_rooms_by_floor_and_number() {
+		// Create necessary test data first
+		$this->createTestData();
 		$token = $this->loginAsSudo();
 
 		Room::factory()->create( [ 'number' => 'A101', 'floor' => 1 ] );
@@ -146,18 +221,48 @@ class RoomCrudTest extends TestCase {
 			'Authorization' => "Bearer $token",
 		] );
 		$response->assertStatus( 200 );
-		$response->assertJsonFragment( [ 'number' => 'B202' ] );
-		$response->assertJsonMissing( [ 'number' => 'A101' ] );
-		$response->assertJsonMissing( [ 'number' => 'C303' ] );
+		$responseData = $response->json();
+		$this->assertArrayHasKey( 'data', $responseData );
+		$this->assertGreaterThan( 0, count( $responseData['data'] ) );
+
+		// Check that all returned rooms are on floor 2
+		foreach ( $responseData['data'] as $room ) {
+			$this->assertEquals( 2, $room['floor'] );
+		}
 
 		// Filter by partial number
 		$response = $this->getJson( '/api/rooms?number=A1', [ 
 			'Authorization' => "Bearer $token",
 		] );
 		$response->assertStatus( 200 );
-		$response->assertJsonFragment( [ 'number' => 'A101' ] );
-		$response->assertJsonMissing( [ 'number' => 'B202' ] );
-		$response->assertJsonMissing( [ 'number' => 'C303' ] );
+		$responseData = $response->json();
+		$this->assertArrayHasKey( 'data', $responseData );
+		$this->assertGreaterThan( 0, count( $responseData['data'] ) );
+
+		// Check that all returned rooms have numbers containing 'A1'
+		foreach ( $responseData['data'] as $room ) {
+			$this->assertStringContainsString( 'A1', $room['number'] );
+		}
+	}
+
+	private function createTestData() {
+		// Create sudo role if it doesn't exist
+		$sudoRole = \App\Models\Role::firstOrCreate(
+			[ 'name' => 'sudo' ],
+			[ 'name' => 'sudo' ]
+		);
+
+		// Create sudo user if it doesn't exist
+		\App\Models\User::firstOrCreate(
+			[ 'email' => 'sudo@email.com' ],
+			[ 
+				'name'     => 'Sudo User',
+				'email'    => 'sudo@email.com',
+				'password' => bcrypt( 'supersecret' ),
+				'role_id'  => $sudoRole->id,
+				'status'   => 'active'
+			]
+		);
 	}
 
 	private function loginAsSudo() {

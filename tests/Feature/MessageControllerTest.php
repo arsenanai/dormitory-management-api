@@ -378,4 +378,76 @@ class MessageControllerTest extends TestCase {
 		$response = $this->getJson( '/api/messages' );
 		$response->assertStatus( 401 );
 	}
+
+	public function test_get_recent_messages_with_pagination() {
+		// Create multiple messages with different timestamps
+		$message1 = Message::factory()->create( [ 
+			'sender_id'      => $this->admin->id,
+			'title'          => 'Oldest Message',
+			'content'        => 'This is the oldest message',
+			'recipient_type' => 'all',
+			'status'         => 'sent',
+			'sent_at'        => now()->subDays( 5 ),
+		] );
+
+		$message2 = Message::factory()->create( [ 
+			'sender_id'      => $this->admin->id,
+			'title'          => 'Middle Message',
+			'content'        => 'This is the middle message',
+			'recipient_type' => 'all',
+			'status'         => 'sent',
+			'sent_at'        => now()->subDays( 3 ),
+		] );
+
+		$message3 = Message::factory()->create( [ 
+			'sender_id'      => $this->admin->id,
+			'title'          => 'Recent Message',
+			'content'        => 'This is the most recent message',
+			'recipient_type' => 'all',
+			'status'         => 'sent',
+			'sent_at'        => now()->subDays( 1 ),
+		] );
+
+		$message4 = Message::factory()->create( [ 
+			'sender_id'      => $this->admin->id,
+			'title'          => 'Latest Message',
+			'content'        => 'This is the latest message',
+			'recipient_type' => 'all',
+			'status'         => 'sent',
+			'sent_at'        => now(),
+		] );
+
+		// Test that we get only 3 messages when per_page=3
+		$response = $this->actingAs( $this->student )
+			->getJson( '/api/my-messages?per_page=3' );
+
+		$response->assertStatus( 200 )
+			->assertJsonCount( 3, 'data' )
+			->assertJsonStructure( [ 
+				'data' => [ 
+					'*' => [ 
+						'id',
+						'sender_id',
+						'title',
+						'content',
+						'recipient_type',
+						'status',
+						'sent_at',
+						'created_at',
+						'updated_at',
+					]
+				],
+				'current_page',
+				'last_page',
+				'per_page',
+				'total'
+			] );
+
+		// Verify that we get the 3 most recent messages (ordered by sent_at desc)
+		$responseData = $response->json( 'data' );
+		$this->assertEquals( 'Latest Message', $responseData[0]['title'] );
+		$this->assertEquals( 'Recent Message', $responseData[1]['title'] );
+		$this->assertEquals( 'Middle Message', $responseData[2]['title'] );
+		$this->assertNotContains( 'Oldest Message', array_column( $responseData, 'title' ) );
+	}
 }

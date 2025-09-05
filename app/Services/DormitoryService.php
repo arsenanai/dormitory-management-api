@@ -43,6 +43,9 @@ class DormitoryService {
 		if ( $user && $user->role && $user->role->name === 'admin' && $user->dormitory_id ) {
 			// Dormitory admin can only see their assigned dormitory
 			$query->where( 'id', $user->dormitory_id );
+		} elseif ( $user && $user->role && $user->role->name === 'admin' ) {
+			// General admin can see all dormitories
+			// No additional filtering needed
 		} elseif ( $user && $user->role && $user->role->name === 'sudo' ) {
 			// Superadmin can see all dormitories
 			// No additional filtering needed

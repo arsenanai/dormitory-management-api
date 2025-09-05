@@ -72,10 +72,10 @@ class BloodTypeTest extends TestCase {
 		$response->assertStatus( 201 );
 
 		$studentId = $response->json( 'id' );
-		
+
 		// Debug: Check what we actually got
 		$this->assertNotNull( $studentId, 'Student ID should not be null' );
-		
+
 		$this->assertDatabaseHas( 'student_profiles', [ 
 			'user_id'    => $studentId,
 			'blood_type' => 'A+'
@@ -109,7 +109,7 @@ class BloodTypeTest extends TestCase {
 		$token = $this->loginAsAdmin();
 
 		$response = $this->postJson( "/api/students", [ 
-			'iin'             => '123456789013',
+			'iin'             => '123456789014',
 			'name'            => 'Jane Doe',
 			'faculty'         => 'engineering',
 			'specialist'      => 'computer_sciences',

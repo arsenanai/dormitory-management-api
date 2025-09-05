@@ -36,9 +36,9 @@ class RoomQuotaTest extends TestCase {
 		] );
 	}
 
-	private function loginAsAdmin() {
+	private function loginAsSudo() {
 		$response = $this->postJson( '/api/login', [ 
-			'email'    => 'admin@email.com',
+			'email'    => 'sudo@email.com',
 			'password' => 'supersecret',
 		] );
 		return $response->json( 'token' );
@@ -46,7 +46,7 @@ class RoomQuotaTest extends TestCase {
 
 	/** @test */
 	public function admin_can_set_room_quota() {
-		$token = $this->loginAsAdmin();
+		$token = $this->loginAsSudo();
 		$room = Room::factory()->create( [ 
 			'dormitory_id' => $this->dormitory->id,
 			'room_type_id' => $this->roomType->id,
@@ -67,7 +67,7 @@ class RoomQuotaTest extends TestCase {
 
 	/** @test */
 	public function room_quota_cannot_exceed_room_type_capacity() {
-		$token = $this->loginAsAdmin();
+		$token = $this->loginAsSudo();
 		$room = Room::factory()->create( [ 
 			'dormitory_id' => $this->dormitory->id,
 			'room_type_id' => $this->roomType->id,
@@ -84,7 +84,7 @@ class RoomQuotaTest extends TestCase {
 
 	/** @test */
 	public function room_quota_cannot_be_negative() {
-		$token = $this->loginAsAdmin();
+		$token = $this->loginAsSudo();
 		$room = Room::factory()->create( [ 
 			'dormitory_id' => $this->dormitory->id,
 			'room_type_id' => $this->roomType->id,
@@ -101,7 +101,7 @@ class RoomQuotaTest extends TestCase {
 
 	/** @test */
 	public function room_quota_is_required_when_creating_room() {
-		$token = $this->loginAsAdmin();
+		$token = $this->loginAsSudo();
 		$this->postJson( "/api/rooms", [ 
 			'dormitory_id' => $this->dormitory->id,
 			'room_type_id' => $this->roomType->id,
@@ -132,7 +132,7 @@ class RoomQuotaTest extends TestCase {
 			'quota'        => 3
 		] );
 
-		$token = $this->loginAsAdmin();
+		$token = $this->loginAsSudo();
 		$response = $this->getJson( "/api/rooms", [ 
 			'Authorization' => "Bearer $token"
 		] );

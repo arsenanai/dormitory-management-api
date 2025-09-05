@@ -28,6 +28,29 @@ class DevelopmentSeeder extends Seeder {
 			throw new \Exception( 'No admin or sudo user found. Please ensure users are seeded first.' );
 		}
 
+		// Get admin's assigned dormitory
+		$adminDormitory = null;
+		if ($adminUser->adminProfile && $adminUser->adminProfile->dormitory_id) {
+			$adminDormitory = Dormitory::find($adminUser->adminProfile->dormitory_id);
+		}
+		
+		// If admin has no dormitory assigned, create one
+		if (!$adminDormitory) {
+			$adminDormitory = Dormitory::firstOrCreate( [ 
+				'name'        => 'A Block',
+				'address'     => 'Test Address for E2E',
+				'description' => 'Test dormitory for E2E tests',
+				'gender'      => 'mixed',
+				'capacity'    => 50,
+			] );
+			
+			// Assign admin to this dormitory
+			\App\Models\AdminProfile::updateOrCreate(
+				['user_id' => $adminUser->id],
+				['dormitory_id' => $adminDormitory->id]
+			);
+		}
+
 		// Create sample countries, regions, cities
 		$kazakhstan = Country::firstOrCreate( [ 'name' => 'Kazakhstan' ] );
 		$almaty_region = Region::firstOrCreate( [ 
@@ -151,7 +174,26 @@ class DevelopmentSeeder extends Seeder {
 		];
 
 		foreach ( $students as $index => $studentData ) {
-			$room = Room::where( 'dormitory_id', $dormitory1->id )->skip( $index )->first();
+			// Use admin's dormitory for test students
+			$room = Room::where( 'dormitory_id', $adminDormitory->id )->skip( $index )->first();
+			if (!$room) {
+				// Create a room in admin's dormitory if none exists
+				$room = Room::firstOrCreate( [ 
+					'number'       => 'A' . (101 + $index),
+					'dormitory_id' => $adminDormitory->id,
+					'room_type_id' => $standardRoomType->id,
+					'floor'        => 1,
+					'quota'        => 2,
+				] );
+				
+				// Create beds for this room
+				for ( $bedNum = 1; $bedNum <= 2; $bedNum++ ) {
+					Bed::firstOrCreate( [ 
+						'bed_number' => $bedNum,
+						'room_id'    => $room->id,
+					] );
+				}
+			}
 			$bed = $room->beds()->whereNull( 'user_id' )->first();
 			$student = User::firstOrCreate(
 				[ 'email' => $studentData['email'] ],
@@ -275,15 +317,30 @@ class DevelopmentSeeder extends Seeder {
 			$email = 'seed' . $j . '@student.local';
 			$existing = User::where( 'email', $email )->first();
 			if ( ! $existing ) {
-				// Find a room with a free bed in dormitory #1
-				$roomWithFreeBed = Room::where( 'dormitory_id', $dormitory1->id )
+				// Find a room with a free bed in admin's dormitory
+				$roomWithFreeBed = Room::where( 'dormitory_id', $adminDormitory->id )
 					->whereHas( 'beds', function ($q) {
 						$q->whereNull( 'user_id' );
 					} )
 					->with( 'beds' )
 					->first();
 				if ( ! $roomWithFreeBed ) {
-					break;
+					// Create a new room in admin's dormitory if no free beds
+					$roomWithFreeBed = Room::firstOrCreate( [ 
+						'number'       => 'A' . (200 + $j),
+						'dormitory_id' => $adminDormitory->id,
+						'room_type_id' => $standardRoomType->id,
+						'floor'        => 2,
+						'quota'        => 2,
+					] );
+					
+					// Create beds for this room
+					for ( $bedNum = 1; $bedNum <= 2; $bedNum++ ) {
+						Bed::firstOrCreate( [ 
+							'bed_number' => $bedNum,
+							'room_id'    => $roomWithFreeBed->id,
+						] );
+					}
 				}
 				$student = User::updateOrCreate(
 					[ 'email' => $email ],

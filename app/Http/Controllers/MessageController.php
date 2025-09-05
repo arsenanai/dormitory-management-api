@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Services\MessageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller {
 	public function __construct( private MessageService $messageService ) {
@@ -42,7 +44,7 @@ class MessageController extends Controller {
 		] );
 
 		// Set default recipient_type if not provided
-		if (!isset($validated['recipient_type'])) {
+		if ( ! isset( $validated['recipient_type'] ) ) {
 			$validated['recipient_type'] = 'individual';
 		}
 
@@ -94,7 +96,25 @@ class MessageController extends Controller {
 	 * Get messages for the authenticated user (students)
 	 */
 	public function myMessages( Request $request ) {
-		return $this->messageService->getUserMessages();
+		$perPage = $request->get( 'per_page', 20 );
+
+		// Debug logging
+		Log::info( '🔍 MessageController::myMessages called', [ 
+			'user_id'        => Auth::id(),
+			'user_role'      => Auth::user()?->role?->name,
+			'per_page'       => $perPage,
+			'request_params' => $request->all()
+		] );
+
+		$result = $this->messageService->getUserMessages( $perPage );
+
+		// Debug logging for response
+		Log::info( '📡 MessageController::myMessages response', [ 
+			'response_type' => get_class( $result ),
+			'has_data'      => method_exists( $result, 'getData' ) ? ! empty( $result->getData() ) : 'N/A'
+		] );
+
+		return $result;
 	}
 
 	/**

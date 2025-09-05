@@ -112,7 +112,7 @@ class UserModelTest extends TestCase {
 	public function test_user_fillable_fields_are_correct() {
 		$user = new User();
 		$expectedFillable = [ 
-			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'password', 'status', 'role_id', 'remember_token'
+			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'dormitory_id', 'password', 'status', 'role_id', 'remember_token'
 		];
 		$this->assertEquals( $expectedFillable, $user->getFillable() );
 	}

@@ -51,10 +51,10 @@ class PaymentControllerTest extends TestCase {
 				'data' => [ 
 					'*' => [ 
 						'id',
-						'user_id',
+						'userId',
 						'amount',
-						'status',
-						'payment_date',
+						'paymentStatus',
+						'paymentDate',
 						'user'
 					]
 				]
@@ -89,7 +89,7 @@ class PaymentControllerTest extends TestCase {
 			->assertJsonFragment( [ 
 				'amount'          => '50000.00',
 				'contract_number' => 'CONTRACT-2024-001',
-				'status'          => 'completed'
+				'payment_status'  => 'approved'
 			] );
 
 		$this->assertDatabaseHas( 'semester_payments', [ 

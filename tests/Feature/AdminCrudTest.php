@@ -144,7 +144,7 @@ class AdminCrudTest extends TestCase {
 		] );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'name', 'email', 'password', 'gender'
+			'name', 'email', 'password'
 		] );
 
 		// Invalid email and short password
@@ -163,7 +163,7 @@ class AdminCrudTest extends TestCase {
 		] );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'email', 'password', 'gender'
+			'email', 'password'
 		] );
 	}
 

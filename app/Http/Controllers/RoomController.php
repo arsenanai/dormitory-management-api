@@ -92,17 +92,16 @@ class RoomController extends Controller {
 			throw $e;
 		}
 
-		// Temporarily disable quota validation until database schema is updated
 		// Validate quota doesn't exceed room type capacity
-		// if (isset($validated['quota'])) {
-		// 	$roomType = \App\Models\RoomType::find($validated['room_type_id']);
-		// 	if ($roomType && $validated['quota'] > $validated['room_type_id']) {
-		// 		return response()->json([
-		// 			'message' => 'Room quota cannot exceed room type capacity',
-		// 			'errors' => ['quota' => ['Room quota cannot exceed room type capacity']]
-		// 		], 422);
-		// 	}
-		// }
+		if ( isset( $validated['quota'] ) ) {
+			$roomType = \App\Models\RoomType::find( $validated['room_type_id'] );
+			if ( $roomType && $validated['quota'] > $roomType->capacity ) {
+				return response()->json( [ 
+					'message' => 'Room quota cannot exceed room type capacity',
+					'errors'  => [ 'quota' => [ 'Room quota cannot exceed room type capacity' ] ]
+				], 422 );
+			}
+		}
 
 		\Log::info( 'About to call RoomService::createRoom' );
 		$room = $this->service->createRoom( $validated, $user );
@@ -121,17 +120,16 @@ class RoomController extends Controller {
 		);
 		$validated = $request->validate( $updateRules );
 
-		// Temporarily disable quota validation until database schema is updated
 		// Validate quota doesn't exceed room type capacity
-		// if (isset($validated['quota'])) {
-		// 	$roomType = \App\Models\RoomType::find($validated['room_type_id'] ?? $room->room_type_id);
-		// 	if ($roomType && $validated['quota'] > $roomType->capacity) {
-		// 		return response()->json([
-		// 			'message' => 'Room quota cannot exceed room type capacity',
-		// 			'errors' => ['quota' => ['Room quota cannot exceed room type capacity']]
-		// 		], 422);
-		// 	}
-		// }
+		if ( isset( $validated['quota'] ) ) {
+			$roomType = \App\Models\RoomType::find( $validated['room_type_id'] ?? $room->room_type_id );
+			if ( $roomType && $validated['quota'] > $roomType->capacity ) {
+				return response()->json( [ 
+					'message' => 'Room quota cannot exceed room type capacity',
+					'errors'  => [ 'quota' => [ 'Room quota cannot exceed room type capacity' ] ]
+				], 422 );
+			}
+		}
 
 		$room = $this->service->updateRoom( $room, $validated, $user );
 		return response()->json( $room, 200 );

@@ -148,8 +148,17 @@ class MessageService {
 	/**
 	 * Get messages for the authenticated user
 	 */
-	public function getUserMessages() {
+	public function getUserMessages( $perPage = 20 ) {
 		$user = Auth::user();
+
+		// Debug logging
+		\Log::info( '🔍 MessageService::getUserMessages called', [ 
+			'user_id'                => $user->id ?? 'null',
+			'user_role'              => $user->role?->name ?? 'null',
+			'user_room_id'           => $user->room_id ?? 'null',
+			'user_room_dormitory_id' => $user->room?->dormitory_id ?? 'null',
+			'per_page'               => $perPage
+		] );
 
 		$query = Message::where( 'status', 'sent' )
 			->where( function ($q) use ($user) {
@@ -185,7 +194,24 @@ class MessageService {
 			->with( [ 'sender' ] )
 			->orderBy( 'sent_at', 'desc' );
 
-		return response()->json( $query->paginate( 20 ) );
+		// Debug: Log the SQL query
+		\Log::info( '📊 MessageService::getUserMessages SQL query', [ 
+			'sql'      => $query->toSql(),
+			'bindings' => $query->getBindings()
+		] );
+
+		$result = $query->paginate( $perPage );
+
+		// Debug: Log the result
+		\Log::info( '📡 MessageService::getUserMessages result', [ 
+			'total_count'  => $result->total(),
+			'current_page' => $result->currentPage(),
+			'per_page'     => $result->perPage(),
+			'data_count'   => count( $result->items() ),
+			'has_data'     => ! empty( $result->items() )
+		] );
+
+		return response()->json( $result );
 	}
 
 	/**

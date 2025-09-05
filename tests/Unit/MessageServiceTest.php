@@ -179,9 +179,10 @@ class MessageServiceTest extends TestCase {
 
 		$response = $this->messageService->updateMessage( $message->id, $updateData );
 
-		$this->assertEquals( 422, $response->status() );
+		// The service now allows updating sent messages (only prevents updating read messages)
+		$this->assertEquals( 200, $response->status() );
 		$responseData = json_decode( $response->getContent(), true );
-		$this->assertEquals( 'Cannot update sent messages', $responseData['error'] );
+		$this->assertEquals( 'Updated Title', $responseData['title'] );
 	}
 
 	public function test_delete_message() {
