@@ -40,3 +40,6 @@ debug-*.txt
 # Local reverse proxy simulation (not for production)
 docker/nginx-proxy.conf
 docker/ssl/
+docker-compose.local.yml
+docker-compose.override.yml
+docker-compose.dev.yml
