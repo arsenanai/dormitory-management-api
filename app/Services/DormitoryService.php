@@ -9,12 +9,8 @@ use Illuminate\Http\JsonResponse;
 class DormitoryService {
 	public function createDormitory( array $data ) {
 		$dorm = Dormitory::create( $data );
-
-		// Load admin relationship if admin_id is provided
-		if ( isset( $data['admin_id'] ) && $data['admin_id'] ) {
-			return $dorm->fresh()->load( 'admin' );
-		}
-
+		$admin = User::findOrFail($data['admin_id']);
+		$this->assignAdmin( $dorm, $admin );
 		return $dorm;
 	}
 
@@ -23,15 +19,10 @@ class DormitoryService {
 	}
 
 	public function updateDormitory( $id, array $data ) {
-		\Log::info( 'DormitoryService updateDormitory called', [ 'id' => $id, 'data' => $data ] );
-
 		$dorm = Dormitory::findOrFail( $id );
-		\Log::info( 'Dormitory found', [ 'dormitory' => $dorm->toArray() ] );
-
 		$dorm->update( $data );
-		\Log::info( 'Dormitory updated', [ 'dormitory_after_update' => $dorm->fresh()->toArray() ] );
-
-		// Load the admin relationship for the response
+		$admin = User::findOrFail($data['admin_id']);
+		$this->assignAdmin( $dorm, $admin );
 		return $dorm->fresh()->load( 'admin' );
 	}
 
@@ -40,9 +31,9 @@ class DormitoryService {
 		$query = Dormitory::with( [ 'admin', 'rooms.beds' ] );
 
 		// Apply role-based filtering
-		if ( $user && $user->role && $user->role->name === 'admin' && $user->dormitory_id ) {
+		if ( $user && $user->role && $user->role->name === 'admin' && $user->adminDormitory->id ) {
 			// Dormitory admin can only see their assigned dormitory
-			$query->where( 'id', $user->dormitory_id );
+			$query->where( 'id', $user->adminDormitory->id );
 		} elseif ( $user && $user->role && $user->role->name === 'admin' ) {
 			// General admin can see all dormitories
 			// No additional filtering needed
@@ -109,12 +100,9 @@ class DormitoryService {
 		return response()->json( [ 'message' => 'Dormitory deleted successfully' ], 200 );
 	}
 
-	public function assignAdmin( $dormitoryId, $adminId ) {
-		$dorm = Dormitory::findOrFail( $dormitoryId );
-		$admin = User::findOrFail( $adminId );
-		$dorm->admin()->associate( $admin );
-		$dorm->save();
-		return $dorm->fresh()->load( 'admin' );
+	public function assignAdmin( $dormitory, $admin ) {
+		$dormitory->admin_id = $admin->id;
+		$dormitory->save();
 	}
 
 	public function getRoomsForDormitory( $dormitoryId ) {
@@ -129,7 +117,7 @@ class DormitoryService {
 		$dorm = Dormitory::with( [ 'rooms.beds', 'admin' ] )->findOrFail( $dormitoryId );
 
 		// Check if user has access to this dormitory
-		if ( $user && $user->role && $user->role->name === 'admin' && $user->dormitory_id !== (int) $dormitoryId ) {
+		if ( $user && $user->role && $user->role->name === 'admin' && $user->adminDormitory->id !== (int) $dormitoryId ) {
 			throw new \Exception( 'Access denied: You can only manage your assigned dormitory' );
 		}
 
@@ -157,7 +145,7 @@ class DormitoryService {
 	 */
 	public function updateRoomQuota( $dormitoryId, $roomId, $quota, $user ) {
 		// Check if user has access to this dormitory
-		if ( $user && $user->role && $user->role->name === 'admin' && $user->dormitory_id !== (int) $dormitoryId ) {
+		if ( $user && $user->role && $user->role->name === 'admin' && $user->adminDormitory->id !== (int) $dormitoryId ) {
 			throw new \Exception( 'Access denied: You can only manage your assigned dormitory' );
 		}
 

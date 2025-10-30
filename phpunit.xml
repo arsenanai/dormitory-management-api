@@ -3,9 +3,7 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
-         verbose="false"
          stopOnFailure="false"
-         displayDetailsOnFailure="true"
          failOnRisky="false"
          failOnWarning="false"
 >
@@ -22,9 +20,6 @@
             <directory>app</directory>
         </include>
     </source>
-    <logging>
-        <log type="junit" target="test-results/phpunit.junit.xml"/>
-    </logging>
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

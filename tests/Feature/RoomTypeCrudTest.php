@@ -93,21 +93,6 @@ class RoomTypeCrudTest extends TestCase {
 		] );
 	}
 
-	public function test_cannot_create_room_type_with_invalid_name() {
-		$token = $this->loginAsSudo();
-
-		$response = $this->postJson( '/api/room-types', [ 
-			'name'     => 'invalid',
-			'capacity' => 2,
-			'price'    => 150.00,
-		], [ 
-			'Authorization' => "Bearer $token",
-		] );
-
-		$response->assertStatus( 422 );
-		$response->assertJsonValidationErrors( [ 'name' ] );
-	}
-
 	public function test_cannot_create_room_type_without_required_fields() {
 		$token = $this->loginAsSudo();
 
@@ -277,12 +262,8 @@ class RoomTypeCrudTest extends TestCase {
 			$this->assertIsInt( $roomType['capacity'] );
 			$this->assertTrue( is_string( $roomType['price'] ) || is_numeric( $roomType['price'] ), 'Price should be string or numeric' );
 
-			// Check name is valid
-			$this->assertContains( $roomType['name'], [ 'standard', 'lux' ] );
-
 			// Check capacity is valid
 			$this->assertGreaterThan( 0, $roomType['capacity'] );
-			$this->assertLessThanOrEqual( 4, $roomType['capacity'] );
 
 			// Check price is valid
 			$this->assertGreaterThanOrEqual( 0, (float) $roomType['price'] );

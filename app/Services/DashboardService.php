@@ -20,8 +20,8 @@ class DashboardService {
 
 		// Check if user is admin and has a specific dormitory
 		$dormitoryFilter = null;
-		if ( $user->hasRole( 'admin' ) && $user->dormitory ) {
-			$dormitoryFilter = $user->dormitory->id;
+		if ( $user->hasRole( 'admin' ) && $user->adminDormitory ) {
+			$dormitoryFilter = $user->adminDormitory->id;
 		}
 
 		$studentStats = $this->getStudentStats( $dormitoryFilter );
@@ -427,8 +427,8 @@ class DashboardService {
 
 		// Check if user is admin and has a specific dormitory
 		$dormitoryFilter = null;
-		if ( $user->hasRole( 'admin' ) && $user->dormitory ) {
-			$dormitoryFilter = $user->dormitory->id;
+		if ( $user->hasRole( 'admin' ) && $user->adminDormitory ) {
+			$dormitoryFilter = $user->adminDormitory->id;
 		}
 
 		$stats = [ 

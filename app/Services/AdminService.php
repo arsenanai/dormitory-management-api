@@ -6,20 +6,28 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Models\AdminProfile;
+use App\Models\Dormitory;
+use App\Services\DormitoryService;
 
 class AdminService {
+	private DormitoryService $dormitoryService;
+	public function __construct() {
+		$this->dormitoryService = new DormitoryService();
+	}
 	public function listAdmins() {
 		// Only list users with the 'admin' role (exclude 'sudo')
 		return User::whereHas( 'role', function ($q) {
-			$q->where( 'name', 'admin' );
-		} )->with( 'adminProfile' )->get( [ 'id', 'name', 'first_name', 'last_name', 'email', 'role_id', 'dormitory_id' ] );
+				$q->where( 'name', 'admin' );
+			} )->with( 'adminProfile' )
+			->with('adminDormitory')
+			->get();
 	}
 
 	public function getAdminById( $id ) {
 		// Get a specific admin by ID with their profile
 		return User::whereHas( 'role', function ($q) {
 			$q->where( 'name', 'admin' );
-		} )->where( 'id', $id )->with( 'adminProfile' )->firstOrFail();
+		} )->where( 'id', $id )->with( 'adminProfile' )->with('adminDormitory')->firstOrFail();
 	}
 
 	public function createAdmin( array $data ) {
@@ -40,12 +48,13 @@ class AdminService {
 
 		$profileData['user_id'] = $user->id;
 		AdminProfile::create( $profileData );
+		$this->dormitoryService->assignAdmin( Dormitory::findOrFail($data['dormitory']), $user );
 		return $user->load( 'adminProfile' );
 	}
 
 	public function updateAdmin( $id, array $data ) {
 		$admin = User::findOrFail( $id );
-		$userFields = [ 'name', 'surname', 'email', 'password', 'role_id', 'phone_numbers', 'dormitory_id', 'dormitory' ];
+		$userFields = [ 'name', 'surname', 'email', 'password', 'role_id', 'phone_numbers' ];
 		$profileFields = [ 'position', 'department', 'office_phone', 'office_location' ];
 		$userData = array_intersect_key( $data, array_flip( $userFields ) );
 		$profileData = array_intersect_key( $data, array_flip( $profileFields ) );
@@ -54,12 +63,6 @@ class AdminService {
 		if ( isset( $userData['surname'] ) ) {
 			$userData['last_name'] = $userData['surname'];
 			unset( $userData['surname'] );
-		}
-
-		// Handle dormitory mapping (dormitory -> dormitory_id)
-		if ( isset( $userData['dormitory'] ) ) {
-			$userData['dormitory_id'] = $userData['dormitory'];
-			unset( $userData['dormitory'] );
 		}
 		if ( isset( $userData['password'] ) && $userData['password'] ) {
 			$userData['password'] = Hash::make( $userData['password'] );
@@ -73,6 +76,7 @@ class AdminService {
 			$profileData['user_id'] = $admin->id;
 			AdminProfile::create( $profileData );
 		}
+		$this->dormitoryService->assignAdmin( Dormitory::findOrFail($data['dormitory']), $admin );
 		return $admin->load( 'adminProfile' );
 	}
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Configuration;
 use App\Services\ConfigurationService;
 use Illuminate\Http\Request;
 
@@ -207,5 +208,32 @@ class ConfigurationController extends Controller {
 	public function initializeDefaults() {
 		$configurations = $this->configurationService->initializeDefaults();
 		return response()->json( $configurations );
+	}
+
+	/**
+	 * Get currency setting
+	 */
+	public function getCurrencySetting() {
+		$currency = Configuration::where( 'key', 'currency_symbol' )->first();
+
+		return response()->json( [ 
+			'currency_symbol' => $currency ? $currency->value : 'USD',
+		] );
+	}
+
+	/**
+	 * Update currency setting
+	 */
+	public function updateCurrencySetting( Request $request ) {
+		$validated = $request->validate( [ 
+			'currency_symbol' => 'required|string|max:10',
+		] );
+
+		Configuration::updateOrCreate(
+			[ 'key' => 'currency_symbol' ],
+			[ 'value' => $validated['currency_symbol'] ]
+		);
+
+		return response()->json( [ 'message' => 'Currency settings updated successfully.' ] );
 	}
 }

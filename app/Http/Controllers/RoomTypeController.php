@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Http\Controllers;
-
 use App\Models\RoomType;
 use App\Services\RoomTypeService;
 use Illuminate\Http\Request;
@@ -9,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class RoomTypeController extends Controller {
 	private $rules = [ 
-		'name'     => 'sometimes|in:standard,lux',
+		'name'     => 'sometimes|string|max:255',
 		'capacity' => 'sometimes|integer|min:1',
 		'price'    => 'sometimes|numeric|min:0',
 		'minimap'  => 'sometimes|image',
@@ -39,7 +38,7 @@ class RoomTypeController extends Controller {
 	public function store( Request $request ) {
 		// For creation, name, capacity, and price are required
 		$rules = $this->rules;
-		$rules['name'] = 'required|in:standard,lux';
+		$rules['name'] = 'required|string|max:255';
 		$rules['capacity'] = 'required|integer|min:1';
 		$rules['price'] = 'required|numeric|min:0';
 

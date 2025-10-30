@@ -42,6 +42,7 @@ class StudentProfile extends Model {
 		'is_backup_list',
 		'date_of_birth',
 		'gender',
+		'allergies',
 		'files',
 		'city_id', // Keep for backward compatibility
 		'country',
@@ -58,6 +59,7 @@ class StudentProfile extends Model {
 		'has_meal_plan'              => 'boolean',
 		'registration_limit_reached' => 'boolean',
 		'is_backup_list'             => 'boolean',
+		'files'                      => 'array',
 	];
 
 	public function user() {

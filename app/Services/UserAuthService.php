@@ -47,6 +47,11 @@ class UserAuthService {
 			if ( $user->role && $user->role->name === 'student' && $user->status !== 'active' ) {
 				return 'not_approved';
 			}
+			if ( $user->role && $user->role->name === 'admin' ) {
+				$user->loadMissing('adminProfile');
+				if ( ! $user->adminProfile->dormitory_id)
+					return 'not_assigned_admin';
+			}
 			return $user;
 		}
 		return null;

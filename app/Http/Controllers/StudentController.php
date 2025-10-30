@@ -7,6 +7,8 @@ use App\Services\StudentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Student Management Controller
@@ -20,21 +22,13 @@ use Illuminate\Validation\ValidationException;
  * @package App\Http\Controllers
  */
 class StudentController extends Controller {
-	/**
-	 * Student service for business logic operations
-	 * 
-	 * @var StudentService
-	 */
-	private StudentService $studentService;
 
 	/**
 	 * Constructor with dependency injection
 	 * 
 	 * @param StudentService $studentService Service for student business logic
 	 */
-	public function __construct( StudentService $studentService ) {
-		$this->studentService = $studentService;
-	}
+	public function __construct( private StudentService $studentService ) {}
 
 	/**
 	 * Display a listing of students with optional filters
@@ -65,7 +59,7 @@ class StudentController extends Controller {
 			'fields'       => 'sometimes|string', // Comma-separated list of fields to select
 		] );
 
-		return $this->studentService->getStudentsWithFilters( $filters );
+		return $this->studentService->getStudentsWithFilters( $filters, Auth::user()->load('adminDormitory') );
 	}
 
 	/**
@@ -99,34 +93,55 @@ class StudentController extends Controller {
 	 * }
 	 */
 	public function store( Request $request ): JsonResponse {
+		// Handle nested student_profile payload by merging it into the root request
+		$data = $request->all();
+		if (isset($data['student_profile']) && is_array($data['student_profile'])) {
+			$request->merge($data['student_profile']);
+		}
+
+		// Manually construct the 'name' field from first_name and last_name before validation.
+		if ($request->has('first_name') && $request->has('last_name')) {
+			$request->merge(['name' => trim($request->input('first_name') . ' ' . $request->input('last_name'))]);
+		}
+
 		$validated = $request->validate( [ 
-			'iin'             => 'required|digits:12|unique:users,iin',
-			'name'            => 'required|string|max:255',
-			'faculty'         => 'required|string|max:255',
-			'specialist'      => 'required|string|max:255',
-			'enrollment_year' => 'required|integer|digits:4',
-			'gender'          => 'required|in:male,female',
-			'email'           => 'required|email|max:255|unique:users,email',
-			'phone_numbers'   => 'nullable|array',
-			'phone_numbers.*' => 'string',
-			'room_id'         => 'nullable|exists:rooms,id',
-			'password'        => 'required|string|min:6',
-			'deal_number'     => 'nullable|string|max:255',
-			'city_id'         => 'nullable|integer|exists:cities,id',
-			'country'         => 'nullable|string|max:255',
-			'region'          => 'nullable|string|max:255',
-			'city'            => 'nullable|string|max:255',
-			'files'           => 'nullable|array|max:4',
-			'files.*'         => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-			'blood_type'      => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-			'violations'      => 'nullable|string|max:1000',
-			'parent_name'     => 'nullable|string|max:255',
-			'parent_phone'    => 'nullable|string|max:20',
-			'mentor_name'     => 'nullable|string|max:255',
-			'mentor_email'    => 'nullable|email|max:255',
+			'agree_to_dormitory_rules'       => 'required|boolean',
+			'allergies'                      => 'nullable|string|max:1000',
+			'bed_id'                         => 'nullable|exists:beds,id',
+			'blood_type'                     => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+			'city_id'                        => 'nullable|integer|exists:cities,id',
+			'city'                           => 'nullable|string|max:255',
+			'country'                        => 'nullable|string|max:255',
+			'deal_number'                    => 'nullable|string|max:255',
+			'email'                          => 'required|email|max:255|unique:users,email',
+			'emergency_contact_name'         => 'nullable|string|max:255',
+			'emergency_contact_phone'        => 'nullable|string|max:255',
+			'emergency_contact_relationship' => 'nullable|string|max:255',
+			'enrollment_year'                => 'required|integer|digits:4',
+			'faculty'                        => 'required|string|max:255',
+			'files.*'                        => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+			'files'                          => 'nullable|array|max:4',
+			'first_name'                     => 'required|string|max:255',
+			'gender'                         => 'required|in:male,female',
+			'has_meal_plan'                  => 'required|boolean',
+			'iin'                            => 'required|digits:12|unique:student_profiles,iin',
+			'last_name'				         => 'required|string|max:255',
+			'mentor_email'                   => 'nullable|email|max:255',
+			'mentor_name'                    => 'nullable|string|max:255',
+			'name'                           => 'required|string|max:255',
+			'parent_email'                   => 'nullable|email|max:255',
+			'parent_name'                    => 'nullable|string|max:255',
+			'parent_phone'                   => 'nullable|string|max:20',
+			'password'                       => 'required|string|min:6|confirmed',
+			'phone_numbers.*'                => 'string',
+			'phone_numbers'                  => 'nullable|array',
+			'region'                         => 'nullable|string|max:255',
+			'room_id'                        => 'nullable|exists:rooms,id',
+			'specialist'                     => 'required|string|max:255',
+			'violations'                     => 'nullable|string|max:1000',
 		] );
 
-		return $this->studentService->createStudent( $validated );
+		return $this->studentService->createStudent( $validated, Auth::user()->adminDormitory );
 	}
 
 	/**
@@ -172,62 +187,57 @@ class StudentController extends Controller {
 	 * @example
 	 * PUT /api/students/123
 	 * {
-	 *   "name": "John Doe Updated",
+	 *   "first_name": "John Updated",
 	 *   "faculty": "medicine",
 	 *   "room_id": 5
 	 * }
 	 */
 	public function update( Request $request, int $id ): JsonResponse {
-		// Handle both nested and flat payload structures
-		$data = $request->all();
-
-		// If nested structure is provided, flatten it
-		if ( isset( $data['user'] ) || isset( $data['profile'] ) ) {
-			$flattenedData = [];
-
-			// Extract user fields
-			if ( isset( $data['user'] ) ) {
-				$flattenedData = array_merge( $flattenedData, $data['user'] );
-			}
-
-			// Extract profile fields
-			if ( isset( $data['profile'] ) ) {
-				$flattenedData = array_merge( $flattenedData, $data['profile'] );
-			}
-
-			// Replace the request data with flattened data
-			$request->replace( $flattenedData );
+		// Handle nested student_profile payload by merging it into the root request
+		if ($request->has('student_profile') && is_array($request->input('student_profile'))) {
+			$request->merge($request->input('student_profile'));
 		}
 
 		$validated = $request->validate( [ 
-			'name'                     => 'sometimes|string|max:255',
-			'faculty'                  => 'nullable|string|max:255',
-			'specialist'               => 'nullable|string|max:255',
-			'enrollment_year'          => 'nullable|integer|digits:4',
-			'gender'                   => 'nullable|in:male,female',
-			'email'                    => 'sometimes|email|max:255|unique:users,email,' . $id,
-			'phone_numbers'            => 'nullable|array',
-			'phone_numbers.*'          => 'string',
-			'room_id'                  => 'nullable|exists:rooms,id',
-			'bed_id'                   => 'nullable|exists:beds,id',
-			'deal_number'              => 'nullable|string|max:255',
-			'city_id'                  => 'nullable|integer|exists:cities,id',
-			'country'                  => 'nullable|string|max:255',
-			'region'                   => 'nullable|string|max:255',
-			'city'                     => 'nullable|string|max:255',
-			'blood_type'               => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
-			'violations'               => 'nullable|string|max:1000',
-			'parent_name'              => 'nullable|string|max:255',
-			'parent_phone'             => 'nullable|string|max:20',
-			'parent_email'             => 'nullable|email|max:255',
-			'mentor_name'              => 'nullable|string|max:255',
-			'mentor_email'             => 'nullable|email|max:255',
-			'allergies'                => 'nullable|string|max:1000',
-			'status'                   => 'nullable|in:pending,active,suspended',
-			'agree_to_dormitory_rules' => 'nullable|boolean',
+			'agree_to_dormitory_rules'       => 'nullable|boolean',
+			'allergies'                      => 'nullable|string|max:1000',
+			'bed_id'                         => 'nullable|exists:beds,id',
+			'blood_type'                     => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-',
+			'city_id'                        => 'nullable|integer|exists:cities,id',
+			'city'                           => 'nullable|string|max:255',
+			'country'                        => 'nullable|string|max:255',
+			'deal_number'                    => 'nullable|string|max:255',
+			'email'                          => 'required|email|max:255',
+			'emergency_contact_name'         => 'nullable|string|max:255',
+			'emergency_contact_phone'        => 'nullable|string|max:255',
+			'emergency_contact_relationship' => 'nullable|string|max:255',
+			'enrollment_year'                => 'nullable|integer|digits:4',
+			'faculty'                        => 'nullable|string|max:255',
+			'files.*'                        => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
+			'files'                          => 'nullable|array|max:4',
+			'first_name'                     => 'sometimes|string|max:255',
+			'gender'                         => 'nullable|in:male,female',
+			'has_meal_plan'                  => 'nullable|boolean',
+			'iin'                            => 'sometimes|digits:12',
+			'last_name'				         => 'sometimes|string|max:255',
+			'mentor_email'                   => 'nullable|email|max:255',
+			'mentor_name'                    => 'nullable|string|max:255',
+			'name'                           => 'sometimes|string|max:255',
+			'parent_email'                   => 'nullable|email|max:255',
+			'parent_name'                    => 'nullable|string|max:255',
+			'parent_phone'                   => 'nullable|string|max:20',
+			'password'                       => 'nullable|string|min:6|confirmed',
+			'phone_numbers.*'                => 'string',
+			'phone_numbers'                  => 'nullable|array',
+			'region'                         => 'nullable|string|max:255',
+			'room_id'                        => 'nullable|exists:rooms,id',
+			'specialist'                     => 'nullable|string|max:255', 
+			'status'                         => 'nullable|in:pending,active,suspended',
+			'student_id'                     => 'nullable|string|max:255',
+			'violations'                     => 'nullable|string|max:1000',
 		] );
 
-		return $this->studentService->updateStudent( $id, $validated );
+		return $this->studentService->updateStudent( $id, $validated, Auth::user()->load('adminDormitory') );
 	}
 
 	/**
@@ -274,7 +284,7 @@ class StudentController extends Controller {
 			'per_page'     => 'sometimes|integer|min:1|max:100',
 		] );
 
-		return $this->studentService->getStudentsByDormitory( $filters );
+		return $this->studentService->getStudentsByDormitory( $filters, Auth::user()->load('adminDormitory') );
 	}
 
 	/**
@@ -358,7 +368,7 @@ class StudentController extends Controller {
 			'year'         => 'sometimes|integer',
 		] );
 
-		return $this->studentService->getStudentStatistics( $filters );
+		return $this->studentService->getStudentStatistics( $filters, Auth::user() );
 	}
 
 	/**

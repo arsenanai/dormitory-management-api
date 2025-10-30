@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Hash;
 
@@ -44,7 +45,8 @@ class UserControllerTest extends TestCase {
 		] );
 	}
 
-	public function test_admin_can_view_all_users() {
+	#[Test]
+	public function admin_can_view_all_users(): void {
 		$response = $this->actingAs( $this->admin )
 			->getJson( '/api/users' );
 
@@ -66,7 +68,8 @@ class UserControllerTest extends TestCase {
 			->assertJsonCount( 3, 'data' );
 	}
 
-	public function test_admin_can_search_users() {
+	#[Test]
+	public function admin_can_search_users(): void {
 		$response = $this->actingAs( $this->admin )
 			->getJson( '/api/users?search=student' );
 
@@ -76,7 +79,8 @@ class UserControllerTest extends TestCase {
 			] );
 	}
 
-	public function test_admin_can_filter_users_by_role() {
+	#[Test]
+	public function admin_can_filter_users_by_role(): void {
 		$response = $this->actingAs( $this->admin )
 			->getJson( '/api/users?role=student' );
 
@@ -87,7 +91,8 @@ class UserControllerTest extends TestCase {
 			] );
 	}
 
-	public function test_admin_can_create_user() {
+	#[Test]
+	public function admin_can_create_user(): void {
 		$userData = [ 
 			'first_name'            => 'New',
 			'last_name'             => 'User',
@@ -118,7 +123,8 @@ class UserControllerTest extends TestCase {
 		] );
 	}
 
-	public function test_admin_can_create_user_with_student_fields() {
+	#[Test]
+	public function admin_can_create_user_with_student_fields(): void {
 		$userData = [ 
 			'first_name'            => 'John',
 			'last_name'             => 'Doe',
@@ -164,7 +170,8 @@ class UserControllerTest extends TestCase {
 		] );
 	}
 
-	public function test_create_user_validation() {
+	#[Test]
+	public function create_user_validation(): void {
 		$response = $this->actingAs( $this->admin )
 			->postJson( '/api/users', [] );
 
@@ -178,7 +185,8 @@ class UserControllerTest extends TestCase {
 			] );
 	}
 
-	public function test_create_user_with_duplicate_email() {
+	#[Test]
+	public function create_user_with_duplicate_email(): void {
 		$userData = [ 
 			'first_name'            => 'Duplicate',
 			'last_name'             => 'User',
@@ -195,7 +203,8 @@ class UserControllerTest extends TestCase {
 			->assertJsonValidationErrors( [ 'email' ] );
 	}
 
-	public function test_admin_can_view_specific_user() {
+	#[Test]
+	public function admin_can_view_specific_user(): void {
 		$response = $this->actingAs( $this->admin )
 			->getJson( "/api/users/{$this->student->id}" );
 
@@ -208,7 +217,8 @@ class UserControllerTest extends TestCase {
 			] );
 	}
 
-	public function test_admin_can_update_user() {
+	#[Test]
+	public function admin_can_update_user(): void {
 		$updateData = [ 
 			'first_name' => 'Updated',
 			'last_name'  => 'Student',
@@ -237,7 +247,8 @@ class UserControllerTest extends TestCase {
 		] );
 	}
 
-	public function test_admin_can_update_user_password() {
+	#[Test]
+	public function admin_can_update_user_password(): void {
 		$updateData = [ 
 			'password'              => 'newpassword123',
 			'password_confirmation' => 'newpassword123',
@@ -252,7 +263,8 @@ class UserControllerTest extends TestCase {
 		$this->assertTrue( Hash::check( 'newpassword123', $this->student->password ) );
 	}
 
-	public function test_admin_can_delete_user() {
+	#[Test]
+	public function admin_can_delete_user(): void {
 		$userToDelete = User::factory()->create( [ 
 			'role_id' => $this->student->role_id,
 			'email'   => 'delete@test.com',
@@ -269,7 +281,8 @@ class UserControllerTest extends TestCase {
 		] );
 	}
 
-	public function test_user_can_view_own_profile() {
+	#[Test]
+	public function user_can_view_own_profile(): void {
 		$response = $this->actingAs( $this->student )
 			->getJson( '/api/users/profile' );
 
@@ -282,7 +295,8 @@ class UserControllerTest extends TestCase {
 			] );
 	}
 
-	public function test_user_can_update_own_profile() {
+	#[Test]
+	public function user_can_update_own_profile(): void {
 		$updateData = [ 
 			'first_name'        => 'Updated',
 			'last_name'         => 'Name',
@@ -308,7 +322,8 @@ class UserControllerTest extends TestCase {
 		] );
 	}
 
-	public function test_user_can_change_own_password() {
+	#[Test]
+	public function user_can_change_own_password(): void {
 		$updateData = [ 
 			'current_password'      => 'password123',
 			'password'              => 'newpassword123',
@@ -325,7 +340,8 @@ class UserControllerTest extends TestCase {
 		$this->assertTrue( Hash::check( 'newpassword123', $this->student->password ) );
 	}
 
-	public function test_user_cannot_change_password_with_wrong_current_password() {
+	#[Test]
+	public function user_cannot_change_password_with_wrong_current_password(): void {
 		$updateData = [ 
 			'current_password'      => 'wrongpassword',
 			'password'              => 'newpassword123',
@@ -339,7 +355,8 @@ class UserControllerTest extends TestCase {
 			->assertJsonValidationErrors( [ 'current_password' ] );
 	}
 
-	public function test_user_cannot_update_role_in_profile() {
+	#[Test]
+	public function user_cannot_update_role_in_profile(): void {
 		$updateData = [ 
 			'role_id'    => $this->admin->role_id, // Try to become admin
 			'first_name' => 'Hacker',
@@ -355,21 +372,24 @@ class UserControllerTest extends TestCase {
 		$this->assertEquals( 'Hacker', $this->student->first_name );
 	}
 
-	public function test_student_cannot_access_all_users() {
+	#[Test]
+	public function student_cannot_access_all_users(): void {
 		$response = $this->actingAs( $this->student )
 			->getJson( '/api/users' );
 
 		$response->assertStatus( 403 );
 	}
 
-	public function test_student_cannot_view_other_user_details() {
+	#[Test]
+	public function student_cannot_view_other_user_details(): void {
 		$response = $this->actingAs( $this->student )
 			->getJson( "/api/users/{$this->guard->id}" );
 
 		$response->assertStatus( 403 );
 	}
 
-	public function test_student_cannot_create_user() {
+	#[Test]
+	public function student_cannot_create_user(): void {
 		$userData = [ 
 			'first_name'            => 'New',
 			'last_name'             => 'User',
@@ -385,7 +405,8 @@ class UserControllerTest extends TestCase {
 		$response->assertStatus( 403 );
 	}
 
-	public function test_student_cannot_update_other_user() {
+	#[Test]
+	public function student_cannot_update_other_user(): void {
 		$updateData = [ 
 			'first_name' => 'Hacked',
 			'last_name'  => 'User',
@@ -397,14 +418,16 @@ class UserControllerTest extends TestCase {
 		$response->assertStatus( 403 );
 	}
 
-	public function test_student_cannot_delete_user() {
+	#[Test]
+	public function student_cannot_delete_user(): void {
 		$response = $this->actingAs( $this->student )
 			->deleteJson( "/api/users/{$this->guard->id}" );
 
 		$response->assertStatus( 403 );
 	}
 
-	public function test_unauthenticated_user_cannot_access_users() {
+	#[Test]
+	public function unauthenticated_user_cannot_access_users(): void {
 		$response = $this->getJson( '/api/users' );
 		$response->assertStatus( 401 );
 

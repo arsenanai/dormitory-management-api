@@ -14,63 +14,25 @@ class User extends Authenticatable {
 	/** @use HasFactory<\Database\Factories\UserFactory> */
 	use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
-	protected $fillable = [ 
+	protected $fillable = [
 		'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'dormitory_id', 'password', 'status', 'role_id', 'remember_token'
 	];
 
-	protected $casts = [ 
+	protected $casts = [
 		'id'                => 'int',
 		'email_verified_at' => 'datetime',
 		'password'          => 'hashed',
 		'phone_numbers'     => 'array',
 	];
 
-	protected $appends = [];
-
-	protected $hidden = [ 
+	protected $hidden = [
 		'password',
 		'remember_token',
 	];
 
-	/**
-	 * The attributes that should be cast.
-	 *
-	 * @return array<string, string>
-	 */
-	/**
-	 * Override getFillable to match test expectations
-	 * While keeping actual fillable broader for functionality
-	 */
-	public function getFillable() {
-		// Return the fields expected by the test including student-specific fields
-		return [ 
-			'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'dormitory_id', 'password', 'status', 'role_id', 'remember_token'
-		];
-	}
-
-	// Accessor for phone field (backward compatibility)
-	public function getPhoneAttribute( $value ) {
-		if ( $this->phone_numbers && is_array( $this->phone_numbers ) && count( $this->phone_numbers ) > 0 ) {
-			return $this->phone_numbers[0];
-		}
-		return null;
-	}
-
-	// Accessor for check_in_date field (maps to guestProfile.visit_start_date)
-	public function getCheckInDateAttribute( $value ) {
-		if ( $this->guestProfile ) {
-			return $this->guestProfile->visit_start_date;
-		}
-		return null;
-	}
-
-	// Accessor for check_out_date field (maps to guestProfile.visit_end_date)
-	public function getCheckOutDateAttribute( $value ) {
-		if ( $this->guestProfile ) {
-			return $this->guestProfile->visit_end_date;
-		}
-		return null;
-	}
+	protected $with = [
+		'studentProfile'
+	];
 
 	public function role() {
 		return $this->belongsTo( Role::class);
@@ -80,8 +42,8 @@ class User extends Authenticatable {
 		return $this->role && $this->role->name === $roleName;
 	}
 
-	public function dormitory() {
-		return $this->belongsTo( Dormitory::class);
+	public function adminDormitory() {
+		return $this->hasOne(Dormitory::class, 'admin_id');
 	}
 
 	public function payments() {
@@ -90,6 +52,10 @@ class User extends Authenticatable {
 
 	public function room() {
 		return $this->belongsTo( Room::class);
+	}
+
+	public function studentBed() {
+		return $this->hasOne( Bed::class, 'user_id' );
 	}
 
 	public function city() {
@@ -129,19 +95,5 @@ class User extends Authenticatable {
 		}
 
 		return true; // Admin, sudo, visitor roles have access
-	}
-
-	/**
-	 * Get the casts array.
-	 * Override to match test expectations
-	 */
-	public function getCasts() {
-		// Return only the casts expected by the test
-		return [ 
-			'id'                => 'int',
-			'email_verified_at' => 'datetime',
-			'password'          => 'hashed',
-			'phone_numbers'     => 'array',
-		];
 	}
 }

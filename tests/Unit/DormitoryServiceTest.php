@@ -323,10 +323,9 @@ class DormitoryServiceTest extends TestCase {
 			'phone_numbers' => json_encode( [ '+1234567891' ] )
 		] );
 
-		$result = $this->dormitoryService->assignAdmin( $this->dormitory->id, $newAdmin->id );
+		$this->dormitoryService->assignAdmin( $this->dormitory, $newAdmin );
 
-		$this->assertInstanceOf( Dormitory::class, $result );
-		$this->assertEquals( $newAdmin->id, $result->admin_id );
+		$this->assertEquals( $newAdmin->adminDormitory->id, $this->dormitory->id );
 
 		// Verify database was updated
 		$this->assertDatabaseHas( 'dormitories', [ 

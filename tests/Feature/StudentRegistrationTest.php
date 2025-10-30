@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Bed;
 use App\Models\City;
 use App\Models\Role;
 use App\Models\User;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -21,23 +23,28 @@ class StudentRegistrationTest extends TestCase {
 		$this->studentRoleId = Role::where( 'name', 'student' )->firstOrFail()->id;
 	}
 
-	public function test_student_can_register_with_valid_data() {
+	#[Test]
+	public function student_can_register_with_valid_data(): void {
 		Storage::fake( 'public' );
-		$city = City::factory()->create();
+		$city = City::first() ?? City::factory()->create(); // Use existing city or create one
+		$dormitory = \App\Models\Dormitory::factory()->create();
+		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
+		$bed = Bed::factory()->create(['room_id' => $room->id]);
+
 		$uniqueIIN = '123456789' . str_pad( rand( 0, 999 ), 3, '0', STR_PAD_LEFT );
 		$payload = [ 
 			'iin'                      => $uniqueIIN,
 			'name'                     => 'John Doe',
 			'faculty'                  => 'engineering',
 			'specialist'               => 'computer_sciences',
-			'enrollment_year'          => 2022,
+			'enrollment_year'          => '2022',
 			'gender'                   => 'male',
 			'email'                    => 'student@example.com',
 			'phone_numbers'            => [ '+77001234567' ],
-			'room_id'                  => null,
 			'password'                 => 'password123',
 			'password_confirmation'    => 'password123',
 			'deal_number'              => 'D123',
+			'room_id'                  => $room->id,
 			'city_id'                  => $city->id,
 			'files'                    => [ 
 				UploadedFile::fake()->create( '063.pdf', 100 ),
@@ -46,7 +53,8 @@ class StudentRegistrationTest extends TestCase {
 				UploadedFile::fake()->create( 'bank.pdf', 100 ),
 			],
 			'agree_to_dormitory_rules' => true,
-			'role_id'                  => $this->studentRoleId,
+			'user_type'                => 'student',
+			'bed_id'                   => $bed->id,
 		];
 
 		$response = $this->postJson( '/api/register', $payload );
@@ -58,13 +66,17 @@ class StudentRegistrationTest extends TestCase {
 		$this->assertDatabaseHas( 'student_profiles', [ 
 			'iin' => $uniqueIIN,
 		] );
-		Storage::disk( 'public' )->assertExists( 'user_files/' . $payload['files'][0]->hashName() );
+		$student = User::where('email', 'student@example.com')->first();
+		$this->assertNotNull($student->studentProfile->files[0]);
+		Storage::disk( 'public' )->assertExists( $student->studentProfile->files[0] );
 	}
 
-	public function test_student_can_register_with_room_id_string() {
-		$this->seed();
-		$city = \App\Models\City::factory()->create();
-		$room = \App\Models\Room::factory()->create();
+	#[Test]
+	public function student_can_register_with_room_id_string(): void {
+		$city = City::first() ?? \App\Models\City::factory()->create(); // Use existing city
+		$dormitory = \App\Models\Dormitory::factory()->create();
+		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
+		$bed = Bed::factory()->create(['room_id' => $room->id]);
 		$uniqueEmail = 'janedoe_' . uniqid() . '@example.com';
 		$uniqueIIN = '987654321' . str_pad( rand( 0, 999 ), 3, '0', STR_PAD_LEFT );
 		$payload = [ 
@@ -76,31 +88,35 @@ class StudentRegistrationTest extends TestCase {
 			'gender'                   => 'female',
 			'email'                    => $uniqueEmail,
 			'phone_numbers'            => [ '+77001234568' ],
-			'room_id'                  => (string) $room->id, // Simulate frontend sending string id
+			'room_id'                  => (string) $room->id,
 			'password'                 => 'password123',
 			'password_confirmation'    => 'password123',
 			'deal_number'              => 'D124',
 			'city_id'                  => $city->id,
 			'agree_to_dormitory_rules' => true,
+			'user_type'                => 'student',
+			'bed_id'                   => (string) $bed->id, // Simulate string id
 		];
 		$response = $this->postJson( '/api/register', $payload );
 		$response->assertStatus( 201 );
 		$this->assertDatabaseHas( 'users', [ 
 			'email'   => $uniqueEmail,
-			'room_id' => $room->id,
+			'room_id' => $bed->room_id,
 		] );
 	}
 
-	public function test_registration_requires_required_fields() {
-		$response = $this->postJson( '/api/register', [] );
+	#[Test]
+	public function registration_requires_required_fields(): void {
+		$response = $this->postJson( '/api/register', ['user_type' => 'student'] );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'iin', 'name', 'faculty', 'specialist', 'enrollment_year', 'gender',
-			'email', 'password', 'agree_to_dormitory_rules'
+			'iin', 'name', 'faculty', 'specialist', 'enrollment_year',
+			'gender', 'email', 'password', 'agree_to_dormitory_rules', 'room_id'
 		] );
 	}
 
-	public function test_registration_requires_valid_email_and_password() {
+	#[Test]
+	public function registration_requires_valid_email_and_password(): void {
 		$payload = [ 
 			'iin'                      => '123',
 			'name'                     => '',
@@ -112,13 +128,80 @@ class StudentRegistrationTest extends TestCase {
 			'password'                 => '123',
 			'password_confirmation'    => '456',
 			'agree_to_dormitory_rules' => false,
+			'user_type'                => 'student',
 		];
 
 		$response = $this->postJson( '/api/register', $payload );
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
-			'iin', 'name', 'faculty', 'specialist', 'enrollment_year', 'gender',
-			'email', 'password', 'agree_to_dormitory_rules'
+			'iin', 'name', 'faculty', 'specialist', 'enrollment_year',
+			'gender', 'email', 'password', 'agree_to_dormitory_rules', 'room_id'
 		] );
+	}
+
+	#[Test]
+	public function student_is_not_assigned_a_bed_on_public_registration(): void
+	{
+		Storage::fake('public');
+		$dormitory = \App\Models\Dormitory::factory()->create();
+		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
+		// We create a bed in the room, but we will not send its ID in the payload
+		Bed::factory()->create(['room_id' => $room->id]);
+
+		$payload = [
+			'iin'                      => '112233445566',
+			'name'                     => 'Bedless Student',
+			'faculty'                  => 'Arts',
+			'specialist'               => 'History',
+			'enrollment_year'          => '2023',
+			'gender'                   => 'female',
+			'email'                    => 'bedless.student@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => $room->id, // Student selects a room
+			// No 'bed_id' is sent, mimicking the public registration form
+			'agree_to_dormitory_rules' => true,
+			'user_type'                => 'student',
+		];
+
+		$response = $this->postJson('/api/register', $payload);
+
+		$response->assertStatus(201);
+		$student = User::where('email', 'bedless.student@example.com')->first();
+		$this->assertNotNull($student);
+		$this->assertNull($student->studentBed, 'Student should not be assigned to a specific bed upon public registration.');
+		$this->assertEquals($room->id, $student->room_id, 'Student should be associated with the selected room.');
+	}
+
+	public function student_can_register_when_agree_to_rules_is_a_string_true(): void
+	{
+		Storage::fake('public');
+		$dormitory = \App\Models\Dormitory::factory()->create();
+		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
+		$bed = Bed::factory()->create(['room_id' => $room->id]);
+
+		$payload = [
+			'iin'                      => '998877665544',
+			'name'                     => 'String Agreement',
+			'faculty'                  => 'Science',
+			'specialist'               => 'Biology',
+			'enrollment_year'          => '2023',
+			'gender'                   => 'male',
+			'email'                    => 'string.agree@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => $room->id,
+			'bed_id'                   => $bed->id,
+			'agree_to_dormitory_rules' => 'true', // Sent as a string, mimicking FormData
+			'user_type'                => 'student',
+		];
+
+		$response = $this->postJson('/api/register', $payload);
+
+		$response->assertStatus(201);
+		$this->assertDatabaseHas('student_profiles', [
+			'iin' => '998877665544',
+			'agree_to_dormitory_rules' => 1, // Should be stored as 1 (true) in the database
+		]);
 	}
 }

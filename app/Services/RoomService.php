@@ -5,6 +5,7 @@
 namespace App\Services;
 
 use App\Models\Room;
+use App\Models\Bed;
 
 class RoomService {
 	public function listRooms( array $filters = [], int $perPage = 15, $user = null ) {
@@ -13,7 +14,7 @@ class RoomService {
 		// Apply role-based filtering
 		if ( $user && $user->role && $user->role->name === 'admin' ) {
 			// Get user's assigned dormitory from their profile
-			$userDormitoryId = $user->adminProfile?->dormitory_id ?? null;
+			$userDormitoryId = $user->adminDormitory->id ?? null;
 			if ( $userDormitoryId ) {
 				// Dormitory admin can only see rooms in their assigned dormitory
 				$query->where( 'dormitory_id', $userDormitoryId );
@@ -51,77 +52,56 @@ class RoomService {
 	}
 
 	public function createRoom( array $data, $user = null ) {
-		// Debug logging
-		\Log::info( 'RoomService::createRoom called', [ 
-			'data'            => $data,
-			'fillable_fields' => ( new Room() )->getFillable()
-		] );
-
 		try {
 			$room = Room::create( $data );
-
-			// Sync beds with room quota after creation
-			$this->syncBedsWithQuota( $room );
-
-			\Log::info( 'Room created successfully', [ 'room_id' => $room->id ] );
+			$this->syncBeds( $room, $data );
 			return $room;
 		} catch (\Exception $e) {
-			\Log::error( 'Room creation failed', [ 
-				'error' => $e->getMessage(),
-				'trace' => $e->getTraceAsString()
-			] );
 			throw $e;
 		}
 	}
 
-	public function findRoom( $id, $user = null ) {
-		$room = Room::with( [ 'dormitory', 'roomType', 'beds' ] )->findOrFail( $id );
-
-		// Check if admin user has permission to access this room
-		if ( $user && $user->role && $user->role->name === 'admin' ) {
-			$userDormitoryId = $user->adminProfile?->dormitory_id ?? null;
-			if ( $userDormitoryId && $room->dormitory_id !== $userDormitoryId ) {
-				abort( 403, 'Access denied: You can only access rooms in your assigned dormitory' );
-			}
-		}
-
-		return $room;
+	public function findRoom( $id, $admin = null ) {
+		try {
+			$userDormitoryId = $admin->adminDormitory->id;
+			$room = Room::where( 'dormitory_id', $userDormitoryId )
+				->with( [ 'dormitory', 'roomType', 'beds.user' ] )->findOrFail( $id );
+			return $room;
+		} catch (\Throwable $e) { return null; }
 	}
 
-	public function updateRoom( Room $room, array $data, $user = null ) {
+	public function updateRoom( array $data, $roomId, $user = null ) {
 		// Permission check is already done in findRoom before calling this method
+		$room = Room::with( [ 'beds', 'dormitory', 'roomType' ] )->findOrFail( $roomId );;
+		if ( $room->dormitory->id !== $user->adminDormitory->id )
+			throw new \Exception('unauthorized ' . $room->dormitory->id . ' vs ' . $user->adminDormitory->id);
 		$room->update( $data );
-
-		// Sync beds with room quota after update
-		$this->syncBedsWithQuota( $room );
-
+		$this->syncBeds( $room, $data );
+		$room->refresh()->load( [ 'beds', 'dormitory', 'roomType' ] );
 		return $room;
 	}
 
 	/**
 	 * Ensure the room has the correct number of beds based on its quota
 	 */
-	private function syncBedsWithQuota( Room $room ) {
-		$currentBedCount = $room->beds()->count();
-		$requiredBedCount = $room->quota;
-
-		if ( $currentBedCount < $requiredBedCount ) {
-			// Create missing beds
-			for ( $i = $currentBedCount + 1; $i <= $requiredBedCount; $i++ ) {
-				$room->beds()->create( [ 
-					'bed_number'         => $i,
-					'is_occupied'        => false,
-					'reserved_for_staff' => false,
-				] );
+	private function syncBeds( Room $room, array $data ) {
+		foreach( $room->beds as $index => $bed ) {
+			if ( isset( $data['beds'][ $index ] ) ) {
+				$bedData = $data['beds'][ $index ];
+				$bed->reserved_for_staff = $bed->is_occupied ? false : $bedData['reserved_for_staff'] ?? $bed->reserved_for_staff;
+				$bed->save();
 			}
-		} elseif ( $currentBedCount > $requiredBedCount ) {
-			// Remove excess beds (only if they're not occupied)
-			$excessBeds = $room->beds()
-				->where( 'bed_number', '>', $requiredBedCount )
-				->where( 'is_occupied', false )
-				->whereNull( 'user_id' );
+		}
 
-			$excessBeds->delete();
+		for( $i = count($room->beds); $i < count($data['beds']); $i++ ) {
+			$bedData = $data['beds'][ $i ];
+			Bed::create( [
+				'room_id'            => $room->id,
+				'bed_number'         => $i + 1,
+				'reserved_for_staff' => $bedData['reserved_for_staff'] ?? false,
+				'is_occupied'        => false,
+				'user_id'			 => null,
+			] );
 		}
 	}
 
@@ -129,5 +109,19 @@ class RoomService {
 		$room = $this->findRoom( $id, $user );
 		$room->delete();
 		return response()->json( [ 'message' => 'Room deleted successfully' ], 200 );
+	}
+
+	public function available( $dormitoryId ) {
+		$query = Room::whereHas('beds', function ($bedQuery) {
+			$bedQuery->where('reserved_for_staff', false);
+		})->with(['beds' => function ($bedQuery) {
+			$bedQuery->where('reserved_for_staff', false);
+		}, 'dormitory', 'roomType']);
+
+		if ( $dormitoryId ) {
+			$query->where( 'dormitory_id', $dormitoryId );
+		}
+		$rooms = $query->get();
+		return $rooms;
 	}
 }

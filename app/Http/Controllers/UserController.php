@@ -17,6 +17,7 @@ use Carbon\Carbon;
 use App\Models\Configuration;
 use App\Services\UserAuthService;
 use App\Services\IINValidationService;
+use App\Services\StudentService;
 
 class UserController extends Controller {
 	protected $authService;
@@ -31,7 +32,7 @@ class UserController extends Controller {
 		'email'                    => 'required|email|max:255|unique:users,email',
 		'phone_numbers'            => 'nullable|array',
 		'phone_numbers.*'          => 'string',
-		'room_id'                  => 'nullable|exists:rooms,id',
+		'room_id'                  => 'required|exists:rooms,id',
 		'password'                 => 'required|string|min:6|confirmed',
 		'deal_number'              => 'nullable|string|max:255',
 		'city_id'                  => 'nullable|integer|exists:cities,id',
@@ -59,6 +60,7 @@ class UserController extends Controller {
 
 	public function __construct( UserAuthService $authService ) {
 		$this->authService = $authService;
+		$this->studentService = new StudentService();
 	}
 
 	public function login( Request $request ) {
@@ -68,7 +70,6 @@ class UserController extends Controller {
 		] );
 
 		$result = $this->authService->attemptLogin( $request->email, $request->password );
-
 		// Debug logging
 		\Log::info( 'Login attempt', [ 
 			'email'        => $request->email,
@@ -78,6 +79,10 @@ class UserController extends Controller {
 
 		if ( $result === 'not_approved' ) {
 			return response()->json( [ 'message' => 'auth.not_approved' ], 401 );
+		}
+
+		if ( $result === 'not_assigned_admin' ) {
+			return response()->json( [ 'message' => 'auth.not_assigned_admin' ], 401 );
 		}
 
 		if ( ! $result ) {
@@ -115,13 +120,25 @@ class UserController extends Controller {
 			$rules = $this->guestRegisterRules;
 		} else {
 			$rules = $this->studentRegisterRules;
+			// Validate before passing to service
+			$validated = $request->validate($rules);
+
+			$dormitory = \App\Models\Dormitory::whereHas('rooms', function($q) use ($request) {
+				// The room_id is now validated and present
+				$q->where('id', $request->room_id);
+			})->first();
+
+			if (!$dormitory) {
+				return response()->json(['message' => 'Invalid room or dormitory.'], 422);
+			}
+
+			return $this->studentService->createStudent($validated, $dormitory);
 		}
 
+		// This block is now only for admin and guest
 		try {
 			$validated = $request->validate( $rules );
-			\Log::info( 'Validation passed', [ 'validated' => $validated ] );
 		} catch (\Illuminate\Validation\ValidationException $e) {
-			\Log::error( 'Validation failed', [ 'errors' => $e->errors() ] );
 			throw $e;
 		}
 
@@ -149,10 +166,18 @@ class UserController extends Controller {
 			$validated['files'] = $filePaths;
 		}
 
+		$validated['name'] = trim( $validated['name'] );
+		$firstName = $validated['name'];
+		$lastName = null;
+		try { 
+			$firstName = explode( ' ', $validated['name'] )[0];
+			$lastName = explode( ' ', $validated['name'] )[1];
+		} catch ( \Exception $e ) {}
+
 		$userData = [ 
 			'name'          => $validated['name'],
-			'first_name'    => $validated['name'], // or split if needed
-			'last_name'     => '', // or split if needed
+			'first_name'    => $firstName,
+			'last_name'     => $lastName,
 			'email'         => $validated['email'],
 			'phone_numbers' => $validated['phone_numbers'] ?? [],
 			'room_id'       => $validated['room_id'] ?? null,
@@ -223,7 +248,8 @@ class UserController extends Controller {
 	 * Display a listing of users (admin only)
 	 */
 	public function index( Request $request ) {
-		$query = User::with( [ 'role', 'dormitory' ] )
+		$admin = $request->user();
+		$query = User::with( [ 'role', 'room.dormitory' ] )
 			->when( $request->search, function ($query, $search) {
 				return $query->where( function ($q) use ($search) {
 					$q->where( 'first_name', 'like', "%{$search}%" )
@@ -237,10 +263,11 @@ class UserController extends Controller {
 					$q->where( 'name', $role );
 				} );
 			} )
-			->when( $request->dormitory_id, function ($query, $dormitoryId) {
-				return $query->where( 'dormitory_id', $dormitoryId );
-			} );
-
+			->when($admin->hasRole('admin'), function ($query) use ($admin) {
+				if ($admin->adminDormitory) {
+					$query->where('dormitory_id', $admin->adminDormitory->id);
+				}
+			});
 		$users = $query->paginate( 15 );
 
 		return response()->json( $users );
@@ -359,14 +386,14 @@ class UserController extends Controller {
 			\App\Models\GuestProfile::create( $guestProfileData );
 		}
 
-		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ), 201 );
+		return response()->json( $user->load( [ 'role', 'room.dormitory', 'adminDormitory', 'studentProfile', 'guestProfile' ] ), 201 );
 	}
 
 	/**
 	 * Display the specified user (admin only)
 	 */
 	public function show( User $user ) {
-		return response()->json( $user->load( [ 'role', 'dormitory', 'room' ] ) );
+		return response()->json( $user->load( [ 'role', 'room.dormitory', 'room' ] ) );
 	}
 
 	/**
@@ -506,7 +533,7 @@ class UserController extends Controller {
 			}
 		}
 
-		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile' ] ) );
+		return response()->json( $user->load( [ 'role', 'room.dormitory', 'studentProfile', 'guestProfile' ] ) );
 	}
 
 	/**
@@ -522,10 +549,10 @@ class UserController extends Controller {
 	 * Get current user profile
 	 */
 	public function profile( Request $request ) {
-		$user = $request->user()->load( [ 'role', 'dormitory', 'room', 'studentProfile', 'guestProfile', 'adminProfile' ] );
-
+		$user = $request->user();
 		// Return role-specific profile data
 		if ( $user->hasRole( 'student' ) ) {
+			$user->load( [ 'role', 'room.dormitory', 'room', 'studentProfile' ] );
 			// For students, return extended student profile information
 			$studentProfile = $user->studentProfile;
 			return response()->json( [ 
@@ -537,7 +564,7 @@ class UserController extends Controller {
 				'phone'             => $user->phone,
 				'phone_numbers'     => $user->phone_numbers,
 				'role'              => $user->role,
-				'room'              => $user->room,
+				'room'              => $user->room, 
 				'dormitory'         => $user->dormitory,
 				'dormitory_id'      => $user->dormitory_id,
 				'student_profile'   => $studentProfile,
@@ -559,6 +586,7 @@ class UserController extends Controller {
 				'updated_at'        => $user->updated_at,
 			] );
 		} elseif ( $user->hasRole( 'guest' ) ) {
+			$user->load( [ 'role', 'room.dormitory', 'room', 'guestProfile' ] );
 			// For guests, return guest-specific profile information
 			$guestProfile = $user->guestProfile;
 			return response()->json( [ 
@@ -581,6 +609,7 @@ class UserController extends Controller {
 			] );
 		} else {
 			// For admin and other roles, return basic user information
+			$user->load( [ 'role', 'adminDormitory', 'adminProfile' ] );
 			$adminProfile = $user->adminProfile;
 			return response()->json( [ 
 				'id'            => $user->id,
@@ -590,8 +619,8 @@ class UserController extends Controller {
 				'email'         => $user->email,
 				'phone'         => $user->phone,
 				'role'          => $user->role,
-				'dormitory'     => $user->dormitory,
-				'dormitory_id'  => $user->dormitory_id,
+				'dormitory'     => $user->adminDormitory,
+				'dormitory_id'  => $user->adminDormitory->id ?? null,
 				'admin_profile' => $adminProfile,
 				'status'        => $user->status,
 				'created_at'    => $user->created_at,
@@ -726,7 +755,7 @@ class UserController extends Controller {
 				\App\Models\AdminProfile::create( $profileData );
 			}
 		}
-		return response()->json( $user->load( [ 'role', 'dormitory', 'studentProfile', 'guestProfile', 'adminProfile' ] ) );
+		return response()->json( $user->load( [ 'role', 'room.dormitory', 'studentProfile', 'guestProfile', 'adminProfile' ] ) );
 	}
 
 	/**

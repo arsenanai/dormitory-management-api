@@ -20,7 +20,7 @@ use App\Http\Controllers\CityController;
 // Public routes
 Route::post( '/login', [ UserController::class, 'login' ] );
 Route::get( '/app-version', function () {
-	return response()->json( [ 'version' => '1.0.1' ] );
+	return response()->json( [ 'version' => '1.0.2' ] );
 } );
 Route::post( '/register', [ UserController::class, 'register' ] );
 Route::post( '/password/reset-link', [ UserController::class, 'sendPasswordResetLink' ] );
@@ -211,9 +211,17 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
 		// Kaspi integration settings (admin and sudo can manage)
 		Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
-		Route::put( '/configurations/kaspi', [ ConfigurationController::class, 'updateKaspiSettings' ] );
+        Route::put('/configurations/kaspi', [ConfigurationController::class, 'updateKaspiSettings']);
+        Route::get('/configurations/currency', [ConfigurationController::class, 'getCurrencySetting']);
+        Route::put('/configurations/currency', [ConfigurationController::class, 'updateCurrencySetting']);
 
 	} );
+	// Room type management (sudo and admin)
+	Route::middleware(['role:admin,sudo'])->group(function () {
+		Route::post('/room-types', [RoomTypeController::class, 'store']);
+		Route::put('/room-types/{roomType}', [RoomTypeController::class, 'update']);
+		Route::delete('/room-types/{roomType}', [RoomTypeController::class, 'destroy']);
+	});
 
 	// Sudo-only routes
 	Route::middleware( [ 'role:sudo' ] )->group( function () {
@@ -227,11 +235,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::post( '/dormitories', [ DormitoryController::class, 'store' ] );
 		Route::put( '/dormitories/{dormitory}', [ DormitoryController::class, 'update' ] );
 		Route::delete( '/dormitories/{dormitory}', [ DormitoryController::class, 'destroy' ] );
-
-		// Room type management (sudo only)
-		Route::post( '/room-types', [ RoomTypeController::class, 'store' ] );
-		Route::put( '/room-types/{roomType}', [ RoomTypeController::class, 'update' ] );
-		Route::delete( '/room-types/{roomType}', [ RoomTypeController::class, 'destroy' ] );
 
 		// Configuration management
 		Route::get( '/configurations', [ ConfigurationController::class, 'index' ] );
