@@ -43,3 +43,6 @@ docker/ssl/
 docker-compose.local.yml
 docker-compose.override.yml
 docker-compose.dev.yml
+
+.DS_Store
+/storage/debugbar
