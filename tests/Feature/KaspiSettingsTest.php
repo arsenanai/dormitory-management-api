@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\Configuration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\WithFaker;
 
 class KaspiSettingsTest extends TestCase {
@@ -31,7 +32,7 @@ class KaspiSettingsTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_can_get_kaspi_settings() {
 		// Given: Kaspi settings exist in configurations
 		Configuration::create( [ 
@@ -65,7 +66,7 @@ class KaspiSettingsTest extends TestCase {
 			] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_returns_default_kaspi_settings_when_none_exist() {
 		// When: Admin requests Kaspi settings (none exist)
 		$response = $this->actingAs( $this->admin )
@@ -81,7 +82,7 @@ class KaspiSettingsTest extends TestCase {
 			] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_can_update_kaspi_settings() {
 		// Given: Valid Kaspi settings data
 		$kaspiData = [ 
@@ -118,7 +119,7 @@ class KaspiSettingsTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_validates_kaspi_settings_when_enabled() {
 		// Given: Kaspi is enabled but required fields are missing
 		$kaspiData = [ 
@@ -141,7 +142,7 @@ class KaspiSettingsTest extends TestCase {
 			] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_allows_empty_fields_when_kaspi_is_disabled() {
 		// Given: Kaspi is disabled with empty fields
 		$kaspiData = [ 
@@ -165,7 +166,7 @@ class KaspiSettingsTest extends TestCase {
 			] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_validates_api_key_format() {
 		// Given: Kaspi is enabled with invalid API key
 		$kaspiData = [ 
@@ -184,7 +185,7 @@ class KaspiSettingsTest extends TestCase {
 			->assertJsonValidationErrors( [ 'kaspi_api_key' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_validates_webhook_url_format() {
 		// Given: Kaspi is enabled with invalid webhook URL
 		$kaspiData = [ 
@@ -203,7 +204,7 @@ class KaspiSettingsTest extends TestCase {
 			->assertJsonValidationErrors( [ 'kaspi_webhook_url' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_requires_authentication() {
 		// When: Unauthenticated user tries to get Kaspi settings
 		$response = $this->getJson( '/api/configurations/kaspi' );
@@ -212,7 +213,7 @@ class KaspiSettingsTest extends TestCase {
 		$response->assertStatus( 401 );
 	}
 
-	/** @test */
+	#[Test]
 	public function it_requires_admin_role() {
 		// Given: Regular user (non-admin)
 		$userRole = Role::create( [ 'name' => 'user' ] );

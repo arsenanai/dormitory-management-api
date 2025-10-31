@@ -7,6 +7,7 @@ use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\SemesterPayment;
+use PHPUnit\Framework\Attributes\Test;
 
 class DormitoryAccessTest extends TestCase {
 	use RefreshDatabase;
@@ -16,7 +17,7 @@ class DormitoryAccessTest extends TestCase {
 		$this->seed();
 	}
 
-	/** @test */
+	#[Test]
 	public function student_with_current_semester_payment_can_access_dormitory() {
 		$studentRole = Role::where( 'name', 'student' )->first();
 		$student = User::factory()->create( [ 'role_id' => $studentRole->id ] );
@@ -33,7 +34,7 @@ class DormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => true ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_without_current_semester_payment_cannot_access_dormitory() {
 		$studentRole = Role::where( 'name', 'student' )->first();
 		$student = User::factory()->create( [ 'role_id' => $studentRole->id ] );

@@ -48,6 +48,7 @@ class AdminService {
 
 		$profileData['user_id'] = $user->id;
 		AdminProfile::create( $profileData );
+		$user->refresh();
 		$this->dormitoryService->assignAdmin( Dormitory::findOrFail($data['dormitory']), $user );
 		return $user->load( 'adminProfile' );
 	}
@@ -76,6 +77,7 @@ class AdminService {
 			$profileData['user_id'] = $admin->id;
 			AdminProfile::create( $profileData );
 		}
+		$admin->refresh();
 		$this->dormitoryService->assignAdmin( Dormitory::findOrFail($data['dormitory']), $admin );
 		return $admin->load( 'adminProfile' );
 	}

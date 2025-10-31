@@ -60,6 +60,9 @@ class StudentControllerTest extends TestCase {
 			'parent_phone'             => '+77012345678',
 			'mentor_name'              => 'Mentor Name',
 			'mentor_email'             => 'mentor@test.com',
+			'parent_phone'             => '+77012345678',
+			'mentor_name'              => 'Mentor Name',
+			'mentor_email'             => 'mentor@test.com',
 			'deal_number'              => 'DEAL001',
 			'agree_to_dormitory_rules' => true,
 			'files'                    => json_encode( [] ),
@@ -75,6 +78,12 @@ class StudentControllerTest extends TestCase {
 			'quota'    => 100,
 		] );
 
+		// Assign admin to the dormitory
+		\App\Models\AdminProfile::create([
+			'user_id' => $this->admin->id,
+			'dormitory_id' => $this->dormitory->id,
+		]);
+
 		$roomType = RoomType::create( [ 
 			'name' => 'standard',
 			'beds' => [ [ 'id' => 1, 'x' => 50, 'y' => 50 ] ]
@@ -86,6 +95,9 @@ class StudentControllerTest extends TestCase {
 			'room_type_id' => $roomType->id,
 			'floor'        => 1,
 		] );
+
+		// Seed blood types for validation rules
+		$this->seed(\Database\Seeders\BloodTypeSeeder::class);
 	}
 
 	#[Test]
@@ -143,6 +155,7 @@ class StudentControllerTest extends TestCase {
 			'enrollment_year' => 2024,
 			'gender' => 'male',
 			'bed_id' => $bed->id,
+			'dormitory_id' => $this->dormitory->id, // Add dormitory_id
 			'deal_number' => 'DEAL-002',
 			'agree_to_dormitory_rules' => true,
 			'has_meal_plan' => true,

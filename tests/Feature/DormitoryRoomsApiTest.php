@@ -11,6 +11,7 @@ use App\Models\RoomType;
 use App\Models\Bed;
 use App\Models\AdminProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\WithFaker;
 
 class DormitoryRoomsApiTest extends TestCase
@@ -66,11 +67,11 @@ class DormitoryRoomsApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_fetch_rooms_for_dormitory_via_api()
     {
         // Create rooms with beds for the dormitory
-        $room1 = Room::create([
+        $room1 = Room::factory()->create([
             'number' => '101',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
@@ -78,44 +79,14 @@ class DormitoryRoomsApiTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
-        
-        $room2 = Room::create([
+
+        $room2 = Room::factory()->create([
             'number' => '102',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
             'notes' => 'Second floor room',
             'room_type_id' => $this->roomType->id,
             'quota' => 2
-        ]);
-        
-        // Create beds for room 1
-        $bed1 = Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        $bed2 = Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        // Create beds for room 2
-        $bed3 = Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        $bed4 = Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
         ]);
 
         // Test the API endpoint
@@ -169,7 +140,7 @@ class DormitoryRoomsApiTest extends TestCase
         $this->assertEquals(2, count($rooms[1]['beds'])); // Room 102 has 2 beds
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_empty_array_for_dormitory_with_no_rooms()
     {
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
@@ -178,32 +149,25 @@ class DormitoryRoomsApiTest extends TestCase
                 ->assertJsonCount(0);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_nonexistent_dormitory()
     {
         $response = $this->getJson("/api/dormitories/99999/rooms");
 
         $response->assertStatus(404);
     }
-
-    /** @test */
+    
+    #[Test]
     public function it_includes_room_type_and_beds_relationships()
     {
         // Create a room with beds
-        $room = Room::create([
+        $room = Room::factory()->create([
             'number' => '201',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 2,
             'notes' => 'Second floor room',
             'room_type_id' => $this->roomType->id,
             'quota' => 2
-        ]);
-        
-        $bed = Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
         ]);
 
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
@@ -220,18 +184,19 @@ class DormitoryRoomsApiTest extends TestCase
         
         // Verify beds are loaded
         $this->assertArrayHasKey('beds', $roomData);
-        $this->assertCount(1, $roomData['beds']);
+        $this->assertCount(2, $roomData['beds']); // The factory creates 2 beds based on RoomType capacity
+        $bed = $room->beds()->first(); // Get a reference to the created bed
         $this->assertEquals($bed->id, $roomData['beds'][0]['id']);
         $this->assertEquals(1, $roomData['beds'][0]['bed_number']);
         $this->assertFalse($roomData['beds'][0]['is_occupied']);
         $this->assertFalse($roomData['beds'][0]['reserved_for_staff']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_rooms_with_different_occupancy_statuses()
     {
         // Create a room with mixed bed occupancy
-        $room = Room::create([
+        $room = Room::factory()->create([
             'number' => '301',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 3,
@@ -239,22 +204,8 @@ class DormitoryRoomsApiTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
-        
-        // Create occupied bed
-        $occupiedBed = Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 1,
-            'is_occupied' => true,
-            'reserved_for_staff' => false
-        ]);
-        
-        // Create available bed
-        $availableBed = Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
+        // Manually occupy one bed
+        $room->beds()->first()->update(['is_occupied' => true]);
 
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
 
@@ -272,11 +223,11 @@ class DormitoryRoomsApiTest extends TestCase
         $this->assertFalse($availableBedData['is_occupied']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_staff_reserved_beds()
     {
         // Create a room with staff reserved bed
-        $room = Room::create([
+        $room = Room::factory()->create([
             'number' => '401',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 4,
@@ -284,22 +235,9 @@ class DormitoryRoomsApiTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
-        
-        // Create staff reserved bed
-        $staffBed = Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => true
-        ]);
-        
-        // Create regular bed
-        $regularBed = Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
+
+        // Manually reserve one bed for staff
+        $room->beds()->first()->update(['reserved_for_staff' => true]);
 
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
 
@@ -317,7 +255,7 @@ class DormitoryRoomsApiTest extends TestCase
         $this->assertFalse($regularBedData['reserved_for_staff']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_rooms_with_correct_dormitory_assignment()
     {
         // Create another dormitory
@@ -331,7 +269,7 @@ class DormitoryRoomsApiTest extends TestCase
         ]);
         
         // Create room in first dormitory
-        $room1 = Room::create([
+        $room1 = Room::factory()->create([
             'number' => '101',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
@@ -341,7 +279,7 @@ class DormitoryRoomsApiTest extends TestCase
         ]);
         
         // Create room in second dormitory
-        $room2 = Room::create([
+        $room2 = Room::factory()->create([
             'number' => '201',
             'dormitory_id' => $dormitory2->id,
             'floor' => 2,

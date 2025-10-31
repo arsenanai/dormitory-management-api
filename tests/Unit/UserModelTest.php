@@ -124,6 +124,7 @@ class UserModelTest extends TestCase {
 			'email_verified_at' => 'datetime',
 			'password'          => 'hashed',
 			'phone_numbers'     => 'array',
+			'deleted_at'        => 'datetime',
 		];
 		$this->assertEquals( $expectedCasts, $user->getCasts() );
 	}

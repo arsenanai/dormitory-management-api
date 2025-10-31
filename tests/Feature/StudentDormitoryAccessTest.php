@@ -9,6 +9,7 @@ use App\Models\Dormitory;
 use App\Models\Room;
 use App\Models\Bed;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class StudentDormitoryAccessTest extends TestCase {
@@ -19,7 +20,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$this->seed();
 	}
 
-	/** @test */
+	#[Test]
 	public function student_without_current_semester_payment_cannot_access_dormitory() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
@@ -37,7 +38,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => false ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_with_unapproved_payment_cannot_access_dormitory() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
@@ -65,7 +66,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => false ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_with_payment_approved_but_dormitory_not_approved_cannot_access() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
@@ -93,7 +94,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => false ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_with_dormitory_approved_but_payment_not_approved_cannot_access() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
@@ -121,7 +122,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => false ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_with_fully_approved_payment_can_access_dormitory() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
@@ -149,7 +150,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => true ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_with_old_semester_payment_cannot_access_dormitory() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
@@ -178,7 +179,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => false ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_always_access_dormitory_regardless_of_payment_status() {
 		// Create an admin role
 		$adminRole = Role::where( 'name', 'admin' )->first();
@@ -196,7 +197,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => true ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function sudo_can_always_access_dormitory_regardless_of_payment_status() {
 		// Create a sudo role
 		$sudoRole = Role::where( 'name', 'sudo' )->first();
@@ -214,7 +215,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => true ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function guest_with_approved_profile_can_access_dormitory() {
 		// Create a guest role
 		$guestRole = Role::where( 'name', 'guest' )->first();
@@ -240,7 +241,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => true ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function guest_without_approved_profile_cannot_access_dormitory() {
 		// Create a guest role
 		$guestRole = Role::where( 'name', 'guest' )->first();
@@ -266,7 +267,7 @@ class StudentDormitoryAccessTest extends TestCase {
 		$response->assertJson( [ 'can_access' => false ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function user_can_check_another_users_dormitory_access_with_proper_permissions() {
 		// Create an admin role
 		$adminRole = Role::where( 'name', 'admin' )->first();

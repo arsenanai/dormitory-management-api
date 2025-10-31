@@ -49,7 +49,11 @@ class StudentServiceTest extends TestCase
         $roomNumber = $userData['room_number'] ?? 'A101';
         unset($userData['room_number']); // Prevent trying to save on User model
         $room = Room::factory()->create(['dormitory_id' => $this->dormitory->id, 'number' => $roomNumber]);
-        $bed = Bed::factory()->create(['room_id' => $room->id]);
+
+        // The RoomFactory now creates beds automatically.
+        // We should retrieve one of those beds instead of creating a new one.
+        $bed = $room->beds()->first();
+        $this->assertNotNull($bed, "Bed should have been created by the RoomFactory.");
 
         $student = User::factory()->create(array_merge([
             'role_id' => Role::where('name', 'student')->first()->id,
@@ -94,7 +98,9 @@ class StudentServiceTest extends TestCase
         Storage::fake('public');
 
         $room = Room::factory()->create(['dormitory_id' => $this->dormitory->id]);
-        $bed = Bed::factory()->create(['room_id' => $room->id]);
+        // The RoomFactory now creates beds automatically.
+        // We should retrieve one of those beds instead of creating a new one.
+        $bed = $room->beds()->first();
 
         $studentData = [
             'first_name' => 'John',
@@ -136,7 +142,7 @@ class StudentServiceTest extends TestCase
         $student = $this->createStudentInDormitory();
 
         $newRoom = Room::factory()->create(['dormitory_id' => $this->dormitory->id]);
-        $newBed = Bed::factory()->create(['room_id' => $newRoom->id]);
+        $newBed = $newRoom->beds()->first();
 
         $updateData = [
             'first_name' => 'Jane',

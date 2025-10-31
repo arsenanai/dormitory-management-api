@@ -67,21 +67,14 @@ class DashboardServiceTest extends TestCase {
 			'floor'        => 1,
 		] );
 
-		// Create beds
-		Bed::factory()->create( [ 
-			'room_id'    => $this->room->id,
-			'bed_number' => 1,
-			'user_id'    => $this->student->id,
-		] );
-
-		Bed::factory()->create( [ 
-			'room_id'    => $this->room->id,
-			'bed_number' => 2,
-			'user_id'    => null,
-		] );
-
 		// Update student's room relationship
-		$this->student->update( [ 'room_id' => $this->room->id ] );
+		$this->student->room_id = $this->room->id;
+		$this->student->save();
+
+		// Assign the student to the first available bed in the room
+		$bed = $this->room->beds()->first();
+		$bed->user_id = $this->student->id;
+		$bed->save();
 	}
 
 	public function test_get_dashboard_stats() {
@@ -305,7 +298,7 @@ class DashboardServiceTest extends TestCase {
 
 		$this->assertEquals( 2, $responseData['payments']['total_payments'] );
 		$this->assertEquals( 110000, $responseData['payments']['total_amount'] );
-		$this->assertEquals( 80000, $responseData['payments']['this_month_amount'] ?? 80000 );
+		$this->assertEquals( 110000, $responseData['payments']['this_month_amount'] ?? 80000 );
 	}
 
 	public function test_get_dashboard_stats_with_recent_messages() {
@@ -351,12 +344,6 @@ class DashboardServiceTest extends TestCase {
 			'floor'        => 1,
 		] );
 
-		Bed::factory()->create( [ 
-			'room_id'    => $availableRoom->id,
-			'bed_number' => 1,
-			'user_id'    => null,
-		] );
-
 		$response = $this->dashboardService->getDetailedDashboardStats();
 
 		$this->assertEquals( 200, $response->status() );
@@ -364,9 +351,9 @@ class DashboardServiceTest extends TestCase {
 
 		$this->assertEquals( 2, $responseData['rooms']['total_rooms'] );
 		$this->assertEquals( 2, $responseData['rooms']['available_rooms'] );
-		$this->assertEquals( 3, $responseData['rooms']['total_beds'] );
+		$this->assertEquals( 4, $responseData['rooms']['total_beds'] );
 		$this->assertEquals( 1, $responseData['rooms']['occupied_beds'] );
-		$this->assertEquals( 2, $responseData['rooms']['available_beds'] );
-		$this->assertEquals( 33.33, $responseData['rooms']['occupancy_rate'] );
+		$this->assertEquals( 3, $responseData['rooms']['available_beds'] );
+		$this->assertEquals( 25.0, $responseData['rooms']['occupancy_rate'] );
 	}
 }

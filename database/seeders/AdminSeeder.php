@@ -26,15 +26,6 @@ class AdminSeeder extends Seeder {
 		// Create a default admin user
 		$adminRole = Role::where( 'name', 'admin' )->first();
 
-		// Get or create a dormitory for the admin
-		$dormitory = Dormitory::firstOrCreate( [ 
-			'name'        => 'A Block',
-			'address'     => 'Test Address for E2E',
-			'description' => 'Test dormitory for E2E tests',
-			'gender'      => 'mixed',
-			'capacity'    => 50,
-		] );
-
 		$adminUser = User::firstOrCreate( [ 
 			'email' => env( 'ADMIN_EMAIL', 'admin@email.com' ),
 		], [ 
@@ -54,7 +45,6 @@ class AdminSeeder extends Seeder {
 			'department'      => 'Student Housing',
 			'office_phone'    => '+7 777 123 45 67',
 			'office_location' => 'Main Office',
-			'dormitory_id'    => $dormitory->id, // Assign admin to dormitory via AdminProfile
 		] );
 	}
 }

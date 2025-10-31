@@ -9,6 +9,7 @@ use App\Models\Country;
 use App\Models\Region;
 use App\Models\City;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\WithFaker;
 
 class KazakhstanRegionsTest extends TestCase {
@@ -29,7 +30,7 @@ class KazakhstanRegionsTest extends TestCase {
 		$this->kazakhstan = Country::where( 'name', 'Kazakhstan' )->first();
 	}
 
-	/** @test */
+	#[Test]
 	public function kazakhstan_regions_are_seeded() {
 		$regions = Region::where( 'country_id', $this->kazakhstan->id )->get();
 
@@ -42,7 +43,7 @@ class KazakhstanRegionsTest extends TestCase {
 		$this->assertContains( 'Shymkent', $regionNames );
 	}
 
-	/** @test */
+	#[Test]
 	public function kazakhstan_cities_are_seeded() {
 		$cities = City::whereHas( 'region', function ($query) {
 			$query->where( 'country_id', $this->kazakhstan->id );
@@ -57,7 +58,7 @@ class KazakhstanRegionsTest extends TestCase {
 		$this->assertContains( 'Shymkent', $cityNames );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_view_kazakhstan_regions() {
 		$response = $this->actingAs( $this->admin )
 			->getJson( "/api/regions?country_id={$this->kazakhstan->id}" );
@@ -66,7 +67,7 @@ class KazakhstanRegionsTest extends TestCase {
 		$this->assertGreaterThan( 0, count( $response->json( 'data' ) ) );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_view_kazakhstan_cities() {
 		$region = Region::where( 'country_id', $this->kazakhstan->id )->first();
 
@@ -77,7 +78,7 @@ class KazakhstanRegionsTest extends TestCase {
 		$this->assertGreaterThan( 0, count( $response->json( 'data' ) ) );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_create_new_region() {
 		$response = $this->actingAs( $this->admin )
 			->postJson( "/api/regions", [ 
@@ -92,7 +93,7 @@ class KazakhstanRegionsTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_create_new_city() {
 		$region = Region::where( 'country_id', $this->kazakhstan->id )->first();
 
@@ -109,7 +110,7 @@ class KazakhstanRegionsTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function region_creation_requires_country_id() {
 		$response = $this->actingAs( $this->admin )
 			->postJson( "/api/regions", [ 
@@ -121,7 +122,7 @@ class KazakhstanRegionsTest extends TestCase {
 			->assertJsonValidationErrors( [ 'country_id' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function city_creation_requires_region_id() {
 		$response = $this->actingAs( $this->admin )
 			->postJson( "/api/cities", [ 

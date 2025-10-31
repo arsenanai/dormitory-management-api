@@ -19,6 +19,13 @@ class AuthenticationTest extends TestCase {
 			'role_id'  => $role->id
 		] );
 
+		// Admins now need to be assigned to a dormitory to log in.
+		$dormitory = \App\Models\Dormitory::factory()->create([
+			'admin_id' => $user->id,
+			'name' => 'Test Dorm'
+		]);
+		\App\Models\AdminProfile::factory()->create(['user_id' => $user->id, 'dormitory_id' => $dormitory->id]);
+
 		// Login
 		$response = $this->postJson( '/api/login', [ 
 			'email'    => 'admin@example.com',
@@ -61,6 +68,13 @@ class AuthenticationTest extends TestCase {
 			'role_id'  => $role->id
 		] );
 
+		// Admins now need to be assigned to a dormitory to log in.
+		$dormitory = \App\Models\Dormitory::factory()->create([
+			'admin_id' => $user->id,
+			'name' => 'Test Dorm'
+		]);
+		\App\Models\AdminProfile::factory()->create(['user_id' => $user->id, 'dormitory_id' => $dormitory->id]);
+
 		// Login first
 		$loginResponse = $this->postJson( '/api/login', [ 
 			'email'    => 'admin@example.com',
@@ -90,7 +104,12 @@ class AuthenticationTest extends TestCase {
 			'role_id'  => $adminRole->id
 		] );
 		// Optionally create AdminProfile if needed
-		\App\Models\AdminProfile::factory()->create( [ 'user_id' => $admin->id ] );
+		$dormitory = \App\Models\Dormitory::factory()->create([
+			'admin_id' => $admin->id,
+			'name' => 'Admin Dorm'
+		]);
+		\App\Models\AdminProfile::factory()->create( [ 'user_id' => $admin->id, 'dormitory_id' => $dormitory->id ] );
+
 
 		$adminResponse = $this->actingAs( $admin )->getJson( '/api/users/profile' );
 		$adminResponse->assertStatus( 200 )

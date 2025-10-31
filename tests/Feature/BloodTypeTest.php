@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Room;
+use App\Models\Dormitory;
 use App\Models\StudentProfile;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 
@@ -16,18 +19,35 @@ class BloodTypeTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->seed();
+		// Create necessary roles and an admin user for authentication,
+		// instead of running the full seeder which can cause data conflicts.
+		$adminRole = Role::firstOrCreate(['name' => 'admin']);
+		$sudoRole = Role::firstOrCreate(['name' => 'sudo']);
+		Role::firstOrCreate(['name' => 'student']); // Ensure student role exists
+		$this->admin = User::factory()->create([
+			'email' => 'admin@email.com',
+			'password' => bcrypt('supersecret'),
+			'role_id' => $adminRole->id,
+		]);
+		// Admin needs a dormitory to be able to log in and perform actions.
+		$dormitory = Dormitory::factory()->create(['admin_id' => $this->admin->id]);
+		\App\Models\AdminProfile::factory()->create(['user_id' => $this->admin->id, 'dormitory_id' => $dormitory->id]);
+
+		$this->seed(\Database\Seeders\BloodTypeSeeder::class);
+
+		// Create a room so that Room::first() doesn't return null in tests
+		Room::factory()->create(['dormitory_id' => $dormitory->id]);
 	}
 
 	private function loginAsAdmin() {
-		$response = $this->postJson( '/api/login', [ 
+		$response = $this->postJson( '/api/login', [
 			'email'    => 'admin@email.com',
 			'password' => 'supersecret',
 		] );
 		return $response->json( 'token' );
 	}
 
-	/** @test */
+	#[Test]
 	public function blood_types_are_available_in_api() {
 		$token = $this->loginAsAdmin();
 		$response = $this->getJson( "/api/blood-types", [ 
@@ -51,20 +71,25 @@ class BloodTypeTest extends TestCase {
 		$this->assertContains( 'O-', $bloodTypeNames );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_profile_can_have_blood_type() {
 		$token = $this->loginAsAdmin();
 
 		$response = $this->postJson( "/api/students", [ 
-			'iin'             => '123456789017',
-			'name'            => 'David Wilson',
-			'faculty'         => 'engineering',
-			'specialist'      => 'computer_sciences',
-			'enrollment_year' => 2024,
-			'gender'          => 'male',
-			'email'           => 'david@example.com',
-			'password'        => 'password123',
-			'blood_type'      => 'A+'
+			'iin'                      => '123456789017',
+			'first_name'               => 'David',
+			'last_name'                => 'Wilson',
+			'faculty'                  => 'engineering',
+			'specialist'               => 'computer_sciences',
+			'enrollment_year'          => 2024,
+			'gender'                   => 'male',
+			'email'                    => 'david@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => Room::first()->id,
+			'blood_type'               => 'A+',
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan'            => false,
 		], [ 
 			'Authorization' => "Bearer $token"
 		] );
@@ -82,7 +107,7 @@ class BloodTypeTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function blood_type_is_validated_when_creating_student_profile() {
 		$token = $this->loginAsAdmin();
 
@@ -95,6 +120,7 @@ class BloodTypeTest extends TestCase {
 			'gender'          => 'male',
 			'email'           => 'john@example.com',
 			'password'        => 'password123',
+			'room_id'         => Room::first()->id,
 			'blood_type'      => 'INVALID_TYPE'
 		], [ 
 			'Authorization' => "Bearer $token"
@@ -104,20 +130,25 @@ class BloodTypeTest extends TestCase {
 			->assertJsonValidationErrors( [ 'blood_type' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function valid_blood_type_is_accepted() {
 		$token = $this->loginAsAdmin();
 
 		$response = $this->postJson( "/api/students", [ 
-			'iin'             => '123456789014',
-			'name'            => 'Jane Doe',
-			'faculty'         => 'engineering',
-			'specialist'      => 'computer_sciences',
-			'enrollment_year' => 2024,
-			'gender'          => 'female',
-			'email'           => 'jane@example.com',
-			'password'        => 'password123',
-			'blood_type'      => 'A+'
+			'iin'                      => '123456789014',
+			'first_name'               => 'Jane',
+			'last_name'                => 'Doe',
+			'faculty'                  => 'engineering',
+			'specialist'               => 'computer_sciences',
+			'enrollment_year'          => 2024,
+			'gender'                   => 'female',
+			'email'                    => 'jane@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => Room::first()->id,
+			'blood_type'               => 'A+',
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan'            => true,
 		], [ 
 			'Authorization' => "Bearer $token"
 		] );
@@ -125,21 +156,26 @@ class BloodTypeTest extends TestCase {
 		$response->assertStatus( 201 );
 	}
 
-	/** @test */
+	#[Test]
 	public function blood_type_can_be_updated() {
 		$token = $this->loginAsAdmin();
 
 		// First create a student
 		$createResponse = $this->postJson( "/api/students", [ 
-			'iin'             => '123456789014',
-			'name'            => 'Bob Smith',
-			'faculty'         => 'engineering',
-			'specialist'      => 'computer_sciences',
-			'enrollment_year' => 2024,
-			'gender'          => 'male',
-			'email'           => 'bob@example.com',
-			'password'        => 'password123',
-			'blood_type'      => 'A+'
+			'iin'                      => '123456789014',
+			'first_name'               => 'Bob',
+			'last_name'                => 'Smith',
+			'faculty'                  => 'engineering',
+			'specialist'               => 'computer_sciences',
+			'enrollment_year'          => 2024,
+			'gender'                   => 'male',
+			'email'                    => 'bob@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => Room::first()->id,
+			'blood_type'               => 'A+',
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan'            => false,
 		], [ 
 			'Authorization' => "Bearer $token"
 		] );
@@ -149,6 +185,9 @@ class BloodTypeTest extends TestCase {
 
 		// Update the student's blood type
 		$response = $this->putJson( "/api/students/{$studentId}", [ 
+			'first_name' => 'Bob',
+			'last_name'  => 'Smith',
+			'email'      => 'bob@example.com',
 			'blood_type' => 'B+'
 		], [ 
 			'Authorization' => "Bearer $token"
@@ -162,19 +201,24 @@ class BloodTypeTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function blood_type_is_optional() {
 		$token = $this->loginAsAdmin();
 
 		$response = $this->postJson( "/api/students", [ 
-			'iin'             => '123456789015',
-			'name'            => 'Alice Johnson',
-			'faculty'         => 'engineering',
-			'specialist'      => 'computer_sciences',
-			'enrollment_year' => 2024,
-			'gender'          => 'female',
-			'email'           => 'alice@example.com',
-			'password'        => 'password123'
+			'iin'                      => '123456789015',
+			'first_name'               => 'Alice',
+			'last_name'                => 'Johnson',
+			'faculty'                  => 'engineering',
+			'specialist'               => 'computer_sciences',
+			'enrollment_year'          => 2024,
+			'gender'                   => 'female',
+			'email'                    => 'alice@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => Room::first()->id,
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan'            => true,
 			// No blood_type provided
 		], [ 
 			'Authorization' => "Bearer $token"
@@ -183,20 +227,25 @@ class BloodTypeTest extends TestCase {
 		$response->assertStatus( 201 );
 	}
 
-	/** @test */
+	#[Test]
 	public function blood_type_can_be_null() {
 		$token = $this->loginAsAdmin();
 
 		$response = $this->postJson( "/api/students", [ 
-			'iin'             => '123456789016',
-			'name'            => 'Charlie Brown',
-			'faculty'         => 'engineering',
-			'specialist'      => 'computer_sciences',
-			'enrollment_year' => 2024,
-			'gender'          => 'male',
-			'email'           => 'charlie@example.com',
-			'password'        => 'password123',
-			'blood_type'      => null
+			'iin'                      => '123456789016',
+			'first_name'               => 'Charlie',
+			'last_name'                => 'Brown',
+			'faculty'                  => 'engineering',
+			'specialist'               => 'computer_sciences',
+			'enrollment_year'          => 2024,
+			'gender'                   => 'male',
+			'email'                    => 'charlie@example.com',
+			'password'                 => 'password123',
+			'password_confirmation'    => 'password123',
+			'room_id'                  => Room::first()->id,
+			'blood_type'               => null,
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan'            => false,
 		], [ 
 			'Authorization' => "Bearer $token"
 		] );

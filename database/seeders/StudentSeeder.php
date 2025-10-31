@@ -8,6 +8,6 @@ use Database\Factories\StudentFactory;
 
 class StudentSeeder extends Seeder {
 	public function run(): void {
-		StudentFactory::new()->count( 5 )->create();
+		
 	}
 }

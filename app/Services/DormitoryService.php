@@ -101,8 +101,9 @@ class DormitoryService {
 	}
 
 	public function assignAdmin( $dormitory, $admin ) {
-		$dormitory->admin_id = $admin->id;
-		$dormitory->save();
+		// The 'dormitories' table has the 'admin_id'.
+		// So, we associate the admin with the dormitory model and save it.
+		$dormitory->admin()->associate($admin)->save();
 	}
 
 	public function getRoomsForDormitory( $dormitoryId ) {

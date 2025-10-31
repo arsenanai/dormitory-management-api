@@ -95,7 +95,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'name' => $newName
+				'name' => $newName,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -117,7 +118,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'capacity' => $newCapacity
+				'capacity' => $newCapacity,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -139,7 +141,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'gender' => $newGender
+				'gender' => $newGender,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -202,7 +205,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'address' => $newAddress
+				'address' => $newAddress,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -224,7 +228,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'description' => $newDescription
+				'description' => $newDescription,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -246,7 +251,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'phone' => $newPhone
+				'phone' => $newPhone,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -270,7 +276,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 			'gender'      => 'male',
 			'address'     => '789 Multi Update Street',
 			'description' => 'Dormitory with multiple field updates',
-			'phone'       => '+1234567897'
+			'phone'       => '+1234567897',
+			'admin_id'    => $this->dormitory->admin_id
 		];
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
@@ -292,7 +299,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 		// Update only some fields, leaving others unchanged
 		$partialUpdate = [ 
 			'name'     => 'Partially Updated Dormitory',
-			'capacity' => 225
+			'capacity' => 225,
+			'admin_id' => $this->dormitory->admin_id
 		];
 
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
@@ -318,7 +326,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 	public function test_dormitory_update_validates_required_fields() {
 		// Try to update with empty name
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
-			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
+			->putJson( "/api/dormitories/{$this->dormitory->id}", [
+				'admin_id' => $this->dormitory->admin_id,
 				'name' => ''
 			] );
 
@@ -329,7 +338,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 	public function test_dormitory_update_validates_capacity_format() {
 		// Try to update with invalid capacity
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
-			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
+			->putJson( "/api/dormitories/{$this->dormitory->id}", [
+				'admin_id' => $this->dormitory->admin_id,
 				'capacity' => 'invalid-capacity'
 			] );
 
@@ -340,7 +350,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 	public function test_dormitory_update_validates_gender_values() {
 		// Try to update with invalid gender
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
-			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
+			->putJson( "/api/dormitories/{$this->dormitory->id}", [
+				'admin_id' => $this->dormitory->admin_id,
 				'gender' => 'invalid-gender'
 			] );
 
@@ -365,7 +376,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 
 		// Update only name
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
-			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
+			->putJson( "/api/dormitories/{$this->dormitory->id}", [
+				'admin_id' => $this->dormitory->admin_id,
 				'name' => 'Name Only Update'
 			] );
 
@@ -386,7 +398,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 	public function test_dormitory_update_returns_updated_data_with_relationships() {
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
-				'name' => 'Updated with Relationships'
+				'name' => 'Updated with Relationships',
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );
@@ -459,7 +472,8 @@ class DormitoryEditIntegrationTest extends TestCase {
 		$response = $this->actingAs( $this->sudoUser, 'sanctum' )
 			->putJson( "/api/dormitories/{$this->dormitory->id}", [ 
 				'name'     => 'Logged Update',
-				'capacity' => 275
+				'capacity' => 275,
+				'admin_id' => $this->dormitory->admin_id
 			] );
 
 		$response->assertStatus( 200 );

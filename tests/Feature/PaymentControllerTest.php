@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\SemesterPayment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -31,7 +32,7 @@ class PaymentControllerTest extends TestCase {
 		$this->student = User::factory()->create( [ 'role_id' => $studentRole->id ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_view_payments() {
 		$payment = SemesterPayment::factory()->create( [ 
 			'user_id'          => $this->student->id,
@@ -61,7 +62,7 @@ class PaymentControllerTest extends TestCase {
 			] );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_create_payment() {
 		Storage::fake( 'public' );
 		$receiptFile = UploadedFile::fake()->create( 'receipt.pdf', 1024 );
@@ -99,7 +100,7 @@ class PaymentControllerTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_update_payment() {
 		$payment = SemesterPayment::factory()->create( [ 
 			'user_id'          => $this->student->id,
@@ -128,7 +129,7 @@ class PaymentControllerTest extends TestCase {
 			] );
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_delete_payment() {
 		$payment = SemesterPayment::factory()->create( [ 
 			'user_id'          => $this->student->id,
@@ -147,7 +148,7 @@ class PaymentControllerTest extends TestCase {
 		$this->assertDatabaseMissing( 'semester_payments', [ 'id' => $payment->id ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function payments_can_be_filtered_by_user() {
 		$otherStudent = User::factory()->create( [ 'role_id' => Role::where( 'name', 'student' )->first()->id ] );
 
@@ -177,7 +178,7 @@ class PaymentControllerTest extends TestCase {
 		// Should only return payments for the specified user
 	}
 
-	/** @test */
+	#[Test]
 	public function admin_can_export_payments() {
 		// Create payments for different semesters to avoid unique constraint violation
 		SemesterPayment::factory()->create( [ 
@@ -217,15 +218,15 @@ class PaymentControllerTest extends TestCase {
 			->assertHeader( 'Content-Type', 'text/csv; charset=UTF-8' );
 	}
 
-	/** @test */
+	#[Test]
 	public function student_cannot_access_payments_endpoint() {
 		$response = $this->actingAs( $this->student, 'sanctum' )
 			->getJson( '/api/payments' );
 
 		$response->assertStatus( 403 );
 	}
-
-	/** @test */
+	
+	#[Test]
 	public function validation_errors_for_invalid_payment_data() {
 		$invalidData = [ 
 			'user_id'       => 999999, // Non-existent user

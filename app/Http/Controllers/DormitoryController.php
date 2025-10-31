@@ -82,8 +82,9 @@ class DormitoryController extends Controller {
 	}
 
 	public function assignAdmin( Request $request, $id ) {
-		$dorm = Dormitory::findOrFail( $id );
-		$this->service->assignAdmin( $dorm, User::findOrFail( $request->input( 'admin_id' ) ) );
+		$dorm = \App\Models\Dormitory::findOrFail( $id );
+		$admin = \App\Models\User::findOrFail( $request->input( 'admin_id' ) );
+		$this->service->assignAdmin( $dorm, $admin );
 		return response()->json( $dorm, 200 );
 	}
 

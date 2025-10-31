@@ -11,6 +11,7 @@ use App\Models\RoomType;
 use App\Models\Bed;
 use App\Models\AdminProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\WithFaker;
 
 class StudentCreationRoomAvailabilityTest extends TestCase
@@ -67,13 +68,13 @@ class StudentCreationRoomAvailabilityTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_provides_rooms_with_available_beds_for_student_creation()
     {
         // Create multiple rooms with different bed availability scenarios
         
-        // Room 1: All beds available
-        $room1 = Room::create([
+        // Room 1: All beds available (created by factory)
+        $room1 = Room::factory()->create([
             'number' => '101',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
@@ -82,22 +83,8 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'quota' => 2
         ]);
         
-        $bed1_1 = Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        $bed1_2 = Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        // Room 2: One bed available, one occupied
-        $room2 = Room::create([
+        // Room 2: One bed available, one occupied (created by factory)
+        $room2 = Room::factory()->create([
             'number' => '102',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
@@ -105,23 +92,11 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
+        // Manually occupy one bed
+        $room2->beds()->first()->update(['is_occupied' => true]);
         
-        $bed2_1 = Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 1,
-            'is_occupied' => true, // Occupied
-            'reserved_for_staff' => false
-        ]);
-        
-        $bed2_2 = Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 2,
-            'is_occupied' => false, // Available
-            'reserved_for_staff' => false
-        ]);
-        
-        // Room 3: All beds occupied
-        $room3 = Room::create([
+        // Room 3: All beds occupied (created by factory)
+        $room3 = Room::factory()->create([
             'number' => '103',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
@@ -129,23 +104,12 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
+        // Manually occupy all beds
+        $room3->beds()->update(['is_occupied' => true]);
+
         
-        $bed3_1 = Bed::create([
-            'room_id' => $room3->id,
-            'bed_number' => 1,
-            'is_occupied' => true,
-            'reserved_for_staff' => false
-        ]);
-        
-        $bed3_2 = Bed::create([
-            'room_id' => $room3->id,
-            'bed_number' => 2,
-            'is_occupied' => true,
-            'reserved_for_staff' => false
-        ]);
-        
-        // Room 4: Staff reserved beds (should not be available for students)
-        $room4 = Room::create([
+        // Room 4: Staff reserved beds (created by factory)
+        $room4 = Room::factory()->create([
             'number' => '104',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 1,
@@ -153,20 +117,8 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
-        
-        $bed4_1 = Bed::create([
-            'room_id' => $room4->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => true // Staff reserved
-        ]);
-        
-        $bed4_2 = Bed::create([
-            'room_id' => $room4->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => true // Staff reserved
-        ]);
+        // Manually reserve all beds for staff
+        $room4->beds()->update(['reserved_for_staff' => true]);
 
         // Test the API endpoint
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
@@ -207,11 +159,11 @@ class StudentCreationRoomAvailabilityTest extends TestCase
         $this->assertTrue($room4Data['beds'][1]['reserved_for_staff']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_rooms_with_correct_structure_for_frontend_consumption()
     {
         // Create a room with beds
-        $room = Room::create([
+        $room = Room::factory()->create([
             'number' => '201',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 2,
@@ -219,13 +171,7 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
-        
-        $bed = Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
+        $bed = $room->beds()->first();
 
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
 
@@ -273,7 +219,7 @@ class StudentCreationRoomAvailabilityTest extends TestCase
         $this->assertEquals(150.00, $roomData['room_type']['price']);
         
         // Bed data
-        $this->assertCount(1, $roomData['beds']);
+        $this->assertCount(2, $roomData['beds']);
         $bedData = $roomData['beds'][0];
         $this->assertEquals($bed->id, $bedData['id']);
         $this->assertEquals($room->id, $bedData['room_id']);
@@ -282,10 +228,10 @@ class StudentCreationRoomAvailabilityTest extends TestCase
         $this->assertFalse($bedData['reserved_for_staff']);
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_dormitory_with_no_rooms_gracefully()
     {
-        // Test with dormitory that has no rooms
+        // Test with a new dormitory that has no rooms
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
 
         $response->assertStatus(200)
@@ -293,21 +239,21 @@ class StudentCreationRoomAvailabilityTest extends TestCase
                 ->assertJson([]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_invalid_dormitory_id()
     {
         $response = $this->getJson("/api/dormitories/99999/rooms");
 
         $response->assertStatus(404);
     }
-
-    /** @test */
+    
+    #[Test]
     public function it_provides_rooms_suitable_for_student_assignment()
     {
         // Create rooms with different scenarios to test student assignment suitability
         
-        // Room 1: Perfect for student assignment (2 available beds)
-        $room1 = Room::create([
+        // Room 1: Perfect for student assignment (2 available beds) - use factory
+        $room1 = Room::factory()->create([
             'number' => '301',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 3,
@@ -316,22 +262,8 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'quota' => 2
         ]);
         
-        Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
-            'reserved_for_staff' => false
-        ]);
-        
-        // Room 2: Partially available (1 available bed)
-        $room2 = Room::create([
+        // Room 2: Partially available (1 available bed) - use factory
+        $room2 = Room::factory()->create([
             'number' => '302',
             'dormitory_id' => $this->dormitory->id,
             'floor' => 3,
@@ -339,20 +271,8 @@ class StudentCreationRoomAvailabilityTest extends TestCase
             'room_type_id' => $this->roomType->id,
             'quota' => 2
         ]);
-        
-        Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 1,
-            'is_occupied' => true, // Occupied
-            'reserved_for_staff' => false
-        ]);
-        
-        Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 2,
-            'is_occupied' => false, // Available
-            'reserved_for_staff' => false
-        ]);
+        // Manually occupy one bed
+        $room2->beds()->first()->update(['is_occupied' => true]);
 
         $response = $this->getJson("/api/dormitories/{$this->dormitory->id}/rooms");
 

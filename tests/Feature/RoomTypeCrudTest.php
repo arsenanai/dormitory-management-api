@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
+use App\Models\User;
 use App\Models\RoomType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -13,7 +15,16 @@ class RoomTypeCrudTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->seed();
+		// Create necessary roles and a sudo user for authentication,
+		// instead of running the full seeder which can cause data conflicts.
+		$sudoRole = Role::firstOrCreate(['name' => 'sudo']);
+		User::factory()->create([
+			'email' => 'sudo@email.com',
+			'password' => bcrypt('supersecret'),
+			'role_id' => $sudoRole->id,
+		]);
+		// Seed the room types needed for the 'api_returns_exactly_two_room_types' test
+		$this->seed(\Database\Seeders\RoomTypeSeeder::class);
 	}
 
 	public function test_can_create_standard_room_type() {

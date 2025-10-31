@@ -79,18 +79,11 @@ class DashboardControllerTest extends TestCase {
 			'is_occupied'  => true,
 		] );
 
-		// Create beds for the room
-		Bed::factory()->create( [ 
-			'room_id'     => $this->room->id,
-			'bed_number'  => 1,
-			'is_occupied' => true,
-		] );
-		
-		Bed::factory()->create( [ 
-			'room_id'     => $this->room->id,
-			'bed_number'  => 2,
-			'is_occupied' => true,
-		] );
+		// Manually occupy the bed to align with the room's 'is_occupied' status
+		// and the service's calculation logic.
+		$bed = $this->room->beds()->first();
+		$bed->user_id = $this->student->id;
+		$bed->save();
 	}
 
 	public function test_admin_can_view_dashboard_stats() {
@@ -151,14 +144,17 @@ class DashboardControllerTest extends TestCase {
 				'occupancy_rate',
 			] )
 			->assertJson( [ 
-				'total_students'   => 4, // 1 from setup + 2 from this test + 1 extra from setup
-				'total_rooms'      => 1,
-				'occupied_rooms'   => 1,
-				'available_rooms'  => 0,
-				'total_payments'   => 2,
-				'pending_payments' => 1,
-				'unread_messages'  => 7,
-				'occupancy_rate'   => 100,
+				'total_students'  => 4, // 1 from setup + 2 from this test + 1 extra from setup
+				'total_rooms'     => 1,
+				'total_beds'      => 1,
+				'occupied_rooms'  => 1,
+				'available_rooms' => 0,
+				'occupied_beds'   => 1,
+				'available_beds'  => 0,
+				'total_payments'  => 2,
+				'pending_payments'=> 1,
+				'unread_messages' => 7,
+				'occupancy_rate'  => 100.0,
 			] );
 	}
 

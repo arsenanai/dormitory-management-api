@@ -48,8 +48,8 @@ class UserAuthService {
 				return 'not_approved';
 			}
 			if ( $user->role && $user->role->name === 'admin' ) {
-				$user->loadMissing('adminProfile');
-				if ( ! $user->adminProfile->dormitory_id)
+				$user->load('adminDormitory');
+				if ( ! $user->adminDormitory->id)
 					return 'not_assigned_admin';
 			}
 			return $user;

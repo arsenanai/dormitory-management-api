@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Dormitory;
+use App\Models\Room;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Illuminate\Foundation\Testing\WithFaker;
 
 class IINValidationTest extends TestCase {
@@ -35,7 +38,7 @@ class IINValidationTest extends TestCase {
 		return '123456789012';
 	}
 
-	/** @test */
+	#[Test]
 	public function iin_is_required_for_user_registration() {
 		$response = $this->postJson( '/api/register', [ 
 			'name'                  => 'Test User',
@@ -49,7 +52,7 @@ class IINValidationTest extends TestCase {
 			->assertJsonValidationErrors( [ 'iin' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function iin_must_be_12_digits() {
 		$response = $this->postJson( '/api/register', [ 
 			'name'                  => 'Test User',
@@ -63,7 +66,7 @@ class IINValidationTest extends TestCase {
 			->assertJsonValidationErrors( [ 'iin' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function iin_must_be_numeric() {
 		$response = $this->postJson( '/api/register', [ 
 			'name'                  => 'Test User',
@@ -77,7 +80,7 @@ class IINValidationTest extends TestCase {
 			->assertJsonValidationErrors( [ 'iin' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function iin_must_be_unique() {
 		// Create first user with IIN
 		User::factory()->create( [ 'iin' => '123456789012' ] );
@@ -95,9 +98,12 @@ class IINValidationTest extends TestCase {
 			->assertJsonValidationErrors( [ 'iin' ] );
 	}
 
-	/** @test */
+	#[Test]
 	public function valid_iin_is_accepted() {
 		// For testing purposes, we'll temporarily disable strict IIN validation
+		$dormitory = Dormitory::factory()->create();
+		$room = Room::factory()->create(['dormitory_id' => $dormitory->id]);
+
 		// In production, this would use a properly validated Kazakhstan IIN
 		$response = $this->postJson( '/api/register', [ 
 			'name'                     => 'Test User',
@@ -109,7 +115,8 @@ class IINValidationTest extends TestCase {
 			'specialist'               => 'computer_sciences',
 			'enrollment_year'          => 2024,
 			'gender'                   => 'male',
-			'agree_to_dormitory_rules' => true,
+			'agree_to_dormitory_rules' => true, // This is required
+			'room_id'                  => $room->id,
 			'user_type'                => 'student'
 		] );
 
@@ -118,7 +125,7 @@ class IINValidationTest extends TestCase {
 		$response->assertStatus( 201 );
 	}
 
-	/** @test */
+	#[Test]
 	public function iin_can_be_updated_by_admin() {
 		// Create user without IIN first, then update with IIN
 		$user = User::factory()->create( [ 'iin' => null ] );
@@ -135,7 +142,7 @@ class IINValidationTest extends TestCase {
 		] );
 	}
 
-	/** @test */
+	#[Test]
 	public function iin_can_be_updated_by_user_themselves() {
 		// Create user without IIN first, then update with IIN
 		$user = User::factory()->create( [ 'iin' => null ] );

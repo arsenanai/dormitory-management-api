@@ -30,6 +30,7 @@ class RoomCrudTest extends TestCase {
 			'notes'        => 'Corner room',
 			'dormitory_id' => $dormitory->id,
 			'room_type_id' => $roomType->id,
+			'beds'         => [],
 		];
 
 		$response = $this->postJson( '/api/rooms', $payload, [ 
@@ -47,11 +48,24 @@ class RoomCrudTest extends TestCase {
 	public function test_can_update_room() {
 		// Create necessary test data first
 		$this->createTestData();
-		$token = $this->loginAsSudo();
-		$room = Room::factory()->create();
+		$adminUser = \App\Models\User::where('email', 'admin@email.com')->first();
+		if (!$adminUser) {
+			$adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin']);
+			$adminUser = \App\Models\User::factory()->create(['role_id' => $adminRole->id, 'email' => 'admin@email.com']);
+		}
+		$dormitory = Dormitory::factory()->create(['name' => 'Test Dorm for Room Update', 'capacity' => 100, 'admin_id' => $adminUser->id]);
+		$dormitory->admin()->associate($adminUser)->save();
+		$adminUser->load('adminDormitory');
 
-		$response = $this->putJson( "/api/rooms/{$room->id}", [ 
+		$token = $this->postJson('/api/login', ['email' => 'admin@email.com', 'password' => 'supersecret'])->json('token');
+		$room = Room::factory()->create(['dormitory_id' => $dormitory->id]);
+		
+		$response = $this->actingAs($adminUser)->putJson( "/api/rooms/{$room->id}", [
+			'number'       => $room->number,
+			'dormitory_id' => $room->dormitory_id,
+			'room_type_id' => $room->room_type_id,
 			'notes' => 'Updated notes',
+			'beds' => [], // Add beds array to satisfy service expectation
 		], [ 
 			'Authorization' => "Bearer $token",
 		] );
@@ -66,10 +80,21 @@ class RoomCrudTest extends TestCase {
 	public function test_can_delete_room() {
 		// Create necessary test data first
 		$this->createTestData();
-		$token = $this->loginAsSudo();
-		$room = Room::factory()->create();
+		$adminUser = \App\Models\User::where('email', 'admin@email.com')->first();
+		if (!$adminUser) {
+			$adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin']);
+			$adminUser = \App\Models\User::factory()->create(['role_id' => $adminRole->id, 'email' => 'admin@email.com']);
+		}
+		$token = $this->postJson('/api/login', ['email' => 'admin@email.com', 'password' => 'supersecret'])->json('token');
+		
+		// Ensure the room belongs to a dormitory the admin can manage
+		$dormitory = Dormitory::factory()->create(['name' => 'Deletable Dorm', 'capacity' => 10, 'admin_id' => $adminUser->id, 'gender' => 'mixed']);
+		// Assign dormitory to a sudo/admin user if needed by policy
+		$dormitory->admin()->associate($adminUser)->save();
 
-		$response = $this->deleteJson( "/api/rooms/{$room->id}", [], [ 
+		$room = Room::factory()->create(['dormitory_id' => $dormitory->id]);
+
+		$response = $this->actingAs($adminUser)->deleteJson( "/api/rooms/{$room->id}", [], [
 			'Authorization' => "Bearer $token",
 		] );
 

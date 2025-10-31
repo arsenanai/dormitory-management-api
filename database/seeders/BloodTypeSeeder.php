@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\BloodType;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class BloodTypeSeeder extends Seeder
 {
@@ -21,11 +21,7 @@ class BloodTypeSeeder extends Seeder
         ];
 
         foreach ($bloodTypes as $bloodType) {
-            DB::table('blood_types')->insertOrIgnore([
-                'name' => $bloodType,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            BloodType::firstOrCreate(['name' => $bloodType]);
         }
     }
 }

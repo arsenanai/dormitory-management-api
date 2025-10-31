@@ -50,6 +50,7 @@ class AdminController extends Controller {
 				'department'      => 'nullable|string|max:255',
 				'office_phone'    => 'nullable|string|max:255',
 				'office_location' => 'nullable|string|max:255',
+				'dormitory'       => 'sometimes|nullable|integer|exists:dormitories,id',
 			]
 		);
 		$validated = $request->validate( $rules );

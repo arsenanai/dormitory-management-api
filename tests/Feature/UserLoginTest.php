@@ -17,6 +17,12 @@ class UserLoginTest extends TestCase {
 	}
 
 	public function test_example(): void {
+		// Ensure the admin user is associated with a dormitory, as required by the login logic.
+		$adminUser = User::where('email', 'admin@email.com')->first();
+		if ($adminUser && !$adminUser->adminDormitory) {
+			$dormitory = \App\Models\Dormitory::factory()->create(['admin_id' => $adminUser->id]);
+			\App\Models\AdminProfile::factory()->create(['user_id' => $adminUser->id, 'dormitory_id' => $dormitory->id]);
+		}
 
 		$response = $this->postJson( '/api/login', [ 
 			'email'    => 'admin@email.com',

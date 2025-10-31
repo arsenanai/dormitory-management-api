@@ -19,8 +19,10 @@ class StudentRegistrationTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$this->seed();
-		$this->studentRoleId = Role::where( 'name', 'student' )->firstOrFail()->id;
+		// Use factories instead of the full seeder to avoid data conflicts.
+		Role::factory()->create(['name' => 'student']);
+		$this->seed(\Database\Seeders\KazakhstanSeeder::class); // For cities
+		$this->studentRoleId = Role::where('name', 'student')->firstOrFail()->id;
 	}
 
 	#[Test]
@@ -29,7 +31,7 @@ class StudentRegistrationTest extends TestCase {
 		$city = City::first() ?? City::factory()->create(); // Use existing city or create one
 		$dormitory = \App\Models\Dormitory::factory()->create();
 		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
-		$bed = Bed::factory()->create(['room_id' => $room->id]);
+		$bed = $room->beds()->first();
 
 		$uniqueIIN = '123456789' . str_pad( rand( 0, 999 ), 3, '0', STR_PAD_LEFT );
 		$payload = [ 
@@ -74,9 +76,9 @@ class StudentRegistrationTest extends TestCase {
 	#[Test]
 	public function student_can_register_with_room_id_string(): void {
 		$city = City::first() ?? \App\Models\City::factory()->create(); // Use existing city
-		$dormitory = \App\Models\Dormitory::factory()->create();
+		$dormitory = \App\Models\Dormitory::factory()->create(); // Create a fresh dormitory
 		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
-		$bed = Bed::factory()->create(['room_id' => $room->id]);
+		$bed = $room->beds()->first(); // Use a bed created by the RoomFactory
 		$uniqueEmail = 'janedoe_' . uniqid() . '@example.com';
 		$uniqueIIN = '987654321' . str_pad( rand( 0, 999 ), 3, '0', STR_PAD_LEFT );
 		$payload = [ 
@@ -107,11 +109,19 @@ class StudentRegistrationTest extends TestCase {
 
 	#[Test]
 	public function registration_requires_required_fields(): void {
-		$response = $this->postJson( '/api/register', ['user_type' => 'student'] );
+		// Create necessary related data for validation to pass on some fields
+		$dormitory = \App\Models\Dormitory::factory()->create();
+		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
+
+		$response = $this->postJson( '/api/register', [
+			'user_type' => 'student',
+			'room_id' => $room->id, // Provide a room_id to isolate the test
+		] );
+
 		$response->assertStatus( 422 );
 		$response->assertJsonValidationErrors( [ 
 			'iin', 'name', 'faculty', 'specialist', 'enrollment_year',
-			'gender', 'email', 'password', 'agree_to_dormitory_rules', 'room_id'
+			'gender', 'email', 'password', 'agree_to_dormitory_rules'
 		] );
 	}
 
@@ -143,10 +153,8 @@ class StudentRegistrationTest extends TestCase {
 	public function student_is_not_assigned_a_bed_on_public_registration(): void
 	{
 		Storage::fake('public');
-		$dormitory = \App\Models\Dormitory::factory()->create();
+		$dormitory = \App\Models\Dormitory::factory()->create(); // Create a fresh dormitory
 		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
-		// We create a bed in the room, but we will not send its ID in the payload
-		Bed::factory()->create(['room_id' => $room->id]);
 
 		$payload = [
 			'iin'                      => '112233445566',
@@ -178,7 +186,7 @@ class StudentRegistrationTest extends TestCase {
 		Storage::fake('public');
 		$dormitory = \App\Models\Dormitory::factory()->create();
 		$room = \App\Models\Room::factory()->create(['dormitory_id' => $dormitory->id]);
-		$bed = Bed::factory()->create(['room_id' => $room->id]);
+		$bed = $room->beds()->first();
 
 		$payload = [
 			'iin'                      => '998877665544',

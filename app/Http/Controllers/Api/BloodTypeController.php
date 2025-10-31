@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\BloodType;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class BloodTypeController extends Controller
 {
     public function index()
     {
-        $bloodTypes = DB::table('blood_types')->get();
+        $bloodTypes = BloodType::all();
         
         return response()->json([
             'data' => $bloodTypes
