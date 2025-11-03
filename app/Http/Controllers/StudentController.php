@@ -50,6 +50,7 @@ class StudentController extends Controller {
 	 */
 	public function index( Request $request ): JsonResponse {
 		$filters = $request->validate( [ 
+			'search'       => 'sometimes|string|max:255',
 			'faculty'      => 'sometimes|string',
 			'room_id'      => 'sometimes|integer',
 			'dormitory_id' => 'sometimes|integer',
@@ -59,7 +60,7 @@ class StudentController extends Controller {
 			'fields'       => 'sometimes|string', // Comma-separated list of fields to select
 		] );
 
-		return $this->studentService->getStudentsWithFilters( $filters, Auth::user()->load('adminDormitory') );
+		return response()->json($this->studentService->getStudentsWithFilters( $filters, Auth::user()->load('adminDormitory') ));
 	}
 
 	/**
@@ -104,6 +105,16 @@ class StudentController extends Controller {
 			$request->merge(['name' => trim($request->input('first_name') . ' ' . $request->input('last_name'))]);
 		}
 
+		// Pre-process files to remove empty values before validation.
+		// The frontend might send empty objects {} or null for file inputs that are not filled.
+		if ($request->has('files') && is_array($request->input('files'))) {
+			$files = array_filter($request->input('files'), function ($file) {
+				// A valid file will be an object of UploadedFile, not an empty array/object from JSON.
+				return $file instanceof \Illuminate\Http\UploadedFile;
+			});
+			$request->merge(['files' => empty($files) ? null : $files]);
+		}
+
 		$validated = $request->validate( [ 
 			'agree_to_dormitory_rules'       => 'required|boolean',
 			'allergies'                      => 'nullable|string|max:1000',
@@ -141,7 +152,7 @@ class StudentController extends Controller {
 			'violations'                     => 'nullable|string|max:1000',
 		] );
 
-		return $this->studentService->createStudent( $validated, Auth::user()->adminDormitory );
+		return response()->json($this->studentService->createStudent( $validated, Auth::user()->adminDormitory ), 201);
 	}
 
 	/**
@@ -163,7 +174,7 @@ class StudentController extends Controller {
 	 * GET /api/students/123
 	 */
 	public function show( int $id ): JsonResponse {
-		return $this->studentService->getStudentDetails( $id );
+		return response()->json($this->studentService->getStudentDetails( $id ));
 	}
 
 	/**
@@ -213,8 +224,6 @@ class StudentController extends Controller {
 			'emergency_contact_relationship' => 'nullable|string|max:255',
 			'enrollment_year'                => 'nullable|integer|digits:4',
 			'faculty'                        => 'nullable|string|max:255',
-			'files.*'                        => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-			'files'                          => 'nullable|array|max:4',
 			'first_name'                     => 'sometimes|string|max:255',
 			'gender'                         => 'nullable|in:male,female',
 			'has_meal_plan'                  => 'nullable|boolean',
@@ -237,7 +246,21 @@ class StudentController extends Controller {
 			'violations'                     => 'nullable|string|max:1000',
 		] );
 
-		return $this->studentService->updateStudent( $id, $validated, Auth::user()->load('adminDormitory') );
+		return response()->json($this->studentService->updateStudent( $id, $validated, Auth::user()->load('adminDormitory') ));
+	}
+
+	/**
+	 * Export students to a CSV file based on filters.
+	 *
+	 * @param Request $request
+	 * @return \Illuminate\Http\Response
+	 */
+	public function export(Request $request): \Illuminate\Http\Response
+	{
+		$filters = $request->all();
+		$user = Auth::user()->load('adminDormitory');
+
+		return $this->studentService->exportStudents($filters, $user);
 	}
 
 	/**
@@ -257,7 +280,8 @@ class StudentController extends Controller {
 	 * DELETE /api/students/123
 	 */
 	public function destroy( int $id ): JsonResponse {
-		return $this->studentService->deleteStudent( $id );
+		$this->studentService->deleteStudent( $id );
+		return response()->json(['message' => 'Student deleted successfully'], 200);
 	}
 
 	/**
@@ -284,7 +308,7 @@ class StudentController extends Controller {
 			'per_page'     => 'sometimes|integer|min:1|max:100',
 		] );
 
-		return $this->studentService->getStudentsByDormitory( $filters, Auth::user()->load('adminDormitory') );
+		return response()->json($this->studentService->getStudentsByDormitory( $filters, Auth::user()->load('adminDormitory') ));
 	}
 
 	/**
@@ -310,7 +334,7 @@ class StudentController extends Controller {
 			'per_page' => 'sometimes|integer|min:1|max:100',
 		] );
 
-		return $this->studentService->getUnassignedStudents( $filters );
+		return response()->json($this->studentService->getUnassignedStudents( $filters ));
 	}
 
 	/**
@@ -341,7 +365,11 @@ class StudentController extends Controller {
 			'reason'     => 'nullable|string|max:500',
 		] );
 
-		return $this->studentService->updateStudentAccess( $id, $validated );
+		$student = $this->studentService->updateStudentAccess( $id, $validated );
+		return response()->json([
+			'message' => 'Student access updated successfully',
+			'student' => $student
+		]);
 	}
 
 	/**
@@ -368,7 +396,7 @@ class StudentController extends Controller {
 			'year'         => 'sometimes|integer',
 		] );
 
-		return $this->studentService->getStudentStatistics( $filters, Auth::user() );
+		return response()->json($this->studentService->getStudentStatistics( $filters, Auth::user() ));
 	}
 
 	/**
@@ -380,6 +408,10 @@ class StudentController extends Controller {
 	 * @return JsonResponse
 	 */
 	public function approve( int $id ): JsonResponse {
-		return $this->studentService->approveStudent( $id );
+		$student = $this->studentService->approveStudent( $id );
+		return response()->json([
+			'message' => 'Student approved successfully',
+			'student' => $student
+		]);
 	}
 }

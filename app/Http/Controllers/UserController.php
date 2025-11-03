@@ -52,7 +52,7 @@ class UserController extends Controller {
 
 	private array $guestRegisterRules = [ 
 		'name'      => 'required|string|max:255',
-		'room_type' => 'required|string',
+		'room_type' => 'required|integer|exists:room_types,id',
 		'files'     => 'nullable|array|max:4',
 		'files.*'   => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
 		'email'     => 'nullable|email|max:255|unique:users,email',
@@ -91,7 +91,8 @@ class UserController extends Controller {
 
 		// Load appropriate relationships based on user role
 		if ( $result->role && $result->role->name === 'admin' ) {
-			$result->load( [ 'role', 'adminProfile.dormitory' ] );
+			// Load the correct relationship that already exists on the User model
+			$result->load( [ 'role', 'adminDormitory' ] );
 		} elseif ( $result->role && $result->role->name === 'student' ) {
 			$result->load( [ 'role', 'studentProfile' ] );
 		} elseif ( $result->role && $result->role->name === 'guest' ) {
@@ -101,7 +102,10 @@ class UserController extends Controller {
 		$token = $result->createToken( 'user-token' )->plainTextToken;
 
 		return response()->json( [ 
-			'user'  => $result,
+			'user'  => $result->toArray() + [
+				// Ensure a consistent 'dormitory' property for both admins and students
+				'dormitory' => $result->role->name === 'admin' ? $result->adminDormitory : $result->dormitory,
+			],
 			'token' => $token,
 		] );
 	}
@@ -132,7 +136,11 @@ class UserController extends Controller {
 				return response()->json(['message' => 'Invalid room or dormitory.'], 422);
 			}
 
-			return $this->studentService->createStudent($validated, $dormitory);
+			$student = $this->studentService->createStudent($validated, $dormitory);
+			return response()->json( [
+				'message' => __( 'auth.registration_success' ),
+				'user'    => $student->load( 'studentProfile' )
+			], 201 );
 		}
 
 		// This block is now only for admin and guest
@@ -193,9 +201,9 @@ class UserController extends Controller {
 			$userData['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 4;
 		}
 
-		$user = User::create( $userData );
-
-		\Log::info( 'User created', [ 'user_id' => $user->id ] );
+		if ( $userType !== 'guest') {
+			$user = User::create( $userData );
+		}
 
 		// Create profile and store role-specific fields
 		if ( $userType === 'student' ) {

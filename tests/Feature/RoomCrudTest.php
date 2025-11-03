@@ -21,7 +21,7 @@ class RoomCrudTest extends TestCase {
 		// Create necessary test data first
 		$this->createTestData();
 		$token = $this->loginAsSudo();
-		$dormitory = Dormitory::factory()->create();
+		$dormitory = Dormitory::factory()->create(['name' => 'Sudo Test Dorm']);
 		$roomType = RoomType::factory()->create();
 
 		$payload = [ 
@@ -30,7 +30,6 @@ class RoomCrudTest extends TestCase {
 			'notes'        => 'Corner room',
 			'dormitory_id' => $dormitory->id,
 			'room_type_id' => $roomType->id,
-			'beds'         => [],
 		];
 
 		$response = $this->postJson( '/api/rooms', $payload, [ 
@@ -43,6 +42,38 @@ class RoomCrudTest extends TestCase {
 			'dormitory_id' => $dormitory->id,
 			'room_type_id' => $roomType->id,
 		] );
+	}
+
+	public function test_admin_can_only_create_room_in_assigned_dormitory() {
+		$this->createTestData();
+		$adminUser = \App\Models\User::where('email', 'admin@email.com')->first();
+		if (!$adminUser) {
+			$adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin']);
+			$adminUser = \App\Models\User::factory()->create(['role_id' => $adminRole->id, 'email' => 'admin@email.com']);
+		}
+		$adminDormitory = Dormitory::factory()->create(['name' => 'Admin Dorm', 'admin_id' => $adminUser->id]);
+		$otherDormitory = Dormitory::factory()->create(['name' => 'Other Dorm']);
+		$roomType = RoomType::factory()->create();
+
+		$token = $this->postJson('/api/login', ['email' => 'admin@email.com', 'password' => 'supersecret'])->json('token');
+
+		$payload = [
+			'number'       => 'A101',
+			'floor'        => 1,
+			'dormitory_id' => $otherDormitory->id, // Attempt to create in another dormitory
+			'room_type_id' => $roomType->id,
+		];
+
+		$response = $this->actingAs($adminUser)->postJson('/api/rooms', $payload, [
+			'Authorization' => "Bearer $token",
+		]);
+
+		$response->assertStatus(201);
+		// Assert that the room was created in the ADMIN's dormitory, not the one in the payload
+		$this->assertDatabaseHas('rooms', [
+			'number' => 'A101',
+			'dormitory_id' => $adminDormitory->id,
+		]);
 	}
 
 	public function test_can_update_room() {
@@ -286,6 +317,18 @@ class RoomCrudTest extends TestCase {
 				'password' => bcrypt( 'supersecret' ),
 				'role_id'  => $sudoRole->id,
 				'status'   => 'active'
+			]
+		);
+
+		$adminRole = \App\Models\Role::firstOrCreate(['name' => 'admin']);
+		\App\Models\User::firstOrCreate(
+			['email' => 'admin@email.com'],
+			[
+				'name' => 'Admin User',
+				'email' => 'admin@email.com',
+				'password' => bcrypt('supersecret'),
+				'role_id' => $adminRole->id,
+				'status' => 'active'
 			]
 		);
 	}

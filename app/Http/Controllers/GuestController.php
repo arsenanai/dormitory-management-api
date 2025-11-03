@@ -58,6 +58,8 @@ class GuestController extends Controller {
 	 */
 	public function update( Request $request, $id ) {
 		$validated = $request->validate( [ 
+			'first_name'     => 'sometimes|string|max:255',
+			'last_name'      => 'sometimes|string|max:255',
 			'name'           => 'sometimes|string|max:255',
 			'email'          => 'sometimes|email|max:255',
 			'phone'          => 'sometimes|string|max:20',

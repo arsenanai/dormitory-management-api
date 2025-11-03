@@ -95,7 +95,7 @@ class StudentServiceTest extends TestCase
 
     public function test_create_student()
     {
-        Storage::fake('public');
+        Storage::fake('local');
 
         $room = Room::factory()->create(['dormitory_id' => $this->dormitory->id]);
         // The RoomFactory now creates beds automatically.
@@ -133,12 +133,12 @@ class StudentServiceTest extends TestCase
 
         $profile = $student->studentProfile;
         $this->assertCount(1, $profile->files);
-        Storage::disk('public')->assertExists($profile->files[0]);
+        Storage::disk('local')->assertExists($profile->files[0]);
     }
 
     public function test_update_student()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $student = $this->createStudentInDormitory();
 
         $newRoom = Room::factory()->create(['dormitory_id' => $this->dormitory->id]);
@@ -163,7 +163,7 @@ class StudentServiceTest extends TestCase
         $this->assertEquals($newBed->id, $student->studentBed->id);
 
         $this->assertCount(1, $student->studentProfile->files);
-        Storage::disk('public')->assertExists($student->studentProfile->files[0]);
+        Storage::disk('local')->assertExists($student->studentProfile->files[0]);
     }
 
     public function test_update_student_unassigns_bed()
@@ -200,10 +200,10 @@ class StudentServiceTest extends TestCase
 
     public function test_delete_student()
     {
-        Storage::fake('public');
+        Storage::fake('local');
         $student = $this->createStudentInDormitory();
         $profile = $student->studentProfile;
-        $file = UploadedFile::fake()->image('test.jpg')->store('student_files', 'public');
+        $file = UploadedFile::fake()->image('test.jpg')->store('student_files', 'local');
         $profile->files = [$file];
         $profile->save();
 
@@ -221,7 +221,7 @@ class StudentServiceTest extends TestCase
         $this->assertNull($bed->user_id);
 
         // Check that file is deleted
-        Storage::disk('public')->assertMissing($file);
+        Storage::disk('local')->assertMissing($file);
     }
 
     public function test_approve_student()

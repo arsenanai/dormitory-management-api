@@ -8,112 +8,75 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Bed;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class StudentService {
 	/**
 	 * Get students with filters and pagination
 	 */
-	public function getStudentsWithFilters( array $filters = [], User $authUser ) {
-		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )->with( [ 'role', 'studentProfile', 'room.beds', 'room.dormitory', 'studentBed' ] );
-
-		// If the user is an admin (but not sudo), restrict to their dormitory. Sudo can see all.
-		if ($authUser->hasRole('admin') && !$authUser->hasRole('sudo') && $authUser->adminDormitory) {
-			$query->where('dormitory_id', $authUser->adminDormitory->id);
-		}
-
-		// Apply filters
-		if ( isset( $filters['faculty'] ) ) {
-			$query->whereHas( 'studentProfile', function ($q) use ($filters) {
-				$q->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
-			} );
-		}
-
-		if ( isset( $filters['room_id'] ) ) {
-			$query->where( 'room_id', $filters['room_id'] );
-		}
-
-		if ( isset( $filters['status'] ) ) {
-			$query->where( 'status', $filters['status'] );
-		}
-
-		$perPage = $filters['per_page'] ?? 20;
-
-		$students = $query->paginate( $perPage );
-
-		return response()->json($students);
+	public function getStudentsWithFilters(array $filters = [], User $authUser)
+	{
+		return $this->buildStudentQuery($filters, $authUser, true);
 	}
 
 	/**
 	 * Create a new student
 	 */
-	public function createStudent( array $data, \App\Models\Dormitory $dormitory ) {
-		// Prepare data for User and StudentProfile models
-		$userData = $this->prepareUserData($data);
-		$profileData = $this->prepareProfileData($data, false);
-
-		// Handle file uploads, modifying the $profileData array by reference
-		$this->processFileUploads($profileData, null);
-
-		// If a bed is assigned, update the user's room_id
-		if (isset($data['bed_id'])) {
-			$bed = Bed::find($data['bed_id']);
-			if ($bed) {
-				$userData['room_id'] = $bed->room_id;
-			}
-		}
-		$userData['dormitory_id'] = $dormitory->id;
-		// Create the User
-		$student = User::create( $userData );
-
-		// Create the StudentProfile
-		$profileData['user_id'] = $student->id;
-		\App\Models\StudentProfile::create( $profileData );
-
-		// Assign bed if provided
-		$this->processBedAssignment($student, $data['bed_id'] ?? null);
-
-		return response()->json( $student->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] ), 201 );
-	}
-
-	/**
-	 * Update student
-	 */
 	public function updateStudent( $id, array $data, User $authUser ) {
-		$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
-			->with(['studentBed', 'studentProfile']) // Eager load relationships for efficiency
-			->findOrFail( $id );
+		return DB::transaction(function () use ($id, $data, $authUser) {
+			$student = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
+				->with(['studentBed', 'studentProfile']) // Eager load relationships for efficiency
+				->findOrFail( $id );
 
-		// Handle bed assignment and get the new room_id if it changes
-		$newRoomId = $this->processBedAssignment($student, $data['bed_id'] ?? null);
-		if ($newRoomId !== false) { // `false` indicates no change
-			$data['room_id'] = $newRoomId;
-		}
-
-		// Prepare data for User and StudentProfile models
-		$userData = $this->prepareUserData($data, $student);
-		$userData['dormitory_id'] = $authUser->adminDormitory->id;
-		$profileData = $this->prepareProfileData($data, true);
-
-		// Handle file uploads, modifying the $profileData array by reference
-		$this->processFileUploads($profileData, $student->studentProfile);
-
-		// Update the User model with user-specific data.
-		if (!empty($userData)) {
-			$student->update($userData);
-		}
-
-		// Update the StudentProfile model with profile-specific data.
-		if (!empty($profileData) && $student->studentProfile) {
-			// Ensure student_id is not accidentally nulled out on update
-			if (!isset($profileData['student_id'])) {
-				$profileData['student_id'] = $student->studentProfile->student_id;
+			// If a new bed/room is being assigned, validate gender compatibility with the new dormitory.
+			if (isset($data['bed_id'])) {
+				$newBed = Bed::with('room.dormitory')->find($data['bed_id']);
+				if ($newBed) {
+					$newDormitory = $newBed->room->dormitory;
+					$studentGender = $data['gender'] ?? $student->studentProfile->gender;
+					if (
+						($newDormitory->gender === 'male' && $studentGender === 'female') ||
+						($newDormitory->gender === 'female' && $studentGender === 'male')
+					) {
+						throw ValidationException::withMessages(['bed_id' => 'The selected dormitory does not accept students of this gender.']);
+					}
+				}
 			}
-			$student->studentProfile->update( $profileData );
-		}
 
-		// Return the fresh, fully-loaded student model.
-		return response()->json( $student->fresh()->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] ) );
+			// Handle bed assignment and get the new room_id if it changes
+			$newRoomId = $this->processBedAssignment($student, $data['bed_id'] ?? null);
+			if ($newRoomId !== false) { // `false` indicates no change
+				$data['room_id'] = $newRoomId;
+			}
+
+			// Prepare data for User and StudentProfile models
+			$userData = $this->prepareUserData($data, $student);
+			$userData['dormitory_id'] = $authUser->adminDormitory->id;
+			$profileData = $this->prepareProfileData($data, true);
+
+			// Only process file uploads if new files are actually included in the request.
+			if (isset($data['files'])) {
+				$this->processFileUploads($profileData, $student->studentProfile);
+			}
+
+			// Update the User model with user-specific data.
+			if (!empty($userData)) {
+				$student->update($userData);
+			}
+
+			// Update the StudentProfile model with profile-specific data.
+			if (!empty($profileData) && $student->studentProfile) {
+				// Ensure student_id is not accidentally nulled out on update
+				if (!isset($profileData['student_id'])) {
+					$profileData['student_id'] = $student->studentProfile->student_id;
+				}
+				$student->studentProfile->update( $profileData );
+			}
+
+			// Return the fresh, fully-loaded student model.
+			return $student->fresh()->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] );
+		});
 	}
 
 	/**
@@ -133,7 +96,7 @@ class StudentService {
 			] )
 			->findOrFail( $id );
 
-		return response()->json( $student->toArray() );
+		return $student; // Return User model
 	}
 
 	/**
@@ -162,7 +125,7 @@ class StudentService {
 		}
 
 		$student->delete();
-		return response()->json( [ 'message' => 'Student deleted successfully' ], 200 );
+		return true; // Return boolean for success
 	}
 
 	/**
@@ -175,27 +138,78 @@ class StudentService {
 		$student->status = 'active';
 		$student->save();
 
-		return response()->json( [ 
-			'message' => 'Student approved successfully',
-			'student' => $student->load( [ 'role', 'studentProfile', 'room' ] )
-		] );
+		return $student->load( [ 'role', 'studentProfile', 'room' ] ); // Return User model
 	}
 
 	/**
 	 * Export students to CSV
 	 */
 	public function exportStudents( array $filters = [], User $authUser ) {
-		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
-			->with( [ 'role', 'studentProfile', 'room.dormitory' ] );
+		// Use the same query logic as getStudentsWithFilters for consistency, but don't paginate
+		$query = $this->buildStudentQuery($filters, $authUser, false);
 
-		// Filter by the admin's dormitory if the user is an admin
-		if ($authUser->hasRole('admin') && $authUser->adminDormitory) {
-			$query->where('dormitory_id', $authUser->adminDormitory->id);
-		} elseif (isset($filters['dormitory_id'])) {
-			$query->where('dormitory_id', $filters['dormitory_id']);
+		$students = $query->get();
+
+		// Define which columns to export based on the request, defaulting to table columns
+		$defaultCols = ['name', 'status', 'enrollment_year', 'faculty', 'dormitory', 'bed', 'phone'];
+		$exportCols = isset($filters['columns']) ? explode(',', $filters['columns']) : $defaultCols;
+
+		$headers = array_map('ucfirst', $exportCols);
+		$csvContent = implode(',', $headers) . "\n";
+
+		foreach ( $students as $student ) {
+			$rowData = [];
+			foreach ($exportCols as $col) {
+				$value = '';
+				switch ($col) {
+					case 'name':
+						$value = $student->name;
+						break;
+					case 'status':
+						$value = $student->status;
+						break;
+					case 'enrollment_year':
+						$value = $student->studentProfile->enrollment_year ?? '';
+						break;
+					case 'faculty':
+						$value = $student->studentProfile->faculty ?? '';
+						break;
+					case 'dormitory':
+						$value = $student->room->dormitory->name ?? '';
+						break;
+					case 'bed':
+						$value = $student->room ? ($student->room->number . '-' . ($student->studentBed->bed_number ?? '')) : '';
+						break;
+					case 'phone':
+						$value = is_array($student->phone_numbers) ? implode(';', $student->phone_numbers) : ($student->phone ?? '');
+						break;
+					// Add other cases for any other potential columns
+				}
+				// Escape quotes for CSV
+				$rowData[] = '"' . str_replace('"', '""', $value) . '"';
+			}
+			$csvContent .= implode(',', $rowData) . "\n";
 		}
 
-		// Apply same filters as getStudentsWithFilters
+		$filename = 'students_export_' . date( 'Y-m-d_H-i-s' ) . '.csv';
+
+		return response( $csvContent )
+			->header( 'Content-Type', 'text/csv' )
+			->header( 'Content-Disposition', 'attachment; filename="' . $filename . '"' );
+	}
+
+	private function buildStudentQuery(array $filters = [], User $authUser, bool $paginate = true) {
+		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )->with( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] );
+
+		// Filter by the admin's dormitory if the user is an admin or if the flag is set
+		if (
+			($filters['my_dormitory_only'] ?? false) ||
+			($authUser->hasRole('admin') && !$authUser->hasRole('sudo') && $authUser->adminDormitory)
+		) {
+			$query->where('dormitory_id', $authUser->adminDormitory->id);
+		}
+
+		// Apply other filters
 		if ( isset( $filters['faculty'] ) ) {
 			$query->whereHas( 'studentProfile', function ($q) use ($filters) {
 				$q->where( 'faculty', 'like', '%' . $filters['faculty'] . '%' );
@@ -210,45 +224,70 @@ class StudentService {
 			$query->where( 'status', $filters['status'] );
 		}
 
-		$students = $query->get();
-
-		// Create CSV content
-		$csvContent = "IIN,Name,Faculty,Specialist,Enrollment Year,Gender,Email,Phone Numbers,Status,Room,Dormitory,City\n";
-
-		foreach ( $students as $student ) {
-			$phoneNumbers = is_array( $student->phone_numbers ) ? implode( ';', $student->phone_numbers ) : '';
-			$room = $student->room ? $student->room->number : '';
-			$dormitory = $student->room && $student->room->dormitory ? $student->room->dormitory->name : '';
-			// Use studentProfile for city information
-			$city = $student->studentProfile && $student->studentProfile->city ? $student->studentProfile->city : '';
-			$iin = $student->studentProfile->iin ?? '';
-			$faculty = $student->studentProfile->faculty ?? '';
-			$specialist = $student->studentProfile->specialist ?? '';
-			$enrollment_year = $student->studentProfile->enrollment_year ?? '';
-			$gender = $student->studentProfile->gender ?? '';
-
-			$csvContent .= sprintf(
-				"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-				$iin,
-				'"' . str_replace( '"', '""', $student->name ) . '"',
-				'"' . str_replace( '"', '""', $faculty ) . '"',
-				'"' . str_replace( '"', '""', $specialist ) . '"',
-				$enrollment_year,
-				$gender,
-				$student->email,
-				'"' . $phoneNumbers . '"',
-				$student->status,
-				'"' . $room . '"',
-				'"' . $dormitory . '"',
-				'"' . $city . '"'
-			);
+		// Apply search query across multiple fields
+		if (isset($filters['search'])) {
+			$search = $filters['search'];
+			$query->where(function ($q) use ($search) {
+				$q->where('name', 'like', "%{$search}%")
+				  ->orWhere('email', 'like', "%{$search}%")
+				  ->orWhereHas('studentProfile', function ($sq) use ($search) {
+					  $sq->where('faculty', 'like', "%{$search}%")
+						 ->orWhere('iin', 'like', "%{$search}%");
+				  })
+				  ->orWhereHas('room', function ($rq) use ($search) {
+					  $rq->where('number', 'like', "%{$search}%");
+				  });
+			});
 		}
 
-		$filename = 'students_export_' . date( 'Y-m-d_H-i-s' ) . '.csv';
+		if ($paginate) {
+			$perPage = $filters['per_page'] ?? 20;
+			return $query->paginate($perPage);
+		}
 
-		return response( $csvContent )
-			->header( 'Content-Type', 'text/csv' )
-			->header( 'Content-Disposition', 'attachment; filename="' . $filename . '"' );
+		return $query;
+	}
+
+	/**
+	 * Get students with filters and pagination
+	 */
+	public function createStudent( array $data, \App\Models\Dormitory $dormitory ) {
+		return DB::transaction(function () use ($data, $dormitory) {
+			// Validate that the student's gender is compatible with the dormitory's gender policy.
+			if (
+				($dormitory->gender === 'male' && $data['gender'] === 'female') ||
+				($dormitory->gender === 'female' && $data['gender'] === 'male')
+			) {
+				throw ValidationException::withMessages(['room_id' => 'The selected dormitory does not accept students of this gender.']);
+			}
+
+			// Prepare data for User and StudentProfile models
+			$userData = $this->prepareUserData($data);
+			$profileData = $this->prepareProfileData($data, false);
+
+			// Handle file uploads, modifying the $profileData array by reference
+			$this->processFileUploads($profileData, null);
+
+			// If a bed is assigned, update the user's room_id
+			if (isset($data['bed_id'])) {
+				$bed = Bed::find($data['bed_id']);
+				if ($bed) {
+					$userData['room_id'] = $bed->room_id;
+				}
+			}
+			$userData['dormitory_id'] = $dormitory->id;
+			// Create the User
+			$student = User::create( $userData );
+
+			// Create the StudentProfile
+			$profileData['user_id'] = $student->id;
+			\App\Models\StudentProfile::create( $profileData );
+
+			// Assign bed if provided
+			$this->processBedAssignment($student, $data['bed_id'] ?? null);
+
+			return $student->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] );
+		});
 	}
 
 	/**
@@ -280,7 +319,7 @@ class StudentService {
 
 		$students = $query->paginate( $perPage );
 
-		return response()->json($students);
+		return $students; // Return Paginator instance
 	}
 
 	/**
@@ -306,7 +345,7 @@ class StudentService {
 
 		$students = $query->paginate( $perPage );
 
-		return response()->json($students);
+		return $students; // Return Paginator instance
 	}
 
 	/**
@@ -322,10 +361,7 @@ class StudentService {
 		$student->save();
 
 
-		return response()->json( [
-			'message' => 'Student access updated successfully',
-			'student' => $student->load( [ 'role', 'room', 'studentProfile' ] )
-		] );
+		return $student->load( [ 'role', 'room', 'studentProfile' ] ); // Return User model
 	}
 
 	/**
@@ -354,7 +390,7 @@ class StudentService {
 			'suspended' => ( clone $query )->where( 'status', 'suspended' )->count(),
 		];
 
-		return response()->json( $stats );
+		return $stats; // Return array
 	}
 
 	/**
@@ -362,9 +398,9 @@ class StudentService {
 	 */
 	private function deleteFiles( array $files ) {
 		foreach ( $files as $file ) {
-			// Ensure the file path is valid and exists before attempting to delete
-			if (Storage::disk('public')->exists($file)) {
-				Storage::disk( 'public' )->delete( $file );
+			// Ensure the file path is valid and exists before attempting to delete from 'local' disk
+			if (Storage::disk('local')->exists($file)) {
+				Storage::disk( 'local' )->delete( $file );
 			}
 		}
 	}
@@ -440,6 +476,11 @@ class StudentService {
 			$userData['role_id'] = Role::where('name', 'student')->first()->id ?? 3;
 			if (isset($data['first_name']) && isset($data['last_name'])) {
 				$userData['name'] = trim(($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? ''));
+			} elseif (isset($data['name'])) {
+				// Split the name into first and last names if not provided separately
+				$nameParts = explode(' ', trim($data['name']), 2);
+				$userData['first_name'] = $nameParts[0];
+				$userData['last_name'] = $nameParts[1] ?? null;
 			}
 		}
 
@@ -488,7 +529,7 @@ class StudentService {
 		if (is_array($profileData['files'])) {
 			foreach ($profileData['files'] as $file) {
 				if ($file instanceof \Illuminate\Http\UploadedFile) {
-					$filePaths[] = $file->store('student_files', 'public');
+					$filePaths[] = $file->store('student_files', 'local');
 				}
 			}
 		}

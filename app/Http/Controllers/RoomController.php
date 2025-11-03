@@ -7,16 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\Room;
 use App\Models\Bed;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class RoomController extends Controller {
-	private array $rules = [ 
-		'number'       => 'required|string|max:10',
-		'floor'        => 'nullable|integer',
-		'notes'        => 'nullable|string',
-		'dormitory_id' => 'required|exists:dormitories,id',
-		'room_type_id' => 'required|exists:room_types,id',
-		'beds'		   => 'nullable|array',
-	];
 
 	public function __construct( private RoomService $service ) {
 	}
@@ -63,11 +56,25 @@ class RoomController extends Controller {
 			}
 		}
 		try {
-			$validated = $request->validate( $this->rules );
+			$rules = [
+				'number'       => [
+					'required', 'string', 'max:10',
+					Rule::unique('rooms')->where('dormitory_id', $request->input('dormitory_id'))
+				],
+				'floor'        => 'nullable|integer',
+				'notes'        => 'nullable|string',
+				'dormitory_id' => 'required|exists:dormitories,id',
+				'room_type_id' => 'required|exists:room_types,id',
+			];
+			$validated = $request->validate($rules);
 		} catch (\Illuminate\Validation\ValidationException $e) {
 			throw $e;
 		}
 
+		// Manually add the 'beds' data to the validated array to pass to the service
+		if ($request->has('beds')) {
+			$validated['beds'] = $request->input('beds');
+		}
 		\Log::info( 'About to call RoomService::createRoom' );
 		$room = $this->service->createRoom( $validated, $user );
 		\Log::info( 'RoomService::createRoom completed', [ 'room_id' => $room->id ?? 'unknown' ] );
@@ -76,7 +83,23 @@ class RoomController extends Controller {
 	}
 
 	public function update( Request $request, $id ) {
-		$validated = $request->validate( $this->rules );
+		$rules = [
+			'number'       => [
+				'required', 'string', 'max:10',
+				Rule::unique('rooms')->where('dormitory_id', $request->input('dormitory_id'))->ignore($id)
+			],
+			'floor'        => 'nullable|integer',
+			'notes'        => 'nullable|string',
+			'dormitory_id' => 'required|exists:dormitories,id',
+			'room_type_id' => 'required|exists:room_types,id',
+		];
+		$validated = $request->validate($rules);
+
+		// Manually add the 'beds' data to the validated array to pass to the service
+		if ($request->has('beds')) {
+			$validated['beds'] = $request->input('beds');
+		}
+
 		$room = $this->service->updateRoom( $validated, $id, Auth::user() );
 		return response()->json($room, 200);
 	}

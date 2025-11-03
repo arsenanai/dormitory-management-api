@@ -10,12 +10,15 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\AdminProfile;
+use App\Models\Message;
+use App\Models\SemesterPayment;
 
 class DevelopmentSeeder extends Seeder {
 	public function run(): void {
 		// Create roles
 		$adminRole = \App\Models\Role::firstOrCreate( [ 'name' => 'admin' ] );
 		$studentRole = \App\Models\Role::firstOrCreate( [ 'name' => 'student' ] );
+		$guestRole = \App\Models\Role::firstOrCreate(['name' => 'guest']);
 
 		// Create Room Types
 		$standardRoomType = RoomType::firstOrCreate( [ 'name' => 'standard' ], [ 'capacity' => 2, 'price' => 150.00 ] );
@@ -43,7 +46,7 @@ class DevelopmentSeeder extends Seeder {
 			[ 'name' => 'Main Dormitory' ],
 			[
 				'address' => '123 Developer Lane',
-				'gender' => 'mixed',
+				'gender' => 'male',
 				'capacity' => 500,
 				'admin_id' => $adminUser->id, // Assign admin directly to the dormitory
 			]
@@ -91,6 +94,7 @@ class DevelopmentSeeder extends Seeder {
 		for ( $i = 1; $i <= 500; $i++ ) {
 			$firstName = $faker->firstName;
 			$lastName = $faker->lastName;
+			$gender = 'male';
 
 			// Assign a bed if available
 			$bed = $availableBeds[ $bedIterator ] ?? null;
@@ -109,7 +113,6 @@ class DevelopmentSeeder extends Seeder {
 				'status' => 'active',
 				'dormitory_id' => $bed ? $bed->room->dormitory_id : null,
 				'room_id' => $bed ? $bed->room_id : null,
-				'phone_numbers' => [ $faker->phoneNumber ],
 			] );
 
 			// Assign bed to student
@@ -129,7 +132,7 @@ class DevelopmentSeeder extends Seeder {
 			];
 			foreach ( $base64Images as $key => $base64Image ) {
 				$filename = 'student_' . $student->id . '_doc_' . ( $key + 1 ) . '.png';
-				$filePaths[] = $this->storeBase64Image( $base64Image, 'student_files', $filename );
+				$filePaths[] = $this->storeBase64Image( $base64Image, 'student_documents', $filename );
 			}
 
 			// Create Student Profile with all fields
@@ -140,12 +143,12 @@ class DevelopmentSeeder extends Seeder {
 				'faculty' => $faker->randomElement( [ 'Engineering', 'Business', 'Medicine', 'Law', 'Arts' ] ),
 				'specialist' => $faker->randomElement( [ 'Computer Science', 'Marketing', 'General Medicine' ] ),
 				'enrollment_year' => $faker->numberBetween( 2020, 2024 ),
-				'gender' => $faker->randomElement( [ 'male', 'female' ] ),
+				'gender' => $gender,
 				'blood_type' => $faker->randomElement( $bloodTypes ),
 				'country' => $faker->country,
 				'region' => $faker->state,
 				'city' => $faker->city,
-				'parent_name' => $faker->name( $student->gender === 'male' ? 'male' : 'female' ),
+				'parent_name' => $faker->name( $gender === 'male' ? 'male' : 'female' ),
 				'parent_phone' => $faker->phoneNumber,
 				'parent_email' => $faker->safeEmail,
 				'emergency_contact_name' => $faker->name,
@@ -158,6 +161,68 @@ class DevelopmentSeeder extends Seeder {
 				'violations' => $faker->optional( 0.1 )->sentence,
 				'files' => $filePaths,
 			] );
+		}
+
+		// Create 10 Guests
+		$guestRooms = Room::where('dormitory_id', $adminDormitory->id)->inRandomOrder()->take(10)->get();
+		foreach ($guestRooms as $guestRoom) {
+			if ($guestRoom) {
+				$guestUser = User::create([
+					'name' => $faker->name,
+					'first_name' => $faker->firstName,
+					'last_name' => $faker->lastName,
+					'email' => $faker->unique()->safeEmail,
+					'password' => Hash::make('password'),
+					'role_id' => $guestRole->id,
+					'status' => 'active',
+					'dormitory_id' => $adminDormitory->id,
+					'room_id' => $guestRoom->id,
+				]);
+	
+				\App\Models\GuestProfile::create([
+					'user_id' => $guestUser->id,
+					'purpose_of_visit' => $faker->sentence,
+					'visit_start_date' => now()->subDays(rand(1, 5)),
+					'visit_end_date' => now()->addDays(rand(2, 10)),
+					'is_approved' => true,
+				]);
+			}
+		}
+
+		// Create 10 Messages from Admin
+		for ($i = 0; $i < 10; $i++) {
+			Message::create([
+				'sender_id' => $adminUser->id,
+				'receiver_id' => null,
+				'recipient_type' => 'dormitory',
+				'dormitory_id' => $adminDormitory->id,
+				'title' => $faker->bs,
+				'content' => $faker->realText(200),
+				'type' => 'announcement',
+				'status' => 'sent',
+				'sent_at' => now(),
+			]);
+		}
+
+		// Create Semester Payments for half of the students
+		$studentsForPayment = User::where('role_id', $studentRole->id)->take(250)->get();
+		$currentSemester = SemesterPayment::getCurrentSemester();
+		list($year, $semesterType) = explode('-', $currentSemester);
+
+		foreach ($studentsForPayment as $student) {
+			SemesterPayment::create([
+				'user_id' => $student->id,
+				'semester' => $currentSemester,
+				'year' => $year,
+				'semester_type' => $semesterType,
+				'due_date' => now()->addDays(30),
+				'amount' => $faker->randomFloat(2, 50000, 150000),
+				'payment_method' => 'kaspi',
+				'payment_status' => 'approved',
+				'payment_approved' => true,
+				'dormitory_access_approved' => true,
+				'payment_date' => now()->subDays(rand(1, 30)),
+			]);
 		}
 
 		$this->command->info( 'Development data seeded successfully!' );

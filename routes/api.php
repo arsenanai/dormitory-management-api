@@ -62,6 +62,9 @@ Route::get( '/debug/room/{id}', function ($id) {
 // Protected routes
 Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
+	// Secure file downloads
+	Route::get('/files/download/{path}', [App\Http\Controllers\FileController::class, 'download'])->where('path', '.*')->name('file.download');
+
 	// Dashboard routes - role-specific access
 	Route::middleware( [ 'role:admin,sudo' ] )->group( function () {
 		Route::get( '/dashboard', [ DashboardController::class, 'index' ] );
@@ -123,12 +126,13 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	} );
 
 	// Message management (admin, sudo, guard, student can access messages)
-	Route::middleware( [ 'role:admin,sudo,guard,student' ] )->group( function () {
+	Route::middleware( [ 'role:admin,sudo,guest,student' ] )->group( function () {
 		Route::get( '/messages', [ MessageController::class, 'index' ] );
 		Route::get( '/messages/unread-count', [ MessageController::class, 'unreadCount' ] );
 		Route::get( '/messages/{id}', [ MessageController::class, 'show' ] );
 		Route::post( '/messages/{id}/read', [ MessageController::class, 'markAsRead' ] );
 		Route::put( '/messages/{id}/mark-read', [ MessageController::class, 'markAsRead' ] );
+		Route::get( '/configurations/dormitory', [ ConfigurationController::class, 'getDormitorySettings' ] );
 	} );
 
 	// Message creation/management (admin, sudo, guard can create/manage messages)
@@ -217,7 +221,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
 	} );
 	// Room type management (sudo and admin)
-	Route::middleware(['role:admin,sudo'])->group(function () {
+	Route::middleware(['role:sudo'])->group(function () {
 		Route::post('/room-types', [RoomTypeController::class, 'store']);
 		Route::put('/room-types/{roomType}', [RoomTypeController::class, 'update']);
 		Route::delete('/room-types/{roomType}', [RoomTypeController::class, 'destroy']);
@@ -255,8 +259,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/configurations/logs', [ ConfigurationController::class, 'getSystemLogs' ] );
 		Route::delete( '/configurations/logs', [ ConfigurationController::class, 'clearSystemLogs' ] );
 
-		// Dormitory settings
-		Route::get( '/configurations/dormitory', [ ConfigurationController::class, 'getDormitorySettings' ] );
+		// Dormitory settings saving
 		Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
 
 	} );

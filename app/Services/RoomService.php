@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Room;
 use App\Models\Bed;
+use Illuminate\Support\Facades\DB;
 
 class RoomService {
 	public function listRooms( array $filters = [], int $perPage = 15, $user = null ) {
@@ -52,13 +53,13 @@ class RoomService {
 	}
 
 	public function createRoom( array $data, $user = null ) {
-		try {
+		return DB::transaction(function () use ($data) {
 			$room = Room::create( $data );
-			$this->syncBeds( $room, $data );
+			if (isset($data['beds'])) {
+				$this->syncBeds( $room, $data );
+			}
 			return $room;
-		} catch (\Exception $e) {
-			throw $e;
-		}
+		});
 	}
 
 	public function findRoom( $id, $admin = null ) {
@@ -71,14 +72,16 @@ class RoomService {
 	}
 
 	public function updateRoom( array $data, $roomId, $user = null ) {
-		// Permission check is already done in findRoom before calling this method
-		$room = Room::with( [ 'beds', 'dormitory', 'roomType' ] )->findOrFail( $roomId );;
-		if ( $room->dormitory->id !== $user->adminDormitory->id )
-			throw new \Exception('unauthorized ' . $room->dormitory->id . ' vs ' . $user->adminDormitory->id);
-		$room->update( $data );
-		$this->syncBeds( $room, $data );
-		$room->refresh()->load( [ 'beds', 'dormitory', 'roomType' ] );
-		return $room;
+		return DB::transaction(function () use ($data, $roomId, $user) {
+			$room = Room::with( [ 'beds', 'dormitory', 'roomType' ] )->findOrFail( $roomId );
+			if ( $user->hasRole('admin') && $room->dormitory->id !== $user->adminDormitory->id )
+				throw new \Exception('unauthorized ' . $room->dormitory->id . ' vs ' . $user->adminDormitory->id);
+			$room->update( $data );
+			if (isset($data['beds'])) {
+				$this->syncBeds( $room, $data );
+			}
+			return $room->refresh()->load( [ 'beds', 'dormitory', 'roomType' ] );
+		});
 	}
 
 	/**

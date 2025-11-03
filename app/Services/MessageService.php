@@ -185,9 +185,13 @@ class MessageService {
 				$q->orWhere( function ($subQ) use ($user) {
 					$subQ->where( 'recipient_type', 'individual' )
 						->where( function ($innerQ) use ($user) {
-							// Use LIKE queries that work with TEXT fields containing JSON
-							$innerQ->where( 'recipient_ids', 'LIKE', '%"' . $user->id . '"%' )
-								->orWhere( 'recipient_ids', 'LIKE', '%' . $user->id . '%' );
+							// Use a more robust JSON query that works for both MySQL and PostgreSQL
+							// Assumes recipient_ids is a JSON array of numbers, e.g., [1, 2, 3]
+							if (config('database.default') === 'pgsql') {
+								$innerQ->whereRaw('recipient_ids::jsonb @> ?', [$user->id]);
+							} else {
+								$innerQ->whereJsonContains('recipient_ids', $user->id);
+							}
 						} );
 				} );
 			} )

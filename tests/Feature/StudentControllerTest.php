@@ -138,7 +138,7 @@ class StudentControllerTest extends TestCase {
 
 	#[Test]
 	public function admin_can_create_new_student(): void {
-		Storage::fake( 'public' );
+		Storage::fake( 'local' );
 
 		$room = Room::where('dormitory_id', $this->dormitory->id)->first();
 		$bed = $room->beds()->create(['bed_number' => 1]);
@@ -182,7 +182,7 @@ class StudentControllerTest extends TestCase {
 
 		$student = User::where('email', 'newstudent@test.com')->first();
 		$this->assertEquals($this->dormitory->id, $student->dormitory_id);
-		Storage::disk('public')->assertExists($student->studentProfile->files[0]);
+		Storage::disk('local')->assertExists($student->studentProfile->files[0]);
 	}
 
 	#[Test]
@@ -203,7 +203,7 @@ class StudentControllerTest extends TestCase {
 
 	#[Test]
 	public function admin_can_update_student_information(): void {
-		Storage::fake('public');
+		Storage::fake('local');
 
 		$updateData = [ 
 			'first_name' => 'Updated',
@@ -225,7 +225,7 @@ class StudentControllerTest extends TestCase {
 			] );
 
 		$this->student->refresh();
-		Storage::disk('public')->assertExists($this->student->studentProfile->files[0]);
+		Storage::disk('local')->assertExists($this->student->studentProfile->files[0]);
 		$this->assertDatabaseHas( 'student_profiles', [ 
 			'user_id'    => $this->student->id,
 			'faculty'    => 'Updated Faculty',
@@ -343,5 +343,38 @@ class StudentControllerTest extends TestCase {
 			'faculty' => 'Updated Faculty',
 			'blood_type' => 'A+'
 		]);
+	}
+
+	#[Test]
+	public function student_cannot_be_assigned_to_dormitory_with_mismatched_gender_policy(): void
+	{
+		Storage::fake('local');
+
+		// Create a male-only dormitory
+		$maleDormitory = Dormitory::factory()->create(['gender' => 'male']);
+		$roomInMaleDorm = Room::factory()->create(['dormitory_id' => $maleDormitory->id]);
+		$bedInMaleDorm = $roomInMaleDorm->beds()->first();
+
+		$femaleStudentData = [
+			'first_name' => 'Jane',
+			'last_name' => 'Doe',
+			'email' => 'female.student@test.com',
+			'password' => 'password123',
+			'password_confirmation' => 'password123',
+			'iin' => '112233445566',
+			'faculty' => 'Arts',
+			'specialist' => 'Design',
+			'enrollment_year' => 2024,
+			'gender' => 'female', // Female student
+			'bed_id' => $bedInMaleDorm->id, // Attempting to assign to a bed in a male-only dorm
+			'dormitory_id' => $maleDormitory->id,
+			'deal_number' => 'DEAL-003',
+			'agree_to_dormitory_rules' => true,
+			'has_meal_plan' => false,
+		];
+
+		$response = $this->actingAs($this->admin, 'sanctum')->postJson('/api/students', $femaleStudentData);
+
+		$response->assertStatus(422)->assertJsonValidationErrors(['room_id']);
 	}
 }

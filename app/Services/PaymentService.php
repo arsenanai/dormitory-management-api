@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Payment;
+use App\Models\SemesterPayment as Payment;
 use App\Models\User;
 use App\Http\Resources\PaymentResource;
 use Illuminate\Support\Facades\Storage;

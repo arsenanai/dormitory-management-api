@@ -119,6 +119,13 @@ class GuestService {
 				->findOrFail( $id );
 			$oldRoomId = $guest->room_id;
 
+			// If first_name or last_name are provided, construct the full 'name'
+			if (isset($data['first_name']) || isset($data['last_name'])) {
+				$firstName = $data['first_name'] ?? $guest->first_name;
+				$lastName = $data['last_name'] ?? $guest->last_name;
+				$data['name'] = trim($firstName . ' ' . $lastName);
+			}
+
 			$guest->update( $data );
 
 			// Update guest profile if needed
@@ -275,13 +282,13 @@ class GuestService {
 		foreach ( $guests as $guest ) {
 			$csvContent .= sprintf(
 				"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
-				$guest->name,
+				$guest->first_name . " " . $guest->last_name,
 				$guest->email,
 				$guest->phone,
 				$guest->room ? $guest->room->number : '',
 				$guest->room && $guest->room->dormitory ? $guest->room->dormitory->name : '',
-				$guest->check_in_date,
-				$guest->check_out_date,
+				$guest->guestProfile->visit_start_date,
+				$guest->guestProfile->visit_end_date,
 				$guest->payment_status,
 				$guest->total_amount,
 				str_replace( [ "\n", "\r" ], ' ', $guest->notes ?? '' )
@@ -289,12 +296,9 @@ class GuestService {
 		}
 
 		$fileName = 'guests_export_' . now()->format( 'Y_m_d_H_i_s' ) . '.csv';
-		$filePath = 'exports/' . $fileName;
 
-		Storage::disk( 'public' )->put( $filePath, $csvContent );
-
-		return response()->download( storage_path( 'app/public/' . $filePath ), $fileName, [ 
-			'Content-Type' => 'text/csv'
-		] );
+		return response($csvContent)
+			->header('Content-Type', 'text/csv')
+			->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
 	}
 }
