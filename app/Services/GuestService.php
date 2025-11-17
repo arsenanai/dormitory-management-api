@@ -63,9 +63,11 @@ class GuestService {
 
 			// Only pass valid User fields
 			$userData = [ 
-				'name'          => $data['name'],
+				'first_name'    => $data['first_name'],
+				'last_name'     => $data['last_name'],
+				'name'          => $data['first_name'] . ' ' . $data['last_name'],
 				'email'         => $data['email'] ?? null,
-				'phone_numbers' => $data['phone'] ? [ $data['phone'] ] : [],
+				'phone_numbers' => isset($data['phone']) ? [ $data['phone'] ] : [],
 				'room_id'       => $data['room_id'] ?? null,
 				'role_id'       => $guestRoleId,
 				'status'        => 'active',
@@ -77,12 +79,20 @@ class GuestService {
 
 			$guest = User::create( $userData );
 
+			$dailyRate = $data['total_amount'] ?? 0;
+			if (isset($data['room_id'])) {
+				$room = Room::with('roomType')->find($data['room_id']);
+				if ($room && $room->roomType) {
+					$dailyRate = $room->roomType->daily_rate;
+				}
+			}
+
 			// Create guest profile with profile-specific fields
 			GuestProfile::create( [ 
 				'user_id'                 => $guest->id,
 				'visit_start_date'        => $data['check_in_date'] ?? null,
 				'visit_end_date'          => $data['check_out_date'] ?? null,
-				'daily_rate'              => $data['total_amount'] ?? 0,
+				'daily_rate'              => $dailyRate,
 				'purpose_of_visit'        => $data['notes'] ?? null,
 				'host_name'               => $data['host_name'] ?? null,
 				'host_contact'            => $data['host_contact'] ?? null,
@@ -300,5 +310,25 @@ class GuestService {
 		return response($csvContent)
 			->header('Content-Type', 'text/csv')
 			->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+	}
+
+	public function listAll(): \Illuminate\Database\Eloquent\Collection {
+		$authUser = auth()->user();
+		if (!$authUser) {
+			return collect();
+		}
+		$query = User::select('id', 'name', 'email')
+			->where('role_id', Role::where('name', 'guest')->firstOrFail()->id);
+
+		// Sudo can see all students. Admin can only see students from their assigned dormitory.
+		if ($authUser->hasRole('admin') && !$authUser->hasRole('sudo') && $authUser->adminDormitory) {
+			$query->where('dormitory_id', $authUser->adminDormitory->id);
+		} elseif ($authUser->hasRole('admin') && !$authUser->hasRole('sudo')) {
+			// Admin with no dormitory assigned sees no students.
+			return collect();
+		}
+		return $query
+			->orderBy('name', 'asc')
+			->get();
 	}
 }

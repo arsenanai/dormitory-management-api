@@ -34,6 +34,7 @@ Route::get( '/blood-types', [ BloodTypeController::class, 'index' ] );
 // Public room type access (for forms)
 Route::get( '/room-types', [ RoomTypeController::class, 'index' ] );
 Route::get( '/room-types/{roomType}', [ RoomTypeController::class, 'show' ] );
+Route::get('/configurations/public', [ConfigurationController::class, 'getPublicSettings']);
 
 // Debug route to test API functionality
 Route::post( '/debug/test', function () {
@@ -132,7 +133,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/messages/{id}', [ MessageController::class, 'show' ] );
 		Route::post( '/messages/{id}/read', [ MessageController::class, 'markAsRead' ] );
 		Route::put( '/messages/{id}/mark-read', [ MessageController::class, 'markAsRead' ] );
-		Route::get( '/configurations/dormitory', [ ConfigurationController::class, 'getDormitorySettings' ] );
 	} );
 
 	// Message creation/management (admin, sudo, guard can create/manage messages)
@@ -179,6 +179,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/guests/available-rooms', [ GuestController::class, 'availableRooms' ] );
 		Route::post( '/guests/{id}/check-out', [ GuestController::class, 'checkOut' ] );
 		Route::apiResource( 'guests', GuestController::class);
+		Route::get( 'guests-list', [ GuestController::class, 'listAll' ] );
 
 		// Payment management
 		Route::get( '/payments/export', [ PaymentController::class, 'export' ] );
@@ -196,6 +197,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
 		// Student management (admins and sudo can manage students)
 		Route::get( '/students/export', [ StudentController::class, 'export' ] );
+		Route::get( '/students-list', [ StudentController::class, 'listAll' ] );
 		Route::apiResource( 'students', StudentController::class);
 		Route::patch( '/students/{id}/approve', [ StudentController::class, 'approve' ] );
 
@@ -215,9 +217,8 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
 		// Kaspi integration settings (admin and sudo can manage)
 		Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
-        Route::put('/configurations/kaspi', [ConfigurationController::class, 'updateKaspiSettings']);
-        Route::get('/configurations/currency', [ConfigurationController::class, 'getCurrencySetting']);
-        Route::put('/configurations/currency', [ConfigurationController::class, 'updateCurrencySetting']);
+		Route::put('/configurations/kaspi', [ConfigurationController::class, 'updateKaspiSettings']);
+		Route::put('/configurations/currency', [ConfigurationController::class, 'updateCurrencySetting']);
 
 	} );
 	// Room type management (sudo and admin)
@@ -261,6 +262,7 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
 		// Dormitory settings saving
 		Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
+		Route::put( '/configurations/dormitory-rules', [ ConfigurationController::class, 'updateDormitoryRules' ] );
 
 	} );
 

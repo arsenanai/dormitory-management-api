@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Role;
+use App\Models\Payment;use App\Models\Role;
 use App\Models\User;
-use App\Models\SemesterPayment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,14 +33,10 @@ class PaymentControllerTest extends TestCase {
 
 	#[Test]
 	public function admin_can_view_payments() {
-		$payment = SemesterPayment::factory()->create( [ 
+		Payment::factory()->create( [ 
 			'user_id'          => $this->student->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
 			'amount'           => 50000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+			'deal_number'      => 'DEAL-123',
 		] );
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
@@ -54,8 +49,8 @@ class PaymentControllerTest extends TestCase {
 						'id',
 						'userId',
 						'amount',
-						'paymentStatus',
-						'paymentDate',
+						'dealNumber',
+						'dealDate',
 						'user'
 					]
 				]
@@ -68,19 +63,13 @@ class PaymentControllerTest extends TestCase {
 		$receiptFile = UploadedFile::fake()->create( 'receipt.pdf', 1024 );
 
 		$paymentData = [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
-			'amount'           => 50000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
-			'contract_number'  => 'CONTRACT-2024-001',
-			'contract_date'    => '2024-08-15',
-			'payment_date'     => '2024-09-01',
-			'payment_method'   => 'bank_transfer',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
+			'user_id'       => $this->student->id,
+			'amount'        => 50000,
+			'deal_number'   => 'DEAL-2024-001',
+			'deal_date'     => '2024-08-15',
+			'date_from'     => '2024-09-01',
+			'date_to'       => '2025-01-31',
+			'payment_check' => $receiptFile,
 		];
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
@@ -88,34 +77,28 @@ class PaymentControllerTest extends TestCase {
 
 		$response->assertStatus( 201 )
 			->assertJsonFragment( [ 
-				'amount'          => '50000.00',
-				'contract_number' => 'CONTRACT-2024-001',
-				'payment_status'  => 'approved'
+				'amount'      => '50000.00',
+				'deal_number' => 'DEAL-2024-001',
 			] );
 
-		$this->assertDatabaseHas( 'semester_payments', [ 
-			'user_id'  => $this->student->id,
-			'amount'   => 50000,
-			'semester' => '2025-fall',
+		$this->assertDatabaseHas( 'payments', [ 
+			'user_id'     => $this->student->id,
+			'amount'      => 50000,
+			'deal_number' => 'DEAL-2024-001',
 		] );
 	}
 
 	#[Test]
 	public function admin_can_update_payment() {
-		$payment = SemesterPayment::factory()->create( [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
-			'amount'           => 50000,
-			'payment_approved' => false,
-			'payment_status'   => 'pending',
+		$payment = Payment::factory()->create( [ 
+			'user_id'     => $this->student->id,
+			'amount'      => 50000,
+			'deal_number' => 'OLD-DEAL',
 		] );
 
 		$updateData = [ 
-			'amount'           => 60000,
-			'payment_status'   => 'approved',
-			'payment_approved' => true,
+			'amount'      => 60000,
+			'deal_number' => 'NEW-DEAL',
 		];
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
@@ -123,52 +106,36 @@ class PaymentControllerTest extends TestCase {
 
 		$response->assertStatus( 200 )
 			->assertJsonFragment( [ 
-				'amount'           => '60000.00',
-				'payment_status'   => 'approved',
-				'payment_approved' => true,
+				'amount'      => '60000.00',
+				'deal_number' => 'NEW-DEAL',
 			] );
 	}
 
 	#[Test]
 	public function admin_can_delete_payment() {
-		$payment = SemesterPayment::factory()->create( [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
-			'amount'           => 50000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+		$payment = Payment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'amount'  => 50000,
 		] );
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
 			->deleteJson( "/api/payments/{$payment->id}" );
 
 		$response->assertStatus( 200 );
-		$this->assertDatabaseMissing( 'semester_payments', [ 'id' => $payment->id ] );
+		$this->assertDatabaseMissing( 'payments', [ 'id' => $payment->id ] );
 	}
 
 	#[Test]
 	public function payments_can_be_filtered_by_user() {
 		$otherStudent = User::factory()->create( [ 'role_id' => Role::where( 'name', 'student' )->first()->id ] );
 
-		SemesterPayment::factory()->create( [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
-			'amount'           => 50000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+		Payment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'amount'  => 50000,
 		] );
-		SemesterPayment::factory()->create( [ 
-			'user_id'          => $otherStudent->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
-			'amount'           => 50000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+		Payment::factory()->create( [ 
+			'user_id' => $otherStudent->id,
+			'amount'  => 50000,
 		] );
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
@@ -180,35 +147,19 @@ class PaymentControllerTest extends TestCase {
 
 	#[Test]
 	public function admin_can_export_payments() {
-		// Create payments for different semesters to avoid unique constraint violation
-		SemesterPayment::factory()->create( [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2025-fall',
-			'year'             => 2025,
-			'semester_type'    => 'fall',
-			'amount'           => 50000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+		Payment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'amount'  => 50000,
 		] );
 
-		SemesterPayment::factory()->create( [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2025-spring',
-			'year'             => 2025,
-			'semester_type'    => 'spring',
-			'amount'           => 45000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+		Payment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'amount'  => 45000,
 		] );
 
-		SemesterPayment::factory()->create( [ 
-			'user_id'          => $this->student->id,
-			'semester'         => '2024-fall',
-			'year'             => 2024,
-			'semester_type'    => 'fall',
-			'amount'           => 48000,
-			'payment_approved' => true,
-			'payment_status'   => 'approved',
+		Payment::factory()->create( [ 
+			'user_id' => $this->student->id,
+			'amount'  => 48000,
 		] );
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
@@ -229,15 +180,15 @@ class PaymentControllerTest extends TestCase {
 	#[Test]
 	public function validation_errors_for_invalid_payment_data() {
 		$invalidData = [ 
-			'user_id'       => 999999, // Non-existent user
-			'amount'        => -100, // Negative amount
-			'contract_date' => 'invalid-date',
+			'user_id'   => 999999, // Non-existent user
+			'amount'    => -100, // Negative amount
+			'deal_date' => 'invalid-date',
 		];
 
 		$response = $this->actingAs( $this->admin, 'sanctum' )
 			->postJson( '/api/payments', $invalidData );
 
 		$response->assertStatus( 422 )
-			->assertJsonValidationErrors( [ 'user_id', 'amount', 'contract_date' ] );
+			->assertJsonValidationErrors( [ 'user_id', 'amount', 'deal_date' ] );
 	}
 }

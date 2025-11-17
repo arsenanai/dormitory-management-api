@@ -4,11 +4,14 @@ namespace App\Services;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\StudentProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Bed;
+use App\Models\Dormitory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class StudentService {
@@ -32,7 +35,7 @@ class StudentService {
 			// If a new bed/room is being assigned, validate gender compatibility with the new dormitory.
 			if (isset($data['bed_id'])) {
 				$newBed = Bed::with('room.dormitory')->find($data['bed_id']);
-				if ($newBed) {
+				if ($newBed && $newBed->room) {
 					$newDormitory = $newBed->room->dormitory;
 					$studentGender = $data['gender'] ?? $student->studentProfile->gender;
 					if (
@@ -45,7 +48,7 @@ class StudentService {
 			}
 
 			// Handle bed assignment and get the new room_id if it changes
-			$newRoomId = $this->processBedAssignment($student, $data['bed_id'] ?? null);
+			$newRoomId = $this->processBedAssignment($student, $data['bed_id'] ?? null, $authUser->hasRole('sudo'));
 			if ($newRoomId !== false) { // `false` indicates no change
 				$data['room_id'] = $newRoomId;
 			}
@@ -55,9 +58,14 @@ class StudentService {
 			$userData['dormitory_id'] = $authUser->adminDormitory->id;
 			$profileData = $this->prepareProfileData($data, true);
 
-			// Only process file uploads if new files are actually included in the request.
-			if (isset($data['files'])) {
-				$this->processFileUploads($profileData, $student->studentProfile);
+			// Only process file uploads if new files are included in the student_profile.
+			if (isset($data['student_profile']['files'])) {
+				Log::info('StudentService: Processing file uploads.', $data['student_profile']['files']);
+				// Process files and get the final array of paths. This must be done
+				// before the main profile update to ensure the correct paths are saved.
+				$processedFilePaths = $this->processFileUploads($data['student_profile'], $student->studentProfile);
+				// Explicitly set the processed files array on the profile data.
+				$profileData['files'] = $processedFilePaths;
 			}
 
 			// Update the User model with user-specific data.
@@ -124,6 +132,7 @@ class StudentService {
 			$student->studentBed->save();
 		}
 
+		$student->studentProfile->delete();
 		$student->delete();
 		return true; // Return boolean for success
 	}
@@ -252,11 +261,14 @@ class StudentService {
 	 * Get students with filters and pagination
 	 */
 	public function createStudent( array $data, \App\Models\Dormitory $dormitory ) {
+		\Log::info('StudentService: createStudent method started.', ['data_keys' => array_keys($data), 'has_files' => isset($data['files'])]);
+
 		return DB::transaction(function () use ($data, $dormitory) {
 			// Validate that the student's gender is compatible with the dormitory's gender policy.
+			$gender = $data['gender'] ?? null;
 			if (
-				($dormitory->gender === 'male' && $data['gender'] === 'female') ||
-				($dormitory->gender === 'female' && $data['gender'] === 'male')
+				($dormitory->gender === 'male' && $gender === 'female') ||
+				($dormitory->gender === 'female' && $gender === 'male')
 			) {
 				throw ValidationException::withMessages(['room_id' => 'The selected dormitory does not accept students of this gender.']);
 			}
@@ -264,27 +276,32 @@ class StudentService {
 			// Prepare data for User and StudentProfile models
 			$userData = $this->prepareUserData($data);
 			$profileData = $this->prepareProfileData($data, false);
-
-			// Handle file uploads, modifying the $profileData array by reference
-			$this->processFileUploads($profileData, null);
-
-			// If a bed is assigned, update the user's room_id
+			
+			// The 'files' array is already validated and part of $data['student_profile'].
+			// We just need to store them and get their paths.
+			if (isset($profileData['files']) && is_array($profileData['files'])) {
+				$storedFilePaths = $this->storeNewFiles($profileData['files']);
+				$profileData['files'] = $storedFilePaths;
+			}
+			// If a bed is assigned, update the user's room_id and dormitory_id
 			if (isset($data['bed_id'])) {
-				$bed = Bed::find($data['bed_id']);
+				$bed = Bed::with('room')->find($data['bed_id']);
 				if ($bed) {
 					$userData['room_id'] = $bed->room_id;
+					$userData['dormitory_id'] = $bed->room->dormitory_id;
 				}
+			} else {
+				$userData['dormitory_id'] = $dormitory->id;
 			}
-			$userData['dormitory_id'] = $dormitory->id;
 			// Create the User
 			$student = User::create( $userData );
 
 			// Create the StudentProfile
 			$profileData['user_id'] = $student->id;
-			\App\Models\StudentProfile::create( $profileData );
+			StudentProfile::create( $profileData );
 
 			// Assign bed if provided
-			$this->processBedAssignment($student, $data['bed_id'] ?? null);
+			$this->processBedAssignment($student, $data['bed_id'] ?? null, false);
 
 			return $student->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] );
 		});
@@ -398,8 +415,8 @@ class StudentService {
 	 */
 	private function deleteFiles( array $files ) {
 		foreach ( $files as $file ) {
-			// Ensure the file path is valid and exists before attempting to delete from 'local' disk
-			if (Storage::disk('local')->exists($file)) {
+			// Ensure the file path is a valid, non-empty string and exists before attempting to delete.
+			if (is_string($file) && !empty($file) && Storage::disk('local')->exists($file)) {
 				Storage::disk( 'local' )->delete( $file );
 			}
 		}
@@ -411,9 +428,10 @@ class StudentService {
 	 * @param User $student The student user instance.
 	 * @param int|null $newBedId The ID of the new bed, or null to un-assign.
 	 * @return int|null|false Returns the new room_id on change, null if unassigned, or false if no change occurred.
+	 * @param bool $isSudo
 	 * @throws ValidationException
 	 */
-	private function processBedAssignment(User $student, ?int $newBedId) {
+	private function processBedAssignment(User $student, ?int $newBedId, bool $isSudo = false) {
 		$oldBed = $student->studentBed;
 		$oldBedId = $oldBed->id ?? null;
 
@@ -438,7 +456,7 @@ class StudentService {
 			if ($newBed->reserved_for_staff) {
 				throw ValidationException::withMessages(['bed_id' => 'This bed is reserved for staff.']);
 			}
-			if ($newBed->is_occupied && $newBed->user_id !== $student->id) {
+			if ($newBed->is_occupied && $newBed->user_id !== $student->id && !$isSudo) {
 				throw ValidationException::withMessages(['bed_id' => 'Selected bed is already occupied.']);
 			}
 
@@ -475,7 +493,7 @@ class StudentService {
 			$userData['status'] = 'pending';
 			$userData['role_id'] = Role::where('name', 'student')->first()->id ?? 3;
 			if (isset($data['first_name']) && isset($data['last_name'])) {
-				$userData['name'] = trim(($userData['first_name'] ?? '') . ' ' . ($userData['last_name'] ?? ''));
+				$userData['name'] = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
 			} elseif (isset($data['name'])) {
 				// Split the name into first and last names if not provided separately
 				$nameParts = explode(' ', trim($data['name']), 2);
@@ -492,7 +510,7 @@ class StudentService {
 	 * Prepares the data array for the StudentProfile.
 	 */
 	private function prepareProfileData(array $data, bool $isUpdate): array {
-		$profileFillable = (new \App\Models\StudentProfile())->getFillable();
+		$profileFillable = (new StudentProfile())->getFillable();
 		// Prioritize the nested student_profile object if it exists, otherwise use the flat data array.
 		$sourceData = $data['student_profile'] ?? $data;
 		$profileData = array_intersect_key($sourceData, array_flip($profileFillable));
@@ -518,21 +536,101 @@ class StudentService {
 	/**
 	 * Handles file uploads and deletion for a StudentProfile.
 	 */
-	private function processFileUploads(array &$profileData, ?\App\Models\StudentProfile $profile): void {
-		if (!isset($profileData['files'])) return;
+	private function processFileUploads(array $data, ?StudentProfile $profile): array {
+		$incomingFiles = $data['files'] ?? null;
 
-		if ($profile && !empty($profile->files)) {
-			$this->deleteFiles(is_array($profile->files) ? $profile->files : []);
+		// If no 'files' key is in the request, assume no changes are being made to files.
+		if (!is_array($incomingFiles)) {
+			\Log::info('StudentService: No files found in profile data for processing.');
+			return $profile ? ($profile->files ?? []) : [];
 		}
 
-		$filePaths = [];
-		if (is_array($profileData['files'])) {
-			foreach ($profileData['files'] as $file) {
-				if ($file instanceof \Illuminate\Http\UploadedFile) {
-					$filePaths[] = $file->store('student_files', 'local');
+		// Start with the existing file paths. This handles "unchanged" files by default.
+		$filePaths = ($profile && is_array($profile->files)) ? $profile->files : array_fill(0, 4, null);
+
+		foreach ($incomingFiles as $index => $file) {
+			$oldFile = $filePaths[$index] ?? null;
+
+			if ($file instanceof \Illuminate\Http\UploadedFile) {
+				// New file uploaded: delete the old one and store the new one.
+				if ($oldFile && Storage::disk('local')->exists($oldFile)) {
+					Storage::disk('local')->delete($oldFile);
 				}
+				$filePaths[$index] = $this->storeStudentFile($file);
+			} elseif (is_string($file) && !empty($file)) {
+				// An existing file path was sent back, indicating "no change".
+				$filePaths[$index] = $file;
+			} elseif ($file === null || $file === '') {
+				// File marked for removal: delete the old file and set path to null.
+				if ($oldFile && Storage::disk('local')->exists($oldFile)) {
+					Storage::disk('local')->delete($oldFile);
+				}
+				$filePaths[$index] = null;
 			}
 		}
-		$profileData['files'] = $filePaths;
+		// Ensure the array has 4 elements, preserving order.
+		return array_replace(array_fill(0, 4, null), $filePaths);
+	}
+
+	/**
+	 * Stores an array of new files and returns their paths.
+	 * This is used during student creation.
+	 *
+	 * @param array $files The array of files from the request.
+	 * @return array The array of stored file paths, preserving keys.
+	 */
+	private function storeNewFiles(array $files): array {
+		$storedPaths = array_fill(0, 4, null); // Initialize a 4-element array with nulls.
+		foreach ($files as $index => $file) {
+			// Ensure the index is valid and the file is an uploaded file instance.
+			if (is_int($index) && $index >= 0 && $index < 4 && $file instanceof \Illuminate\Http\UploadedFile) {
+				$storedPaths[$index] = $this->storeStudentFile($file);
+			}
+		}
+		// The array is already in the correct 4-element format.
+		return $storedPaths;
+	}
+
+	public function listAllStudents(): \Illuminate\Database\Eloquent\Collection {
+		$authUser = auth()->user();
+		if (!$authUser) {
+			return collect();
+		}
+		$query = User::select('id', 'name', 'email')
+			->where('role_id', Role::where('name', 'student')->firstOrFail()->id);
+
+		// Sudo can see all students. Admin can only see students from their assigned dormitory.
+		if ($authUser->hasRole('admin') && !$authUser->hasRole('sudo') && $authUser->adminDormitory) {
+			$query->where('dormitory_id', $authUser->adminDormitory->id);
+		} elseif ($authUser->hasRole('admin') && !$authUser->hasRole('sudo')) {
+			// Admin with no dormitory assigned sees no students.
+			return collect();
+		}
+		return $query
+			->orderBy('name', 'asc')
+			->get();
+	}
+
+	/**
+	 * Stores a student file, preserving the original name if possible.
+	 * If a file with the original name exists, it generates a short random name.
+	 *
+	 * @param \Illuminate\Http\UploadedFile $file The file to store.
+	 * @return string The path to the stored file.
+	 */
+	private function storeStudentFile(\Illuminate\Http\UploadedFile $file): string
+	{
+		$originalFilename = $file->getClientOriginalName();
+		$storagePath = 'student_files/' . $originalFilename;
+
+		if (Storage::disk('local')->exists($storagePath)) {
+			// File exists, generate a shorter random name.
+			$extension = $file->getClientOriginalExtension();
+			$filename = \Illuminate\Support\Str::random(8) . '.' . $extension;
+		} else {
+			// File does not exist, use the original name.
+			$filename = $originalFilename;
+		}
+		return $file->storeAs('student_files', $filename, 'local');
 	}
 }

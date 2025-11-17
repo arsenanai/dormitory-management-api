@@ -12,12 +12,12 @@ use App\Models\AdminProfile;
 
 class User extends Authenticatable {
 	/** @use HasFactory<\Database\Factories\UserFactory> */
-	use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
+	use HasFactory, Notifiable, HasApiTokens;
 
 	protected $fillable = [
 		'iin', 'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'room_id', 'dormitory_id', 'password', 'status', 'role_id', 'remember_token'
 	];
-
+	
 	protected $casts = [
 		'id'                => 'int',
 		'email_verified_at' => 'datetime',
@@ -30,16 +30,29 @@ class User extends Authenticatable {
 		'remember_token',
 	];
 
-	protected $with = [
-		'studentProfile'
-	];
+	protected $with = [];
+
+	/**
+	 * Get the user's phone numbers.
+	 *
+	 * @param  string|null  $value
+	 * @return array
+	 */
+	public function getPhoneNumbersAttribute(?string $value): array
+	{
+		if (is_null($value)) {
+			return [];
+		}
+		$decoded = json_decode($value, true);
+		return is_array($decoded) ? $decoded : [];
+	}
 
 	public function role() {
 		return $this->belongsTo( Role::class);
 	}
 
 	public function hasRole( string $roleName ): bool {
-		return $this->role && $this->role->name === $roleName;
+		return $this->role !== null && $this->role->name === $roleName;
 	}
 
 	public function adminDormitory() {
@@ -47,7 +60,7 @@ class User extends Authenticatable {
 	}
 
 	public function payments() {
-		return $this->hasMany( \App\Models\SemesterPayment::class, 'user_id' );
+		return $this->hasMany( Payment::class, 'user_id' );
 	}
 
 	public function room() {
@@ -75,16 +88,18 @@ class User extends Authenticatable {
 	}
 
 	public function semesterPayments() {
-		return $this->hasMany( SemesterPayment::class);
+		// This is now an alias for payments().
+		return $this->hasMany( Payment::class);
 	}
 
 	public function currentSemesterPayment() {
-		return $this->hasOne( SemesterPayment::class)
-			->where( 'semester', SemesterPayment::getCurrentSemester() );
+		// This logic is deprecated as the new Payment model doesn't use semesters.
+		// You might want to get the latest payment instead.
+		return $this->hasOne( Payment::class)->latestOfMany();
 	}
 
 	public function canAccessDormitory() {
-		if ( $this->hasRole( 'student' ) ) {
+		if ( $this->hasRole( 'student' ) ) { // This logic needs to be re-evaluated
 			$currentPayment = $this->currentSemesterPayment;
 			return $currentPayment && $currentPayment->canAccessDormitory();
 		}

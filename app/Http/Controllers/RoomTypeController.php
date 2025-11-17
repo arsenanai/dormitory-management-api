@@ -8,13 +8,14 @@ use Illuminate\Support\Facades\Storage;
 
 class RoomTypeController extends Controller {
 	private $rules = [ 
-		'name'     => 'sometimes|string|max:255',
-		'capacity' => 'sometimes|integer|min:1',
-		'price'    => 'sometimes|numeric|min:0',
-		'minimap'  => 'sometimes|image',
-		'beds'     => 'sometimes|json',
-		'photos'   => 'sometimes|array',
-		'photos.*' => 'image',
+		'name'          => 'sometimes|string|max:255',
+		'capacity'      => 'sometimes|integer|min:1',
+		'daily_rate'    => 'sometimes|numeric|min:0',
+		'semester_rate' => 'sometimes|numeric|min:0',
+		'minimap'       => 'sometimes|image',
+		'beds'          => 'sometimes|json',
+		'photos'        => 'sometimes|array',
+		'photos.*'      => 'image',
 	];
 
 	public function __construct( private RoomTypeService $service ) {
@@ -38,9 +39,10 @@ class RoomTypeController extends Controller {
 	public function store( Request $request ) {
 		// For creation, name, capacity, and price are required
 		$rules = $this->rules;
-		$rules['name'] = 'required|string|max:255';
-		$rules['capacity'] = 'required|integer|min:1';
-		$rules['price'] = 'required|numeric|min:0';
+		$rules['name']          = 'required|string|max:255';
+		$rules['capacity']      = 'required|integer|min:1';
+		$rules['daily_rate']    = 'required|numeric|min:0';
+		$rules['semester_rate'] = 'required|numeric|min:0';
 
 		$validated = $request->validate( $rules );
 

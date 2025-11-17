@@ -13,7 +13,7 @@ class RoomTypeSeederTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed();
+        $this->seed(\Database\Seeders\RoomTypeSeeder::class);
     }
 
     public function test_only_standard_and_lux_room_types_are_seeded()
@@ -40,9 +40,11 @@ class RoomTypeSeederTest extends TestCase
         
         $this->assertNotNull($standardRoomType, 'Standard room type should exist');
         $this->assertEquals('standard', $standardRoomType->name);
+        $this->assertEquals(2, $standardRoomType->capacity);
         $this->assertNotNull($standardRoomType->beds, 'Standard room type should have beds configuration');
+        $this->assertEquals('10000.00', $standardRoomType->daily_rate);
+        $this->assertEquals('300000.00', $standardRoomType->semester_rate);
         
-        // Check that beds is an array with expected structure
         $beds = is_string($standardRoomType->beds) ? json_decode($standardRoomType->beds, true) : $standardRoomType->beds;
         $this->assertIsArray($beds, 'Beds should be an array');
         $this->assertGreaterThan(0, count($beds), 'Should have at least one bed');
@@ -54,9 +56,11 @@ class RoomTypeSeederTest extends TestCase
         
         $this->assertNotNull($luxRoomType, 'Lux room type should exist');
         $this->assertEquals('lux', $luxRoomType->name);
+        $this->assertEquals(1, $luxRoomType->capacity);
         $this->assertNotNull($luxRoomType->beds, 'Lux room type should have beds configuration');
+        $this->assertEquals('20000.00', $luxRoomType->daily_rate);
+        $this->assertEquals('500000.00', $luxRoomType->semester_rate);
         
-        // Check that beds is an array with expected structure
         $beds = is_string($luxRoomType->beds) ? json_decode($luxRoomType->beds, true) : $luxRoomType->beds;
         $this->assertIsArray($beds, 'Beds should be an array');
         $this->assertGreaterThan(0, count($beds), 'Should have at least one bed');
@@ -75,6 +79,8 @@ class RoomTypeSeederTest extends TestCase
         
         foreach ($roomTypes as $roomType) {
             $this->assertNotNull($roomType->name, 'Room type should have a name');
+            $this->assertNotNull($roomType->daily_rate, 'Room type should have a daily_rate');
+            $this->assertNotNull($roomType->semester_rate, 'Room type should have a semester_rate');
             $this->assertNotNull($roomType->created_at, 'Room type should have created_at timestamp');
             $this->assertNotNull($roomType->updated_at, 'Room type should have updated_at timestamp');
         }

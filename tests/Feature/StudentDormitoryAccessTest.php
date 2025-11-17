@@ -21,7 +21,7 @@ class StudentDormitoryAccessTest extends TestCase {
 	}
 
 	#[Test]
-	public function student_without_current_semester_payment_cannot_access_dormitory() {
+	public function student_without_current_payment_cannot_access_dormitory() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
 
@@ -151,7 +151,7 @@ class StudentDormitoryAccessTest extends TestCase {
 	}
 
 	#[Test]
-	public function student_with_old_semester_payment_cannot_access_dormitory() {
+	public function student_with_old_payment_cannot_access_dormitory() {
 		// Create a student role
 		$studentRole = Role::where( 'name', 'student' )->first();
 

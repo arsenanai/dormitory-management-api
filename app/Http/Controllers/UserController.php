@@ -18,31 +18,13 @@ use App\Models\Configuration;
 use App\Services\UserAuthService;
 use App\Services\IINValidationService;
 use App\Services\StudentService;
+use App\Http\Resources\StudentResource;
+use App\Http\Requests\StudentRegistrationRequest;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller {
 	protected $authService;
-
-	private array $studentRegisterRules = [ 
-		'iin'                      => 'required|digits:12|unique:users,iin|unique:student_profiles,iin',
-		'name'                     => 'required|string|max:255',
-		'faculty'                  => 'required|string|max:255',
-		'specialist'               => 'required|string|max:255',
-		'enrollment_year'          => 'required|integer|digits:4',
-		'gender'                   => 'required|in:male,female',
-		'email'                    => 'required|email|max:255|unique:users,email',
-		'phone_numbers'            => 'nullable|array',
-		'phone_numbers.*'          => 'string',
-		'room_id'                  => 'required|exists:rooms,id',
-		'password'                 => 'required|string|min:6|confirmed',
-		'deal_number'              => 'nullable|string|max:255',
-		'city_id'                  => 'nullable|integer|exists:cities,id',
-		'country'                  => 'nullable|string|max:255',
-		'region'                   => 'nullable|string|max:255',
-		'city'                     => 'nullable|string|max:255',
-		'files'                    => 'nullable|array|max:4',
-		'files.*'                  => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-		'agree_to_dormitory_rules' => 'required|accepted',
-	];
 
 	private array $adminRegisterRules = [ 
 		'name'     => 'required|string|max:255',
@@ -111,11 +93,21 @@ class UserController extends Controller {
 	}
 
 	public function register( Request $request ) {
-		// Debug logging
-		\Log::info( 'Registration attempt', [ 
-			'user_type' => $request->input( 'user_type', 'student' ),
-			'data'      => $request->all()
-		] );
+		if( isset( $request->student_profile ) 
+			&& isset( $request->student_profile['files'] ) 
+		    && is_array( $request->student_profile['files'] ) ) {
+			foreach($request->student_profile['files'] as $index => $file) {
+				if( isset( $file ) && $file instanceof UploadedFile ) {
+					Log::info('Debugging student file ' . $index, [
+						'original_name' => $file->getClientOriginalName(),
+						'extension' => $file->getClientOriginalExtension(),
+						'mime_type' => $file->getMimeType(),
+						'size' => $file->getSize(),
+						'is_valid' => $file->isValid(),
+					]);
+				}
+			}
+		}
 
 		$userType = $request->input( 'user_type', 'student' );
 		if ( $userType === 'admin' ) {
@@ -123,132 +115,74 @@ class UserController extends Controller {
 		} elseif ( $userType === 'guest' ) {
 			$rules = $this->guestRegisterRules;
 		} else {
-			$rules = $this->studentRegisterRules;
-			// Validate before passing to service
-			$validated = $request->validate($rules);
+			// Handle nested student_profile payload by merging it into the root request
+			// $data = $request->all();
+			// if (isset($data['student_profile']) && is_array($data['student_profile'] ) ) {
+			// 	$request->merge($data['student_profile']);
+			// }
 
-			$dormitory = \App\Models\Dormitory::whereHas('rooms', function($q) use ($request) {
-				// The room_id is now validated and present
-				$q->where('id', $request->room_id);
-			})->first();
+			// Manually construct the 'name' field from first_name and last_name before validation.
+			if ($request->has('first_name') && $request->has('last_name') && !$request->has('name')) {
+				$request->merge(['name' => trim($request->input('first_name') . ' ' . $request->input('last_name'))]);
+			}
+
+			$validatedData = $request->validate([
+				'bed_id'                                   => 'required|integer|exists:beds,id',
+				'dormitory_id'                             => 'required|integer|exists:dormitories,id',
+				'email'                                    => 'required|email|max:255|unique:users,email',
+				'first_name'                               => 'required|string|max:255',
+				'last_name'                                => 'required|string|max:255',
+				'name'                                     => 'required|string|max:255',
+				'password'                                 => 'required|string|min:6|confirmed',
+				'phone_numbers.*'                          => 'string',
+				'phone_numbers'                            => 'nullable|array',
+				'room_id'                                  => 'required|integer|exists:rooms,id',
+				'student_profile.agree_to_dormitory_rules' => 'required|accepted',
+				'student_profile.allergies'                => 'nullable|string|max:1000',
+				'student_profile.blood_type'               => 'nullable|string',
+				'student_profile.city'                     => 'nullable|string|max:255',
+				'student_profile.country'                  => 'nullable|string|max:255',
+				'student_profile.deal_number'              => 'required|string|max:255',
+				'student_profile.emergency_contact_name'   => 'nullable|string|max:255',
+				'student_profile.emergency_contact_phone'  => 'nullable|string|max:255',
+				'student_profile.enrollment_year'          => 'required|integer|digits:4',
+				'student_profile.faculty'                  => 'required|string|max:255',
+				'student_profile.files.*'                  => 'nullable|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
+				'student_profile.files'                    => 'sometimes|nullable|array|max:4',
+				'student_profile.gender'                   => 'required|in:male,female',
+				'student_profile.has_meal_plan'            => 'nullable|boolean',
+				'student_profile.iin'                      => 'required|digits:12|unique:student_profiles,iin',
+				'student_profile.mentor_email'             => 'nullable|email|max:255',
+				'student_profile.mentor_name'              => 'nullable|string|max:255',
+				'student_profile.parent_email'             => 'nullable|email|max:255',
+				'student_profile.parent_name'              => 'nullable|string|max:255',
+				'student_profile.parent_phone'             => 'nullable|string|max:20',
+				'student_profile.region'                   => 'nullable|string|max:255',
+				'student_profile.specialist'               => 'required|string|max:255',
+				'student_profile.violations'               => 'nullable|string|max:1000',
+			]);
+
+			// The service expects a Dormitory object.
+			$dormitory = null;
+			$dormitory = \App\Models\Dormitory::find($validatedData['dormitory_id']);
 
 			if (!$dormitory) {
-				return response()->json(['message' => 'Invalid room or dormitory.'], 422);
+				return response()->json(['message' => 'Invalid or missing dormitory information.'], 422);
 			}
 
-			$student = $this->studentService->createStudent($validated, $dormitory);
-			return response()->json( [
-				'message' => __( 'auth.registration_success' ),
-				'user'    => $student->load( 'studentProfile' )
-			], 201 );
-		}
+			// Ensure boolean fields are correctly casted, as they might come from FormData.
+			$validatedData['student_profile']['agree_to_dormitory_rules'] = filter_var($validatedData['student_profile']['agree_to_dormitory_rules'] ?? false, FILTER_VALIDATE_BOOLEAN);
+			$validatedData['student_profile']['has_meal_plan'] = filter_var($validatedData['student_profile']['has_meal_plan'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
-		// This block is now only for admin and guest
-		try {
-			$validated = $request->validate( $rules );
-		} catch (\Illuminate\Validation\ValidationException $e) {
-			throw $e;
-		}
+			// The createStudent method in StudentService now handles all the logic.
+			// We just need to pass it the validated and normalized data.
+			$student = $this->studentService->createStudent( $validatedData, $dormitory );
 
-		// Additional IIN validation for students
-		if ( $userType === 'student' && isset( $validated['iin'] ) ) {
-			// Skip IIN validation during testing for now
-			// In production, this would validate against Kazakhstan IIN algorithm
-			if ( app()->environment() !== 'testing' && app()->environment() !== 'local' ) {
-				$iinValidationService = new IINValidationService();
-				if ( ! $iinValidationService->validate( $validated['iin'] ) ) {
-					return response()->json( [ 
-						'message' => 'Invalid IIN format or checksum.',
-						'errors'  => [ 'iin' => [ 'The IIN must be a valid Kazakhstan IIN.' ] ]
-					], 422 );
-				}
-			}
-		}
-
-		// Handle file uploads
-		$filePaths = [];
-		if ( $request->hasFile( 'files' ) ) {
-			foreach ( $request->file( 'files' ) as $file ) {
-				$filePaths[] = $file->store( 'user_files', 'public' );
-			}
-			$validated['files'] = $filePaths;
-		}
-
-		$validated['name'] = trim( $validated['name'] );
-		$firstName = $validated['name'];
-		$lastName = null;
-		try { 
-			$firstName = explode( ' ', $validated['name'] )[0];
-			$lastName = explode( ' ', $validated['name'] )[1];
-		} catch ( \Exception $e ) {}
-
-		$userData = [ 
-			'name'          => $validated['name'],
-			'first_name'    => $firstName,
-			'last_name'     => $lastName,
-			'email'         => $validated['email'],
-			'phone_numbers' => $validated['phone_numbers'] ?? [],
-			'room_id'       => $validated['room_id'] ?? null,
-			'password'      => Hash::make( $validated['password'] ),
-			'status'        => 'pending',
-			'role_id'       => null, // set below
-		];
-		if ( $userType === 'admin' ) {
-			$userData['role_id'] = Role::where( 'name', 'admin' )->first()->id ?? 3;
-		} elseif ( $userType === 'guest' ) {
-			$userData['role_id'] = Role::where( 'name', 'guest' )->first()->id ?? 6;
-		} else {
-			$userData['role_id'] = Role::where( 'name', 'student' )->first()->id ?? 4;
-		}
-
-		if ( $userType !== 'guest') {
-			$user = User::create( $userData );
-		}
-
-		// Create profile and store role-specific fields
-		if ( $userType === 'student' ) {
-			$profileData = [ 
-				'user_id'                  => $user->id,
-				'iin'                      => $validated['iin'],
-				'student_id'               => $validated['student_id'] ?? $validated['iin'], // Use IIN as fallback
-				'faculty'                  => $validated['faculty'],
-				'specialist'               => $validated['specialist'],
-				'enrollment_year'          => $validated['enrollment_year'],
-				'gender'                   => $validated['gender'],
-				'deal_number'              => $validated['deal_number'] ?? null,
-				'city_id'                  => $validated['city_id'] ?? null,
-				'country'                  => $validated['country'] ?? null,
-				'region'                   => $validated['region'] ?? null,
-				'city'                     => $validated['city'] ?? null,
-				'files'                    => ! empty( $filePaths ) ? json_encode( $filePaths ) : null,
-				'agree_to_dormitory_rules' => $validated['agree_to_dormitory_rules'],
-			];
-			\App\Models\StudentProfile::create( $profileData );
-		} elseif ( $userType === 'guest' ) {
-			$profileData = [ 
-				'user_id'   => $user->id,
-				'room_type' => $validated['room_type'],
-				'files'     => $filePaths,
-			];
-			\App\Models\GuestProfile::create( $profileData );
-		} // AdminProfile can be handled similarly if needed
-
-		// Add a user-friendly message for the frontend, localized
-		if ( $userType === 'guest' ) {
-			return response()->json( [ 
-				'message' => __( 'auth.guest_registration_success' ),
-				'user'    => $user->load( 'guestProfile' )
-			], 201 );
-		} elseif ( $userType === 'student' ) {
-			return response()->json( [ 
-				'message' => __( 'auth.registration_success' ),
-				'user'    => $user->load( 'studentProfile' )
-			], 201 );
-		} else {
-			return response()->json( [ 
-				'message' => __( 'auth.registration_success' ),
-				'user'    => $user
-			], 201 );
+			// Return a success response
+			return response()->json([
+				'message' => __('auth.registration_success'),
+				'data' => $student->load(['studentProfile', 'role', 'room.dormitory', 'studentBed'])
+			], 201);
 		}
 	}
 
@@ -559,66 +493,14 @@ class UserController extends Controller {
 	public function profile( Request $request ) {
 		$user = $request->user();
 		// Return role-specific profile data
-		if ( $user->hasRole( 'student' ) ) {
-			$user->load( [ 'role', 'room.dormitory', 'room', 'studentProfile' ] );
-			// For students, return extended student profile information
-			$studentProfile = $user->studentProfile;
-			return response()->json( [ 
-				'id'                => $user->id,
-				'name'              => $user->name,
-				'first_name'        => $user->first_name,
-				'last_name'         => $user->last_name,
-				'email'             => $user->email,
-				'phone'             => $user->phone,
-				'phone_numbers'     => $user->phone_numbers,
-				'role'              => $user->role,
-				'room'              => $user->room, 
-				'dormitory'         => $user->dormitory,
-				'dormitory_id'      => $user->dormitory_id,
-				'student_profile'   => $studentProfile,
-				// Student-specific fields from StudentProfile
-				'student_id'        => $studentProfile?->student_id,
-				'faculty'           => $studentProfile?->faculty,
-				'specialty'         => $studentProfile?->specialist, // Note: field name difference
-				'course'            => $studentProfile?->course,
-				'year_of_study'     => $studentProfile?->year_of_study,
-				'enrollment_year'   => $studentProfile?->enrollment_year,
-				'graduation_year'   => $user->graduation_year, // This might be on User model
-				'blood_type'        => $studentProfile?->blood_type,
-				'emergency_contact' => $studentProfile?->emergency_contact_name,
-				'emergency_phone'   => $studentProfile?->emergency_contact_phone,
-				'has_meal_plan'     => $user->has_meal_plan,
-				'violations'        => $user->violations,
-				'status'            => $user->status,
-				'created_at'        => $user->created_at,
-				'updated_at'        => $user->updated_at,
-			] );
-		} elseif ( $user->hasRole( 'guest' ) ) {
-			$user->load( [ 'role', 'room.dormitory', 'room', 'guestProfile' ] );
-			// For guests, return guest-specific profile information
-			$guestProfile = $user->guestProfile;
-			return response()->json( [ 
-				'id'                => $user->id,
-				'name'              => $user->name,
-				'first_name'        => $user->first_name,
-				'last_name'         => $user->last_name,
-				'email'             => $user->email,
-				'phone'             => $user->phone,
-				'phone_numbers'     => $user->phone_numbers,
-				'role'              => $user->role,
-				'room'              => $user->room,
-				'guest_profile'     => $guestProfile,
-				// Guest-specific fields from GuestProfile
-				'emergency_contact' => $guestProfile?->emergency_contact_name,
-				'emergency_phone'   => $guestProfile?->emergency_contact_phone,
-				'status'            => $user->status,
-				'created_at'        => $user->created_at,
-				'updated_at'        => $user->updated_at,
-			] );
+		if ($user->hasRole('student')) {
+			return response()->json($user->load(['studentProfile', 'role', 'room.dormitory', 'studentBed']));
+		} elseif ($user->hasRole('guest')) {
+			// You can create a GuestResource for consistency here as well
+			return response()->json($user->load(['role', 'room.dormitory', 'room', 'guestProfile']));
 		} else {
 			// For admin and other roles, return basic user information
-			$user->load( [ 'role', 'adminDormitory', 'adminProfile' ] );
-			$adminProfile = $user->adminProfile;
+			$user->load(['role', 'adminDormitory', 'adminProfile']);
 			return response()->json( [ 
 				'id'            => $user->id,
 				'name'          => $user->name,
@@ -627,12 +509,11 @@ class UserController extends Controller {
 				'email'         => $user->email,
 				'phone'         => $user->phone,
 				'role'          => $user->role,
-				'dormitory'     => $user->adminDormitory,
-				'dormitory_id'  => $user->adminDormitory->id ?? null,
-				'admin_profile' => $adminProfile,
+				'dormitory'     => $user->adminDormitory, // This is the assigned dormitory for an admin
+				'adminProfile'  => $user->adminProfile,
 				'status'        => $user->status,
-				'created_at'    => $user->created_at,
-				'updated_at'    => $user->updated_at,
+				'createdAt'     => $user->created_at,
+				'updatedAt'     => $user->updated_at,
 			] );
 		}
 	}

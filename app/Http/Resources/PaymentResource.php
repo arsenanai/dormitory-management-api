@@ -13,49 +13,36 @@ class PaymentResource extends JsonResource {
 	 */
 	public function toArray( Request $request ): array {
 		return [ 
-			'id'                      => $this->id,
-			'userId'                  => $this->user_id,
-			'semester'                => $this->semester,
-			'year'                    => $this->year,
-			'semesterType'            => $this->semester_type,
-			'amount'                  => $this->amount,
-			'paymentApproved'         => $this->payment_approved,
-			'dormitoryAccessApproved' => $this->dormitory_access_approved,
-			'paymentApprovedAt'       => $this->payment_approved_at,
-			'dormitoryApprovedAt'     => $this->dormitory_approved_at,
-			'paymentApprovedBy'       => $this->payment_approved_by,
-			'dormitoryApprovedBy'     => $this->dormitory_approved_by,
-			'dueDate'                 => $this->due_date,
-			'paidDate'                => $this->paid_date,
-			'paymentNotes'            => $this->payment_notes,
-			'dormitoryNotes'          => $this->dormitory_notes,
-			'paymentStatus'           => $this->payment_status,
-			'dormitoryStatus'         => $this->dormitory_status,
-			'receiptFile'             => $this->receipt_file,
-			'contractNumber'          => $this->contract_number,
-			'contractDate'            => $this->contract_date,
-			'paymentDate'             => $this->payment_date,
-			'paymentMethod'           => $this->payment_method,
-			'createdAt'               => $this->created_at,
-			'updatedAt'               => $this->updated_at,
-
-			// Compatibility aliases for frontend
-			'payment_type'            => $this->semester_type,
-			'payment_date'            => $this->paid_date,
-			'status'                  => $this->payment_status,
-			'description'             => $this->payment_notes,
+			'id'            => $this->id,
+			'userId'        => $this->user_id,
+			'amount'        => $this->amount,
+			'dateFrom'      => $this->date_from,
+			'dateTo'        => $this->date_to,
+			'dealNumber'    => $this->deal_number,
+			'dealDate'      => $this->deal_date,
+			'paymentCheck'  => $this->payment_check ? $this->payment_check : null,
+			'createdAt'     => $this->created_at, // Payment Date
+			'updatedAt'     => $this->updated_at,
 
 			// Include related data
-			'user'                    => $this->whenLoaded( 'user', function () {
-				return [ 
-					'id'           => $this->user->id,
-					'name'         => $this->user->name,
+			'user'                 => $this->whenLoaded( 'user', function () {
+				// Ensure $this->user is not null before accessing its properties
+				if ( ! $this->user ) {
+					return null;
+				}
+				return [
+					'id'           => $this->user->id, // Safe because we checked $this->user
+					'name'         => $this->user->name, // Safe
 					'firstName'    => $this->user->first_name,
 					'lastName'     => $this->user->last_name,
-					'email'        => $this->user->email,
-					'phoneNumbers' => $this->user->phone_numbers,
+					'email'        => $this->user->email, // Safe
+					'phoneNumbers' => $this->user->phone_numbers, // Safe
+					'role'         => $this->when($this->user->relationLoaded('role') && $this->user->role, [
+						'id'   => $this->user->role->id,
+						'name' => $this->user->role->name,
+					]),
 				];
-			} ),
+			}),
 		];
 	}
 }

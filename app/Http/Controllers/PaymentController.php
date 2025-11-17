@@ -15,14 +15,15 @@ class PaymentController extends Controller {
 	public function index( Request $request ) {
 		$filters = $request->validate( [ 
 			'user_id'        => 'sometimes|integer|exists:users,id',
-			'status'         => 'sometimes|in:pending,completed,failed',
-			'payment_method' => 'sometimes|string',
 			'date_from'      => 'sometimes|date',
 			'date_to'        => 'sometimes|date',
+			'search'         => 'sometimes|nullable|string|max:255', // Searches deal_number or user name
+			'role'           => 'sometimes|nullable|string|max:50', // Add role filter
 			'per_page'       => 'sometimes|integer|min:1|max:1000',
 		] );
 
-		return $this->paymentService->getPaymentsWithFilters( $filters );
+		$payments = $this->paymentService->getPaymentsWithFilters( $filters );
+		return $payments;
 	}
 
 	/**
@@ -31,17 +32,12 @@ class PaymentController extends Controller {
 	public function store( Request $request ) {
 		$validated = $request->validate( [ 
 			'user_id'         => 'required|integer|exists:users,id',
+			'date_from'       => 'required|date',
+			'date_to'         => 'required|date|after_or_equal:date_from',
 			'amount'          => 'required|numeric|min:0',
-			'contract_number' => 'required|string|max:255',
-			'contract_date'   => 'required|date',
-			'payment_date'    => 'required|date',
-			'payment_method'  => 'required|string|max:100',
-			'receipt_file'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
-			'status'          => 'sometimes|in:pending,completed,failed',
-			'semester'        => 'required|string|max:255',
-			'year'            => 'required|integer|min:2020|max:2030',
-			'semester_type'   => 'required|in:fall,spring,summer',
-			'payment_status'  => 'sometimes|in:pending,approved,rejected,expired',
+			'deal_number'     => 'nullable|string|max:255',
+			'deal_date'       => 'nullable|date',
+			'payment_check'   => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
 		] );
 
 		return $this->paymentService->createPayment( $validated );
@@ -59,20 +55,12 @@ class PaymentController extends Controller {
 	 */
 	public function update( Request $request, $id ) {
 		$validated = $request->validate( [ 
-			'amount'                    => 'sometimes|numeric|min:0',
-			'contract_number'           => 'sometimes|string|max:255',
-			'contract_date'             => 'sometimes|date',
-			'payment_date'              => 'sometimes|date',
-			'payment_method'            => 'sometimes|string|max:100',
-			'receipt_file'              => 'sometimes|file|mimes:jpg,jpeg,png,pdf|max:5120',
-			'status'                    => 'sometimes|in:pending,completed,failed',
-			'payment_status'            => 'sometimes|in:pending,approved,rejected,expired',
-			'payment_approved'          => 'sometimes|boolean',
-			'dormitory_access_approved' => 'sometimes|boolean',
-			// semester fields
-			'semester'                  => 'sometimes|string|max:255',
-			'year'                      => 'sometimes|integer|min:2020|max:2035',
-			'semester_type'             => 'sometimes|in:fall,spring,summer',
+			'date_from'       => 'sometimes|date',
+			'date_to'         => 'sometimes|date|after_or_equal:date_from',
+			'amount'          => 'sometimes|numeric|min:0',
+			'deal_number'     => 'sometimes|nullable|string|max:255',
+			'deal_date'       => 'sometimes|nullable|date',
+			'payment_check'   => 'sometimes|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
 		] );
 
 		return $this->paymentService->updatePayment( $id, $validated );
@@ -92,8 +80,6 @@ class PaymentController extends Controller {
 	public function export( Request $request ) {
 		$filters = $request->validate( [ 
 			'user_id'        => 'sometimes|integer|exists:users,id',
-			'status'         => 'sometimes|in:pending,completed,failed',
-			'payment_method' => 'sometimes|string',
 			'date_from'      => 'sometimes|date',
 			'date_to'        => 'sometimes|date',
 		] );

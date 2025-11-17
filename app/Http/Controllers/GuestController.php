@@ -142,4 +142,8 @@ class GuestController extends Controller {
 		} );
 		return response()->json( $payments );
 	}
+
+	public function listAll(): \Illuminate\Database\Eloquent\Collection {
+		return $this->guestService->listAll();
+	}
 }

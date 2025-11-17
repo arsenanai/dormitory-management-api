@@ -13,12 +13,15 @@ class RoomType extends Model {
 		'minimap',
 		'beds',
 		'photos',
-		'capacity',
-		'price',
+		'capacity', 
+		'daily_rate',
+		'semester_rate',
 	];
 
 	protected $casts = [ 
-		'beds' => 'array',
-		'photos' => 'array',
+		'beds'          => 'array',
+		'photos'        => 'array',
+		'daily_rate'    => 'decimal:2',
+		'semester_rate' => 'decimal:2',
 	];
 }

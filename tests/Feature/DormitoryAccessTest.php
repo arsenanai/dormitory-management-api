@@ -18,7 +18,7 @@ class DormitoryAccessTest extends TestCase {
 	}
 
 	#[Test]
-	public function student_with_current_semester_payment_can_access_dormitory() {
+	public function student_with_current_payment_can_access_dormitory() {
 		$studentRole = Role::where( 'name', 'student' )->first();
 		$student = User::factory()->create( [ 'role_id' => $studentRole->id ] );
 		$currentSemester = SemesterPayment::getCurrentSemester();
@@ -35,7 +35,7 @@ class DormitoryAccessTest extends TestCase {
 	}
 
 	#[Test]
-	public function student_without_current_semester_payment_cannot_access_dormitory() {
+	public function student_without_current_payment_cannot_access_dormitory() {
 		$studentRole = Role::where( 'name', 'student' )->first();
 		$student = User::factory()->create( [ 'role_id' => $studentRole->id ] );
 		// No payment created

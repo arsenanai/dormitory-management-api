@@ -196,6 +196,7 @@ class ConfigurationController extends Controller {
 			'backup_list_enabled'        => 'required|boolean',
 			'payment_deadline_days'      => 'required|integer|min:1|max:365',
 			'default_room_price'         => 'required|numeric|min:0',
+			'dormitory_rules'            => 'sometimes|nullable|string',
 		] );
 
 		$settings = $this->configurationService->updateDormitorySettings( $validated );
@@ -203,22 +204,22 @@ class ConfigurationController extends Controller {
 	}
 
 	/**
+	 * Get all public settings
+	 */
+	public function getPublicSettings() {
+		$settings = [ 
+			// Provide a default empty string if the rule is not set
+			'dormitory_rules' => $this->configurationService->getConfiguration( 'dormitory_rules' ) ?? '',
+			'currency_symbol' => $this->configurationService->getConfiguration( 'currency_symbol' ) ?? 'USD',
+		];
+		return response()->json( $settings );
+	}
+	/**
 	 * Initialize default configurations
 	 */
 	public function initializeDefaults() {
 		$configurations = $this->configurationService->initializeDefaults();
 		return response()->json( $configurations );
-	}
-
-	/**
-	 * Get currency setting
-	 */
-	public function getCurrencySetting() {
-		$currency = Configuration::where( 'key', 'currency_symbol' )->first();
-
-		return response()->json( [ 
-			'currency_symbol' => $currency ? $currency->value : 'USD',
-		] );
 	}
 
 	/**

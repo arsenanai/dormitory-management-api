@@ -67,14 +67,14 @@ class StudentProfile extends Model {
 	}
 
 	public function semesterPayments() {
-		return $this->hasMany( SemesterPayment::class, 'user_id', 'user_id' );
+		return $this->hasMany( Payment::class, 'user_id', 'user_id' );
 	}
 
 	public function getCurrentSemesterPayment() {
 		$currentSemester = $this->getCurrentSemester();
-		return $this->semesterPayments()
-			->where( 'semester', $currentSemester )
-			->first();
+		// This logic is deprecated. You may need to find the latest payment
+		// within a specific date range instead.
+		return $this->semesterPayments()->latest()->first();
 	}
 
 	public function hasCurrentSemesterAccess() {

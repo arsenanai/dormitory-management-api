@@ -16,12 +16,13 @@ class RoomTypeFactory extends Factory
      */
     public function definition(): array
     {
-       return [
-           'name'     => $this->faker->randomElement(['standard', 'lux']),
-           'capacity' => $this->faker->randomElement([1, 2, 3, 4]),
-           'price'    => $this->faker->randomElement(['standard' => 150.00, 'lux' => 300.00]),
-           'minimap'  => null,
-           'beds'     => json_encode([
+        return [
+            'name'          => $this->faker->randomElement(['standard', 'lux']),
+            'capacity'      => $this->faker->randomElement([1, 2, 3, 4]),
+            'daily_rate'    => $this->faker->randomFloat(2, 100, 300),
+            'semester_rate' => $this->faker->randomFloat(2, 20000, 50000),
+            'minimap'       => null,
+            'beds'          => json_encode([
                ['x' => 10, 'y' => 20, 'width' => 30, 'height' => 40],
            ]),
            'photos'   => json_encode([
@@ -29,7 +30,7 @@ class RoomTypeFactory extends Factory
                $this->faker->imageUrl(640, 480, 'room', true),
            ]),
        ];
-    }
+    }    
 
     /**
      * Indicate that the room type is standard.
@@ -37,9 +38,10 @@ class RoomTypeFactory extends Factory
     public function standard(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name'     => 'standard',
-            'capacity' => 2,
-            'price'    => 150.00,
+            'name'          => 'standard',
+            'capacity'      => 2,
+            'daily_rate'    => 150.00,
+            'semester_rate' => 20000.00,
         ]);
     }
 
@@ -49,9 +51,10 @@ class RoomTypeFactory extends Factory
     public function lux(): static
     {
         return $this->state(fn (array $attributes) => [
-            'name'     => 'lux',
-            'capacity' => 1,
-            'price'    => 300.00,
+            'name'          => 'lux',
+            'capacity'      => 1,
+            'daily_rate'    => 300.00,
+            'semester_rate' => 40000.00,
         ]);
     }
 }

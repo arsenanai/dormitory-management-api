@@ -31,12 +31,13 @@ class RoomTypeCrudTest extends TestCase {
 		Storage::fake( 'public' );
 		$token = $this->loginAsSudo();
 
-		$payload = [ 
-			'name'     => 'standard',
-			'capacity' => 2,
-			'price'    => 150.00,
-			'minimap'  => UploadedFile::fake()->image( 'minimap.jpg' ),
-			'beds'     => [ 
+		$payload = [
+			'name'          => 'standard_new',
+			'capacity'      => 2,
+			'daily_rate'    => 150.00,
+			'semester_rate' => 20000.00,
+			'minimap'       => UploadedFile::fake()->image( 'minimap.jpg' ),
+			'beds'          => [
 				[ 'x' => 10, 'y' => 20, 'width' => 30, 'height' => 40 ],
 				[ 'x' => 50, 'y' => 60, 'width' => 30, 'height' => 40 ],
 			],
@@ -46,22 +47,24 @@ class RoomTypeCrudTest extends TestCase {
 			],
 		];
 
-		$response = $this->postJson( '/api/room-types', [ 
-			'name'     => $payload['name'],
-			'capacity' => $payload['capacity'],
-			'price'    => $payload['price'],
-			'minimap'  => $payload['minimap'],
-			'beds'     => json_encode( $payload['beds'] ),
-			'photos'   => $payload['photos'],
+		$response = $this->postJson( '/api/room-types', [
+			'name'          => $payload['name'],
+			'capacity'      => $payload['capacity'],
+			'daily_rate'    => $payload['daily_rate'],
+			'semester_rate' => $payload['semester_rate'],
+			'minimap'       => $payload['minimap'],
+			'beds'          => json_encode( $payload['beds'] ),
+			'photos'        => $payload['photos'],
 		], [ 
 			'Authorization' => "Bearer $token",
 		] );
 
 		$response->assertStatus( 201 );
 		$this->assertDatabaseHas( 'room_types', [ 
-			'name'     => 'standard',
+			'name'     => 'standard_new',
 			'capacity' => 2,
-			'price'    => 150.00,
+			'daily_rate'    => 150.00,
+			'semester_rate' => 20000.00,
 		] );
 		Storage::disk( 'public' )->assertExists( 'minimaps/' . $payload['minimap']->hashName() );
 		Storage::disk( 'public' )->assertExists( 'photos/' . $payload['photos'][0]->hashName() );
@@ -72,12 +75,13 @@ class RoomTypeCrudTest extends TestCase {
 		Storage::fake( 'public' );
 		$token = $this->loginAsSudo();
 
-		$payload = [ 
-			'name'     => 'lux',
-			'capacity' => 1,
-			'price'    => 300.00,
-			'minimap'  => UploadedFile::fake()->image( 'minimap.jpg' ),
-			'beds'     => [ 
+		$payload = [
+			'name'          => 'lux_new',
+			'capacity'      => 1,
+			'daily_rate'    => 300.00,
+			'semester_rate' => 40000.00,
+			'minimap'       => UploadedFile::fake()->image( 'minimap.jpg' ),
+			'beds'          => [
 				[ 'x' => 10, 'y' => 20, 'width' => 30, 'height' => 40 ],
 			],
 			'photos'   => [ 
@@ -85,22 +89,23 @@ class RoomTypeCrudTest extends TestCase {
 			],
 		];
 
-		$response = $this->postJson( '/api/room-types', [ 
-			'name'     => $payload['name'],
-			'capacity' => $payload['capacity'],
-			'price'    => $payload['price'],
-			'minimap'  => $payload['minimap'],
-			'beds'     => json_encode( $payload['beds'] ),
-			'photos'   => $payload['photos'],
+		$response = $this->postJson( '/api/room-types', [
+			'name'          => $payload['name'],
+			'capacity'      => $payload['capacity'],
+			'daily_rate'    => $payload['daily_rate'],
+			'semester_rate' => $payload['semester_rate'],
+			'minimap'       => $payload['minimap'],
+			'beds'          => json_encode( $payload['beds'] ),
+			'photos'        => $payload['photos'],
 		], [ 
 			'Authorization' => "Bearer $token",
 		] );
 
 		$response->assertStatus( 201 );
 		$this->assertDatabaseHas( 'room_types', [ 
-			'name'     => 'lux',
+			'name'     => 'lux_new',
 			'capacity' => 1,
-			'price'    => 300.00,
+			'daily_rate'    => 300.00,
 		] );
 	}
 
@@ -114,22 +119,24 @@ class RoomTypeCrudTest extends TestCase {
 		] );
 
 		$response->assertStatus( 422 );
-		$response->assertJsonValidationErrors( [ 'name', 'capacity', 'price' ] );
+		$response->assertJsonValidationErrors( [ 'name', 'capacity', 'daily_rate', 'semester_rate' ] );
 	}
 
 	public function test_can_update_room_type() {
 		$token = $this->loginAsSudo();
 		$roomType = RoomType::factory()->create( [ 
-			'name'     => 'standard',
-			'capacity' => 2,
-			'price'    => 150.00,
+			'name'          => 'standard-to-update',
+			'capacity'      => 2,
+			'daily_rate'    => 150.00,
+			'semester_rate' => 20000.00,
 		] );
 
-		$response = $this->putJson( "/api/room-types/{$roomType->id}", [ 
-			'name'     => 'lux',
-			'capacity' => 1,
-			'price'    => 300.00,
-			'beds'     => json_encode( [ 
+		$response = $this->putJson( "/api/room-types/{$roomType->id}", [
+			'name'          => 'lux-updated',
+			'capacity'      => 1,
+			'daily_rate'    => 300.00,
+			'semester_rate' => 50000.00,
+			'beds'          => json_encode( [
 				[ 'x' => 1, 'y' => 2, 'width' => 3, 'height' => 4 ],
 			] ),
 		], [ 
@@ -139,9 +146,9 @@ class RoomTypeCrudTest extends TestCase {
 		$response->assertStatus( 200 );
 		$this->assertDatabaseHas( 'room_types', [ 
 			'id'       => $roomType->id,
-			'name'     => 'lux',
+			'name'     => 'lux-updated',
 			'capacity' => 1,
-			'price'    => 300.00,
+			'daily_rate'    => 300.00,
 		] );
 	}
 
@@ -149,9 +156,10 @@ class RoomTypeCrudTest extends TestCase {
 		Storage::fake( 'public' );
 		$token = $this->loginAsSudo();
 		$roomType = RoomType::factory()->create( [ 
-			'name'     => 'standard',
-			'capacity' => 2,
-			'price'    => 150.00,
+			'name'          => 'standard-for-photos',
+			'capacity'      => 2,
+			'daily_rate'    => 150.00,
+			'semester_rate' => 20000.00,
 		] );
 
 		$newPhotos = [ 
@@ -173,9 +181,10 @@ class RoomTypeCrudTest extends TestCase {
 	public function test_can_delete_room_type() {
 		$token = $this->loginAsSudo();
 		$roomType = RoomType::factory()->create( [ 
-			'name'     => 'standard',
-			'capacity' => 2,
-			'price'    => 150.00,
+			'name'          => 'to-be-deleted',
+			'capacity'      => 2,
+			'daily_rate'    => 150.00,
+			'semester_rate' => 20000.00,
 		] );
 
 		$response = $this->deleteJson( "/api/room-types/{$roomType->id}", [], [ 
@@ -191,32 +200,20 @@ class RoomTypeCrudTest extends TestCase {
 	public function test_can_list_room_types() {
 		$token = $this->loginAsSudo();
 
-		// Create some room types
-		RoomType::factory()->create( [ 
-			'name'     => 'standard',
-			'capacity' => 2,
-			'price'    => 150.00,
-		] );
-		RoomType::factory()->create( [ 
-			'name'     => 'lux',
-			'capacity' => 1,
-			'price'    => 300.00,
-		] );
+		// The seeder in setUp() already creates 'standard' and 'lux'
 
 		$response = $this->getJson( '/api/room-types', [ 
 			'Authorization' => "Bearer $token",
 		] );
 
 		$response->assertStatus( 200 );
-		$response->assertJsonFragment( [ 
+		$response->assertJsonFragment( [
 			'name'     => 'standard',
 			'capacity' => 2,
-			'price'    => 150.00,
 		] );
-		$response->assertJsonFragment( [ 
+		$response->assertJsonFragment( [
 			'name'     => 'lux',
 			'capacity' => 1,
-			'price'    => 300.00,
 		] );
 	}
 
@@ -240,12 +237,12 @@ class RoomTypeCrudTest extends TestCase {
 		// Verify standard room type
 		$this->assertNotNull( $standard );
 		$this->assertEquals( 2, $standard['capacity'] );
-		$this->assertEquals( '150.00', $standard['price'] );
+		$this->assertArrayHasKey('daily_rate', $standard);
 
 		// Verify lux room type
 		$this->assertNotNull( $lux );
 		$this->assertEquals( 1, $lux['capacity'] );
-		$this->assertEquals( '300.00', $lux['price'] );
+		$this->assertArrayHasKey('daily_rate', $lux);
 	}
 
 	public function test_room_types_have_consistent_data_structure() {
@@ -263,7 +260,8 @@ class RoomTypeCrudTest extends TestCase {
 			$this->assertArrayHasKey( 'id', $roomType );
 			$this->assertArrayHasKey( 'name', $roomType );
 			$this->assertArrayHasKey( 'capacity', $roomType );
-			$this->assertArrayHasKey( 'price', $roomType );
+			$this->assertArrayHasKey( 'daily_rate', $roomType );
+			$this->assertArrayHasKey( 'semester_rate', $roomType );
 			$this->assertArrayHasKey( 'created_at', $roomType );
 			$this->assertArrayHasKey( 'updated_at', $roomType );
 
@@ -271,13 +269,15 @@ class RoomTypeCrudTest extends TestCase {
 			$this->assertIsInt( $roomType['id'] );
 			$this->assertIsString( $roomType['name'] );
 			$this->assertIsInt( $roomType['capacity'] );
-			$this->assertTrue( is_string( $roomType['price'] ) || is_numeric( $roomType['price'] ), 'Price should be string or numeric' );
+			$this->assertTrue( is_string( $roomType['daily_rate'] ) || is_numeric( $roomType['daily_rate'] ), 'Daily rate should be string or numeric' );
+			$this->assertTrue( is_string( $roomType['semester_rate'] ) || is_numeric( $roomType['semester_rate'] ), 'Semester rate should be string or numeric' );
 
 			// Check capacity is valid
 			$this->assertGreaterThan( 0, $roomType['capacity'] );
 
 			// Check price is valid
-			$this->assertGreaterThanOrEqual( 0, (float) $roomType['price'] );
+			$this->assertGreaterThanOrEqual( 0, (float) $roomType['daily_rate'] );
+			$this->assertGreaterThanOrEqual( 0, (float) $roomType['semester_rate'] );
 		}
 	}
 

@@ -10,7 +10,7 @@ use Tests\TestCase;
 class SemesterPaymentTest extends TestCase {
 	use RefreshDatabase;
 
-	public function test_semester_payment_belongs_to_user() {
+	public function test_payment_belongs_to_user() {
 		$user = User::factory()->create();
 		$payment = SemesterPayment::factory()->create( [ 'user_id' => $user->id ] );
 
@@ -18,7 +18,7 @@ class SemesterPaymentTest extends TestCase {
 		$this->assertEquals( $user->id, $payment->user->id );
 	}
 
-	public function test_semester_payment_has_payment_approver_relationship() {
+	public function test_payment_has_payment_approver_relationship() {
 		$approver = User::factory()->create();
 		$payment = SemesterPayment::factory()->create( [ 'payment_approved_by' => $approver->id ] );
 
@@ -26,7 +26,7 @@ class SemesterPaymentTest extends TestCase {
 		$this->assertEquals( $approver->id, $payment->paymentApprover->id );
 	}
 
-	public function test_semester_payment_has_dormitory_approver_relationship() {
+	public function test_payment_has_dormitory_approver_relationship() {
 		$approver = User::factory()->create();
 		$payment = SemesterPayment::factory()->create( [ 'dormitory_approved_by' => $approver->id ] );
 

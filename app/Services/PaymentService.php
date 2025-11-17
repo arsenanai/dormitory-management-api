@@ -2,75 +2,84 @@
 
 namespace App\Services;
 
-use App\Models\SemesterPayment as Payment;
+use App\Models\Payment;
 use App\Models\User;
 use App\Http\Resources\PaymentResource;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class PaymentService {
 	/**
 	 * Get payments with filters and pagination
 	 */
 	public function getPaymentsWithFilters( array $filters = [] ) {
-		$query = Payment::with( [ 'user' ] );
+		$query = Payment::with( [ 'user', 'user.role' ] );
 
-		// Apply filters
-		if ( isset( $filters['user_id'] ) ) {
-			$query->where( 'user_id', $filters['user_id'] );
-		}
-
-		if ( isset( $filters['status'] ) ) {
-			$query->where( 'status', $filters['status'] );
-		}
-
-		if ( isset( $filters['payment_method'] ) ) {
-			$query->where( 'payment_method', 'like', '%' . $filters['payment_method'] . '%' );
-		}
-
+		// Apply date range filter for payment period overlap
 		if ( isset( $filters['date_from'] ) ) {
-			$query->whereDate( 'payment_date', '>=', $filters['date_from'] );
+			// Payments that end on or after the filter start date
+			$query->whereDate( 'date_to', '>=', $filters['date_from'] );
+		}
+		if ( isset( $filters['date_to'] ) ) {
+			// Payments that start on or before the filter end date
+			$query->whereDate( 'date_from', '<=', $filters['date_to'] );
 		}
 
-		if ( isset( $filters['date_to'] ) ) {
-			$query->whereDate( 'payment_date', '<=', $filters['date_to'] );
+		// Apply role filter
+		if ( ! empty( $filters['role'] ) ) {
+			$query->whereHas('user.role', function ($q) use ($filters) {
+				$q->where('name', $filters['role']);
+			});
+		}
+
+		if ( ! empty( $filters['search'] ) ) {
+			$search = $filters['search'];
+			$query->where(function ($q) use ($search) {
+				$q->where('deal_number', 'like', '%' . $search . '%')
+				  ->orWhereHas('user', function ($userQuery) use ($search) {
+					  $userQuery->where('name', 'like', '%' . $search . '%')
+								->orWhere('email', 'like', '%' . $search . '%');
+				  });
+			});
 		}
 
 		$perPage = $filters['per_page'] ?? 20;
 
-		$payments = $query->orderBy( 'paid_date', 'desc' )->paginate( $perPage );
-
-		// Transform the data using PaymentResource
-		$transformedData = $payments->through( function ($payment) {
-			return new PaymentResource( $payment );
-		} );
-
-		return response()->json( $transformedData );
+		$payments = $query->orderBy( 'created_at', 'desc' )->paginate( $perPage );
+		return PaymentResource::collection($payments);
 	}
 
 	/**
 	 * Create a new payment
 	 */
 	public function createPayment( array $data ) {
-		// Handle receipt file upload
-		if ( isset( $data['receipt_file'] ) ) {
-			$data['receipt_file'] = $data['receipt_file']->store( 'payment_receipts', 'public' );
-		}
+		return DB::transaction(function () use ($data) {
+			// Set deal_date if not provided
+			if ( ! isset( $data['deal_date'] ) ) {
+				$dealDate = isset( $data['date_from'] ) ? new \DateTime( $data['date_from'] ) : new \DateTime();
+				$data['deal_date'] = $dealDate->format( 'Y-m-d' );
+			}
 
-		// Set default values for required fields
-		$data['payment_status'] = $data['payment_status'] ?? 'pending';
-		$data['dormitory_status'] = $data['dormitory_status'] ?? 'pending';
-		$data['payment_approved'] = $data['payment_approved'] ?? false;
-		$data['dormitory_access_approved'] = $data['dormitory_access_approved'] ?? false;
+			// If amount is not provided, try to get it from the student's room type semester_rate
+			if (!isset($data['amount'])) {
+				$user = User::with('room.roomType', 'role')->find($data['user_id']);
+				if ($user && $user->hasRole('student') && $user->room && $user->room->roomType) {
+					$data['amount'] = $user->room->roomType->semester_rate;
+				} else {
+					// Fallback or throw an error if amount is mandatory and cannot be determined
+					$data['amount'] = 0;
+				}
+			}
 
-		// Set due date if not provided (3 months from contract date or today)
-		if ( ! isset( $data['due_date'] ) ) {
-			$contractDate = isset( $data['contract_date'] ) ? new \DateTime( $data['contract_date'] ) : new \DateTime();
-			$data['due_date'] = $contractDate->modify( '+3 months' )->format( 'Y-m-d' );
-		}
+			// Handle payment_check file upload
+			if ( isset( $data['payment_check'] ) ) {
+				$data['payment_check'] = $data['payment_check']->store( 'payment_checks', 'local' );
+			}
 
-		$payment = Payment::create( $data );
+			$payment = Payment::create( $data );
 
-		return response()->json( $payment->load( 'user' ), 201 );
+			return new PaymentResource($payment->load(['user', 'user.role']));
+		});
 	}
 
 	/**
@@ -78,27 +87,29 @@ class PaymentService {
 	 */
 	public function getPaymentDetails( $id ) {
 		$payment = Payment::with( [ 'user' ] )->findOrFail( $id );
-		return response()->json( $payment );
+		return new PaymentResource($payment);
 	}
 
 	/**
 	 * Update payment
 	 */
 	public function updatePayment( $id, array $data ) {
-		$payment = Payment::findOrFail( $id );
+		return DB::transaction(function () use ($id, $data) {
+			$payment = Payment::findOrFail( $id );
 
-		// Handle receipt file upload
-		if ( isset( $data['receipt_file'] ) ) {
-			// Delete old file if exists
-			if ( $payment->receipt_file ) {
-				Storage::disk( 'public' )->delete( $payment->receipt_file );
+			// Handle payment_check file upload
+			if ( isset( $data['payment_check'] ) ) {
+				// Delete old file if exists
+				if ( $payment->payment_check ) {
+					Storage::disk( 'local' )->delete( $payment->payment_check );
+				}
+				$data['payment_check'] = $data['payment_check']->store( 'payment_checks', 'local' );
 			}
-			$data['receipt_file'] = $data['receipt_file']->store( 'payment_receipts', 'public' );
-		}
 
-		$payment->update( $data );
+			$payment->update( $data );
 
-		return response()->json( $payment->load( 'user' ) );
+			return new PaymentResource($payment->load(['user', 'user.role']));
+		});
 	}
 
 	/**
@@ -107,9 +118,9 @@ class PaymentService {
 	public function deletePayment( $id ) {
 		$payment = Payment::findOrFail( $id );
 
-		// Delete associated receipt file
-		if ( $payment->receipt_file ) {
-			Storage::disk( 'public' )->delete( $payment->receipt_file );
+		// Delete associated payment_check file
+		if ( $payment->payment_check ) {
+			Storage::disk( 'public' )->delete( $payment->payment_check );
 		}
 
 		$payment->delete();
@@ -127,42 +138,34 @@ class PaymentService {
 			$query->where( 'user_id', $filters['user_id'] );
 		}
 
-		if ( isset( $filters['status'] ) ) {
-			$query->where( 'status', $filters['status'] );
-		}
-
-		if ( isset( $filters['payment_method'] ) ) {
-			$query->where( 'payment_method', 'like', '%' . $filters['payment_method'] . '%' );
-		}
-
 		if ( isset( $filters['date_from'] ) ) {
-			$query->whereDate( 'payment_date', '>=', $filters['date_from'] );
+			$query->whereDate( 'deal_date', '>=', $filters['date_from'] );
 		}
 
 		if ( isset( $filters['date_to'] ) ) {
-			$query->whereDate( 'payment_date', '<=', $filters['date_to'] );
+			$query->whereDate( 'deal_date', '<=', $filters['date_to'] );
 		}
 
-		$payments = $query->orderBy( 'payment_date', 'desc' )->get();
+		$payments = $query->orderBy( 'deal_date', 'desc' )->get();
 
 		// Create CSV content
-		$csvContent = "Payment ID,Student Name,Student Email,Contract Number,Contract Date,Payment Date,Amount,Payment Method,Status\n";
+		$csvContent = "Payment ID,Student Name,Student Email,Deal Number,Deal Date,Amount,Date From,Date To\n";
 
 		foreach ( $payments as $payment ) {
-			$contractDate = $payment->contract_date ? $payment->contract_date->format( 'Y-m-d' ) : '';
-			$paymentDate = $payment->payment_date ? $payment->payment_date->format( 'Y-m-d' ) : '';
+			$dealDate = $payment->deal_date ? (new \DateTime($payment->deal_date))->format('Y-m-d') : '';
+			$dateFrom = $payment->date_from ? (new \DateTime($payment->date_from))->format('Y-m-d') : ''; // Assuming date_from is a string or Carbon instance
+			$dateTo = $payment->date_to ? (new \DateTime($payment->date_to))->format('Y-m-d') : ''; // Assuming date_to is a string or Carbon instance
 
 			$csvContent .= sprintf(
-				"%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+				"%s,%s,%s,%s,%s,%s,%s,%s\n",
 				$payment->id,
-				'"' . str_replace( '"', '""', $payment->user->name ?? $payment->name ) . '"',
-				$payment->user->email ?? '',
-				'"' . str_replace( '"', '""', $payment->contract_number ?? '' ) . '"',
-				$contractDate,
-				$paymentDate,
+				'"' . str_replace( '"', '""', $payment->user->name ?? '' ) . '"',
+				($payment->user->email ?? ''), // Null-safe for user->email
+				'"' . str_replace( '"', '""', $payment->deal_number ?? '' ) . '"',
+				$dealDate,
 				$payment->amount,
-				'"' . str_replace( '"', '""', $payment->payment_method ?? '' ) . '"',
-				$payment->status
+				$dateFrom,
+				$dateTo
 			);
 		}
 

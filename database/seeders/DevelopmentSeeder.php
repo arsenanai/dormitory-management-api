@@ -10,8 +10,10 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Models\AdminProfile;
+use Illuminate\Support\Carbon; // Import Carbon
 use App\Models\Message;
-use App\Models\SemesterPayment;
+use App\Models\Payment;
+use App\Models\GuestProfile;
 
 class DevelopmentSeeder extends Seeder {
 	public function run(): void {
@@ -21,8 +23,8 @@ class DevelopmentSeeder extends Seeder {
 		$guestRole = \App\Models\Role::firstOrCreate(['name' => 'guest']);
 
 		// Create Room Types
-		$standardRoomType = RoomType::firstOrCreate( [ 'name' => 'standard' ], [ 'capacity' => 2, 'price' => 150.00 ] );
-		$luxRoomType = RoomType::firstOrCreate( [ 'name' => 'lux' ], [ 'capacity' => 1, 'price' => 300.00 ] );
+		$standardRoomType = RoomType::firstOrCreate( [ 'name' => 'standard' ], [ 'capacity' => 2, 'daily_rate' => 10000.00, 'semester_rate' => 300000.00 ] );
+		$luxRoomType = RoomType::firstOrCreate( [ 'name' => 'lux' ], [ 'capacity' => 1, 'daily_rate' => 20000.00, 'semester_rate' => 500000.00 ] );
 
 		// Create Blood Types
 		$bloodTypes = [ 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-' ];
@@ -108,6 +110,7 @@ class DevelopmentSeeder extends Seeder {
 				'first_name' => $firstName,
 				'last_name' => $lastName,
 				'email' => $faker->unique()->safeEmail,
+				'phone_numbers' => json_encode( [ $faker->phoneNumber ] ),
 				'password' => Hash::make( 'password' ),
 				'role_id' => $studentRole->id,
 				'status' => 'active',
@@ -167,11 +170,14 @@ class DevelopmentSeeder extends Seeder {
 		$guestRooms = Room::where('dormitory_id', $adminDormitory->id)->inRandomOrder()->take(10)->get();
 		foreach ($guestRooms as $guestRoom) {
 			if ($guestRoom) {
+				$firstName = $faker->firstName;
+				$lastName = $faker->lastName;
 				$guestUser = User::create([
-					'name' => $faker->name,
-					'first_name' => $faker->firstName,
-					'last_name' => $faker->lastName,
+					'name' => $firstName . ' ' . $lastName,
+					'first_name' => $firstName,
+					'last_name' => $lastName,
 					'email' => $faker->unique()->safeEmail,
+					'phone_numbers' => json_encode( [ $faker->phoneNumber ] ),
 					'password' => Hash::make('password'),
 					'role_id' => $guestRole->id,
 					'status' => 'active',
@@ -192,36 +198,77 @@ class DevelopmentSeeder extends Seeder {
 		// Create 10 Messages from Admin
 		for ($i = 0; $i < 10; $i++) {
 			Message::create([
-				'sender_id' => $adminUser->id,
-				'receiver_id' => null,
+				'sender_id'      => $adminUser->id,
+				'receiver_id'    => null,
 				'recipient_type' => 'dormitory',
-				'dormitory_id' => $adminDormitory->id,
-				'title' => $faker->bs,
-				'content' => $faker->realText(200),
-				'type' => 'announcement',
-				'status' => 'sent',
-				'sent_at' => now(),
+				'dormitory_id'   => $adminDormitory->id,
+				'title'          => $faker->bs,
+				'content'        => $faker->realText(200),
+				'type'           => 'announcement',
+				'status'         => 'sent',
+				'sent_at'        => now(),
 			]);
 		}
 
+		// Define base64 images for payment checks
+		$base64PaymentCheckImages = [
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/epv2AAAAABJRU5ErkJggg==', // Small transparent PNG
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', // Another small transparent PNG
+			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // Another small transparent PNG
+		];
+		$paymentImageIndex = 0;
+
 		// Create Semester Payments for half of the students
-		$studentsForPayment = User::where('role_id', $studentRole->id)->take(250)->get();
-		$currentSemester = SemesterPayment::getCurrentSemester();
-		list($year, $semesterType) = explode('-', $currentSemester);
+		$studentsForPayment = User::where('role_id', $studentRole->id)->get();
 
 		foreach ($studentsForPayment as $student) {
-			SemesterPayment::create([
-				'user_id' => $student->id,
-				'semester' => $currentSemester,
-				'year' => $year,
-				'semester_type' => $semesterType,
-				'due_date' => now()->addDays(30),
-				'amount' => $faker->randomFloat(2, 50000, 150000),
-				'payment_method' => 'kaspi',
-				'payment_status' => 'approved',
-				'payment_approved' => true,
-				'dormitory_access_approved' => true,
-				'payment_date' => now()->subDays(rand(1, 30)),
+			// Generate a unique filename for the payment check
+			$filename = 'payment_check_student_' . $student->id . '_' . uniqid() . '.png';
+			$paymentCheckPath = $this->storeBase64Image($base64PaymentCheckImages[$paymentImageIndex % count($base64PaymentCheckImages)], 'payment_checks', $filename);
+			$paymentImageIndex++;
+
+			Payment::create([
+				'user_id'     => $student->id,
+				'amount'      => $faker->randomFloat(2, 50000, 150000),
+				'deal_number' => 'DEAL-' . $faker->unique()->numerify('######'),
+				'deal_date'   => now()->subDays(rand(1, 30)),
+				'date_from'   => Carbon::parse('2025-01-01'),
+				'date_to'     => Carbon::parse('2025-06-01'),
+				'payment_check' => $paymentCheckPath,
+			]);
+		}
+
+		foreach ($studentsForPayment as $student) {
+			// Generate a unique filename for the payment check
+			$filename = 'payment_check_student_' . $student->id . '_' . uniqid() . '.png';
+			$paymentCheckPath = $this->storeBase64Image($base64PaymentCheckImages[$paymentImageIndex % count($base64PaymentCheckImages)], 'payment_checks', $filename);
+			$paymentImageIndex++;
+
+			Payment::create([
+				'user_id'     => $student->id,
+				'amount'      => $faker->randomFloat(2, 50000, 150000),
+				'deal_number' => 'DEAL-' . $faker->unique()->numerify('######'),
+				'deal_date'   => now()->subDays(rand(1, 30)),
+				'date_from'   => Carbon::parse('2025-09-01'),
+				'date_to'     => Carbon::parse('2026-01-01'),
+				'payment_check' => $paymentCheckPath,
+			]);
+		}
+
+		foreach(GuestProfile::all() as $guest) {
+			// Generate a unique filename for the payment check
+			$filename = 'payment_check_guest_' . $guest->user_id . '_' . uniqid() . '.png';
+			$paymentCheckPath = $this->storeBase64Image($base64PaymentCheckImages[$paymentImageIndex % count($base64PaymentCheckImages)], 'payment_checks', $filename);
+			$paymentImageIndex++;
+
+			Payment::create([
+				'user_id'   => $guest->user_id,
+				'amount'    => $faker->randomFloat(2, 10000, 30000),
+				'deal_date'   => now()->subDays(rand(1, 30)),
+				'deal_number' => 'DEAL-' . $faker->unique()->numerify('######'),
+				'date_from' => $guest->visit_start_date,
+				'date_to'   => $guest->visit_end_date,
+				'payment_check' => $paymentCheckPath,
 			]);
 		}
 
@@ -229,10 +276,10 @@ class DevelopmentSeeder extends Seeder {
 	}
 
 	/**
-	 * Decodes a base64 string and stores it as a file in the public disk.
+	 * Decodes a base64 string and stores it as a file in the local disk.
 	 *
 	 * @param string $base64String The base64 encoded image data.
-	 * @param string $directory The directory within storage/app/public to save the file.
+	 * @param string $directory The directory within storage/app/local to save the file.
 	 * @param string $filename The desired filename.
 	 * @return string The path to the stored file.
 	 */
@@ -240,7 +287,7 @@ class DevelopmentSeeder extends Seeder {
 	{
 		$imageData = base64_decode($base64String);
 		$path = $directory . '/' . $filename;
-		Storage::disk('public')->put($path, $imageData);
+		Storage::disk('local')->put($path, $imageData);
 		return $path;
 	}
 }

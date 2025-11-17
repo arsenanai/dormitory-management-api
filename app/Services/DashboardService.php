@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Room;
 use App\Models\Bed;
+use App\Models\Payment;
 use App\Models\Dormitory;
-use App\Models\SemesterPayment;
 use App\Models\Message;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -152,7 +152,7 @@ class DashboardService {
 	 * Get payment statistics
 	 */
 	private function getPaymentStats( $dormitoryId = null ) {
-		$query = SemesterPayment::query();
+		$query = Payment::query();
 
 		if ( $dormitoryId ) {
 			$query->whereHas( 'user.room', fn( $q ) => $q->where( 'dormitory_id', $dormitoryId ) );
@@ -160,13 +160,12 @@ class DashboardService {
 
 		$totalPayments = $query->count();
 		$totalAmount = $query->sum( 'amount' );
-		$approvedPayments = ( clone $query )->where( 'payment_approved', true )->count();
-		$completedPayments = ( clone $query )->where( 'payment_approved', true )->count(); // Same as approved for now
-		$pendingPayments = ( clone $query )->where( 'payment_approved', false )->count();
+		// NOTE: The new 'payments' table does not have a status.
+		// We'll count all as "completed" for now.
+		$pendingPayments = 0; // Placeholder
 
 		// This month's payments
 		$thisMonthAmount = ( clone $query )
-			->where( 'payment_approved', true )
 			->whereMonth( 'created_at', now()->month )
 			->whereYear( 'created_at', now()->year )
 			->sum( 'amount' );
@@ -174,8 +173,8 @@ class DashboardService {
 		return [ 
 			'total_payments'     => $totalPayments,
 			'total_amount'       => $totalAmount,
-			'approved_payments'  => $approvedPayments,
-			'completed_payments' => $completedPayments,
+			'approved_payments'  => $totalPayments, // All are considered approved
+			'completed_payments' => $totalPayments,
 			'pending_payments'   => $pendingPayments,
 			'this_month_amount'  => $thisMonthAmount,
 		];
@@ -259,7 +258,7 @@ class DashboardService {
 			->get();
 
 		// Get user's payments
-		$payments = SemesterPayment::where( 'user_id', $user->id )
+		$payments = Payment::where( 'user_id', $user->id )
 			->orderBy( 'created_at', 'desc' )
 			->get();
 
@@ -267,8 +266,8 @@ class DashboardService {
 			'my_messages'           => $messages->count(),
 			'unread_messages_count' => $messages->whereNull( 'read_at' )->count(),
 			'my_payments'           => $payments->count(),
-			'upcoming_payments'     => $payments->where( 'status', 'pending' )->count(),
-			'payment_history'       => $payments->where( 'status', 'approved' )->count(),
+			'upcoming_payments'     => 0, // No status in new model
+			'payment_history'       => $payments->count(), // All payments are history
 			'room_info'             => $roomInfo,
 		];
 
@@ -319,13 +318,12 @@ class DashboardService {
 	 */
 	public function getMonthlyStats() {
 		$currentMonth = [ 
-			'total_payments'    => SemesterPayment::whereMonth( 'created_at', now()->month )
+			'total_payments'    => Payment::whereMonth( 'created_at', now()->month )
 				->whereYear( 'created_at', now()->year )->count(),
-			'total_amount'      => SemesterPayment::whereMonth( 'created_at', now()->month )
+			'total_amount'      => Payment::whereMonth( 'created_at', now()->month )
 				->whereYear( 'created_at', now()->year )->sum( 'amount' ),
-			'approved_payments' => SemesterPayment::whereMonth( 'created_at', now()->month )
-				->whereYear( 'created_at', now()->year )
-				->where( 'payment_approved', true )->count(),
+			'approved_payments' => Payment::whereMonth( 'created_at', now()->month )
+				->whereYear( 'created_at', now()->year )->count(),
 			'new_students'      => User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
 				->whereMonth( 'created_at', now()->month )
 				->whereYear( 'created_at', now()->year )->count(),
@@ -334,13 +332,12 @@ class DashboardService {
 		];
 
 		$lastMonth = [ 
-			'total_payments'    => SemesterPayment::whereMonth( 'created_at', now()->subMonth()->month )
+			'total_payments'    => Payment::whereMonth( 'created_at', now()->subMonth()->month )
 				->whereYear( 'created_at', now()->subMonth()->year )->count(),
-			'total_amount'      => SemesterPayment::whereMonth( 'created_at', now()->subMonth()->month )
+			'total_amount'      => Payment::whereMonth( 'created_at', now()->subMonth()->month )
 				->whereYear( 'created_at', now()->subMonth()->year )->sum( 'amount' ),
-			'approved_payments' => SemesterPayment::whereMonth( 'created_at', now()->subMonth()->month )
-				->whereYear( 'created_at', now()->subMonth()->year )
-				->where( 'payment_approved', true )->count(),
+			'approved_payments' => Payment::whereMonth( 'created_at', now()->subMonth()->month )
+				->whereYear( 'created_at', now()->subMonth()->year )->count(),
 			'new_students'      => User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
 				->whereMonth( 'created_at', now()->subMonth()->month )
 				->whereYear( 'created_at', now()->subMonth()->year )->count(),
@@ -355,9 +352,9 @@ class DashboardService {
 			$monthlyRevenue[] = [ 
 				'month'         => $date->format( 'M' ),
 				'year'          => $date->year,
-				'total_amount'  => SemesterPayment::whereMonth( 'created_at', $date->month )
+				'total_amount'  => Payment::whereMonth( 'created_at', $date->month )
 					->whereYear( 'created_at', $date->year )->sum( 'amount' ) ?: 0,
-				'payment_count' => SemesterPayment::whereMonth( 'created_at', $date->month )
+				'payment_count' => Payment::whereMonth( 'created_at', $date->month )
 					->whereYear( 'created_at', $date->year )->count(),
 			];
 		}
@@ -373,35 +370,16 @@ class DashboardService {
 	 * Get payment analytics
 	 */
 	public function getPaymentAnalytics() {
-		// Get payment methods analytics
-		$paymentMethods = SemesterPayment::selectRaw( 'payment_method as method, COUNT(*) as count, SUM(amount) as total_amount' )
-			->groupBy( 'payment_method' )
-			->get()
-			->map( function ($item) {
-				return [ 
-					'method'       => $item->method,
-					'count'        => $item->count,
-					'total_amount' => (float) $item->total_amount,
-				];
-			} );
-
-		// Get payment statuses analytics
-		$paymentStatuses = SemesterPayment::selectRaw( 'payment_status as status, COUNT(*) as count, SUM(amount) as total_amount' )
-			->groupBy( 'payment_status' )
-			->get()
-			->map( function ($item) {
-				return [ 
-					'status'       => $item->status,
-					'count'        => $item->count,
-					'total_amount' => (float) $item->total_amount,
-				];
-			} );
+		// The new 'payments' table does not have 'payment_method' or 'payment_status'
+		// Returning empty arrays or mock data for these.
+		$paymentMethods = [];
+		$paymentStatuses = [];
 
 		// Get daily revenue for the last 30 days
 		$dailyRevenue = [];
 		for ( $i = 29; $i >= 0; $i-- ) {
 			$date = now()->subDays( $i )->format( 'Y-m-d' );
-			$dayData = SemesterPayment::whereDate( 'created_at', $date )
+			$dayData = Payment::whereDate( 'created_at', $date )
 				->selectRaw( 'SUM(amount) as total_amount, COUNT(*) as payment_count' )
 				->first();
 

@@ -45,7 +45,7 @@ class UserModelTest extends TestCase {
 		$this->assertEquals( $profile->id, $user->guestProfile->id );
 	}
 
-	public function test_user_has_semester_payments_relationship() {
+	public function test_user_has_payments_relationship() {
 		$user = User::factory()->create();
 		$payment = SemesterPayment::factory()->create( [ 'user_id' => $user->id ] );
 

@@ -29,7 +29,7 @@ class UserDormitoryAccessTest extends TestCase {
 		$this->assertEquals( $profile->id, $user->guestProfile->id );
 	}
 
-	public function test_user_has_semester_payments_relationship() {
+	public function test_user_has_payments_relationship() {
 		$user = User::factory()->create();
 		$payment = SemesterPayment::factory()->create( [ 'user_id' => $user->id ] );
 
@@ -37,7 +37,7 @@ class UserDormitoryAccessTest extends TestCase {
 		$this->assertEquals( $payment->id, $user->semesterPayments->first()->id );
 	}
 
-	public function test_user_has_current_semester_payment_relationship() {
+	public function test_user_has_current_payment_relationship() {
 		$user = User::factory()->create();
 
 		// Create payment for current semester
@@ -88,7 +88,7 @@ class UserDormitoryAccessTest extends TestCase {
 		$this->assertFalse( $user->canAccessDormitory() );
 	}
 
-	public function test_student_cannot_access_dormitory_when_no_current_semester_payment() {
+	public function test_student_cannot_access_dormitory_when_no_current_payment() {
 		$studentRole = Role::factory()->create( [ 'name' => 'student' ] );
 		$user = User::factory()->create( [ 'role_id' => $studentRole->id ] );
 
