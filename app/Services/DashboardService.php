@@ -36,7 +36,7 @@ class DashboardService {
 
 		// Return flattened structure for the main dashboard with frontend-expected field names
 		$stats = [ 
-			'total_dormitories'      => Dormitory::count(),
+			'total_dormitories'      => $user->hasRole('sudo') ? Dormitory::count(): null,
 			'total_rooms'            => $roomStats['total_rooms'],
 			'total_beds'             => $roomStats['total_beds'],
 			'available_rooms'        => $roomStats['available_rooms'],
@@ -54,23 +54,6 @@ class DashboardService {
 			'recent_messages'        => $messageStats['recent_messages'],
 			'occupancy_rate'         => $roomStats['occupancy_rate'],
 			'quota_students'         => 0, // Placeholder for quota students count
-		];
-
-		return response()->json( $stats );
-	}
-
-	/**
-	 * Get statistics for a specific dormitory
-	 */
-	public function getDormitoryStats( $dormitoryId ) {
-		$dormitory = Dormitory::findOrFail( $dormitoryId );
-
-		$stats = [ 
-			'dormitory' => $dormitory,
-			'students'  => $this->getStudentStats( $dormitoryId ),
-			'rooms'     => $this->getRoomStats( $dormitoryId ),
-			'payments'  => $this->getPaymentStats( $dormitoryId ),
-			'messages'  => $this->getMessageStats( $dormitoryId ),
 		];
 
 		return response()->json( $stats );

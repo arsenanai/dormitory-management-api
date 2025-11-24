@@ -293,15 +293,15 @@ class StudentService {
 				$profileData['files'] = $storedFilePaths;
 			}	
 			// If a bed is assigned, update the user's room_id and dormitory_id
-			if (isset($data['bed_id'])) {
-				$bed = Bed::with('room')->find($data['bed_id']);
-				if ($bed) {
-					$userData['room_id'] = $bed->room_id;
-					$userData['dormitory_id'] = $bed->room->dormitory_id;
-				}
-			} else {
+			// if (isset($data['bed_id'])) {
+			// 	$bed = Bed::with('room')->find($data['bed_id']);
+			// 	if ($bed) {
+			// 		$userData['room_id'] = $bed->room_id;
+			// 		$userData['dormitory_id'] = $bed->room->dormitory_id;
+			// 	}
+			// } else {
 				$userData['dormitory_id'] = $dormitory->id;
-			}
+			// }
 			// Create the User
 			$student = User::create( $userData );
 
