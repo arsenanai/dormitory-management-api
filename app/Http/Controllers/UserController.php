@@ -529,7 +529,7 @@ class UserController extends Controller {
 				'first_name'    => $user->first_name,
 				'last_name'     => $user->last_name,
 				'email'         => $user->email,
-				'phone'         => $user->phone,
+				'phone_numbers' => $user->phone_numbers,
 				'role'          => $user->role,
 				'dormitory'     => $user->adminDormitory, // This is the assigned dormitory for an admin
 				'adminProfile'  => $user->adminProfile,
