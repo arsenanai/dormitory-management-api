@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Models\Role;
+use App\Models\Room;
+use App\Models\RoomType;
 use App\Models\User;
 use App\Models\StudentProfile;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +18,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class StudentService {
+
+	private $paymentService;
+
+	public function __construct() {
+		$this->paymentService = new PaymentService();
+	}
 	/**
 	 * Get students with filters and pagination
 	 */
@@ -260,7 +269,7 @@ class StudentService {
 	/**
 	 * Get students with filters and pagination
 	 */
-	public function createStudent( array $data, \App\Models\Dormitory $dormitory ) {
+	public function createStudent( array $data, Dormitory $dormitory ) {
 		\Log::info('StudentService: createStudent method started.', ['data_keys' => array_keys($data), 'has_files' => isset($data['files'])]);
 
 		return DB::transaction(function () use ($data, $dormitory) {
@@ -282,7 +291,7 @@ class StudentService {
 			if (isset($profileData['files']) && is_array($profileData['files'])) {
 				$storedFilePaths = $this->storeNewFiles($profileData['files']);
 				$profileData['files'] = $storedFilePaths;
-			}
+			}	
 			// If a bed is assigned, update the user's room_id and dormitory_id
 			if (isset($data['bed_id'])) {
 				$bed = Bed::with('room')->find($data['bed_id']);
@@ -303,8 +312,47 @@ class StudentService {
 			// Assign bed if provided
 			$this->processBedAssignment($student, $data['bed_id'] ?? null, false);
 
+			$room = Room::with('roomType')->findOrFail( $userData['room_id'] );
+			// create initial payment record
+			$this->paymentService->create([
+				'user_id'      => $student->id,
+				'amount'       => $this->calculateSemesterFee($room->roomType),
+				'date_from'    => $this->getSemesterStartDate(),
+				'date_to'      => $this->getSemesterEndDate(),
+				'deal_number'  => $profileData['deal_number'],
+				'deal_date'    => now(),
+				'payment_check'=> $profileData['payment.payment_check'],
+			]);
+
 			return $student->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] );
 		});
+	}
+
+	private function calculateSemesterFee(RoomType $roomType): float {
+		// room type has semester_rate, we need to return that amount
+		return $roomType->semester_rate;
+	}
+
+	private function getSemesterStartDate(): Carbon {
+		// typically 01.01.[current_year] or 01.09.[current_year] depending on semester
+		$month = now()->month;
+		$year = now()->year;
+		if ($month >= 1 && $month <= 6) {
+			return Carbon::create($year, 1, 1);
+		} else {
+			return Carbon::create($year, 9, 1);
+		}
+	}
+
+	private function getSemesterEndDate(): Carbon {
+		// the last day of the may or december depending on year
+		$month = now()->month;
+		$year = now()->year;
+		if ($month >= 1 && $month <= 6) {
+			return Carbon::create($year, 6, 30);
+		} else {
+			return Carbon::create($year, 12, 31);
+		}
 	}
 
 	/**
@@ -414,7 +462,8 @@ class StudentService {
 	 * Delete files from storage
 	 */
 	private function deleteFiles( array $files ) {
-		foreach ( $files as $file ) {
+		// Delete up to 3 files (the last one is for payments)
+		foreach( $files as $file ) {
 			// Ensure the file path is a valid, non-empty string and exists before attempting to delete.
 			if (is_string($file) && !empty($file) && Storage::disk('local')->exists($file)) {
 				Storage::disk( 'local' )->delete( $file );
@@ -569,7 +618,7 @@ class StudentService {
 			}
 		}
 		// Ensure the array has 4 elements, preserving order.
-		return array_replace(array_fill(0, 4, null), $filePaths);
+		return array_replace(array_fill(0, 3, null), $filePaths);
 	}
 
 	/**
@@ -580,14 +629,12 @@ class StudentService {
 	 * @return array The array of stored file paths, preserving keys.
 	 */
 	private function storeNewFiles(array $files): array {
-		$storedPaths = array_fill(0, 4, null); // Initialize a 4-element array with nulls.
+		$storedPaths = array_fill(0, 3, null); 
 		foreach ($files as $index => $file) {
-			// Ensure the index is valid and the file is an uploaded file instance.
-			if (is_int($index) && $index >= 0 && $index < 4 && $file instanceof \Illuminate\Http\UploadedFile) {
+			if ($file instanceof \Illuminate\Http\UploadedFile) {
 				$storedPaths[$index] = $this->storeStudentFile($file);
 			}
 		}
-		// The array is already in the correct 4-element format.
 		return $storedPaths;
 	}
 

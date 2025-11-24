@@ -15,7 +15,7 @@ class RoomController extends Controller {
 	}
 
 	public function index( Request $request ) {
-		$filters = $request->only( [ 'dormitory_id', 'room_type_id', 'floor', 'number' ] );
+		$filters = $request->only( [ 'dormitory_id', 'room_type_id', 'floor', 'number', 'occupant_type' ] );
 		$perPage = $request->input( 'per_page', 15 );
 
 		// Get authenticated user for role-based filtering
@@ -65,6 +65,7 @@ class RoomController extends Controller {
 				'notes'        => 'nullable|string',
 				'dormitory_id' => 'required|exists:dormitories,id',
 				'room_type_id' => 'required|exists:room_types,id',
+				'occupant_type' => ['required', Rule::in(['student', 'guest'])],
 			];
 			$validated = $request->validate($rules);
 		} catch (\Illuminate\Validation\ValidationException $e) {
@@ -92,6 +93,7 @@ class RoomController extends Controller {
 			'notes'        => 'nullable|string',
 			'dormitory_id' => 'required|exists:dormitories,id',
 			'room_type_id' => 'required|exists:room_types,id',
+			'occupant_type' => ['required', Rule::in(['student', 'guest'])],
 		];
 		$validated = $request->validate($rules);
 
@@ -127,7 +129,13 @@ class RoomController extends Controller {
 			$dormitoryId = $user->adminDormitory->id ?? null;
 		}
 
-		$rooms = $this->service->available( $dormitoryId );
+		$params = $request->only(['start_date', 'end_date', 'guest_id']);
+
+		$rooms = $this->service->available(
+			$dormitoryId,
+			$request->input( 'occupant_type', 'student'),
+			$params
+		);
 		return response()->json( $rooms );
 	}
 }

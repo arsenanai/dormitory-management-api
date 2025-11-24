@@ -5,11 +5,18 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\GuestProfile;
+use App\Models\Bed;
 use App\Models\Room;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-
+use App\Services\PaymentService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 class GuestService {
+
+	public function __construct(
+		protected PaymentService $paymentService
+	){}
 	/**
 	 * Get guests with filters and pagination
 	 */
@@ -55,10 +62,11 @@ class GuestService {
 	 * Create a new guest
 	 */
 	public function createGuest( array $data ) {
+		DB::beginTransaction();
 		try {
-			\Log::info( 'Starting guest creation...' );
+			Log::info( 'Starting guest creation...' );
 			$guestRole = Role::where( 'name', 'guest' )->first();
-			\Log::info( 'Guest role found:', [ 'role' => $guestRole ] );
+			Log::info( 'Guest role found:', [ 'role' => $guestRole ] );
 			$guestRoleId = $guestRole->id;
 
 			// Only pass valid User fields
@@ -75,15 +83,21 @@ class GuestService {
 			];
 
 			// Debug logging
-			\Log::info( 'Creating guest with userData:', $userData );
+			Log::info( 'Creating guest with userData:', $userData );
 
 			$guest = User::create( $userData );
 
-			$dailyRate = $data['total_amount'] ?? 0;
-			if (isset($data['room_id'])) {
-				$room = Room::with('roomType')->find($data['room_id']);
-				if ($room && $room->roomType) {
-					$dailyRate = $room->roomType->daily_rate;
+			$dailyRate = 0;
+			if (isset($data['total_amount']) && isset($data['check_in_date']) && isset($data['check_out_date'])) {
+				$startDate = Carbon::parse($data['check_in_date']);
+				$endDate = Carbon::parse($data['check_out_date']);
+				$days = $endDate->diffInDays($startDate);
+				if ($days > 0 && $data['total_amount'] > 0) {
+					$dailyRate = $data['total_amount'] / $days;
+				} else {
+					// Fallback to room type's daily rate if calculation is not possible
+					$room = Room::with('roomType')->find($data['room_id']);
+					$dailyRate = $room?->roomType?->daily_rate ?? 0;
 				}
 			}
 
@@ -100,7 +114,8 @@ class GuestService {
 				'identification_number'   => $data['identification_number'] ?? null,
 				'emergency_contact_name'  => $data['emergency_contact_name'] ?? null,
 				'emergency_contact_phone' => $data['emergency_contact_phone'] ?? null,
-				'reminder'                => $data['notes'] ?? null,
+				'bed_id'                  => $data['bed_id'] ?? null,
+				'reminder'                => $data['reminder'] ?? null,
 			] );
 
 			// If room is assigned, mark it as occupied
@@ -111,9 +126,29 @@ class GuestService {
 				}
 			}
 
+			// If bed is assigned, mark it as occupied
+			if ( isset( $data['bed_id'] ) ) {
+				$bed = Bed::find( $data['bed_id'] );
+				if ( $bed ) {
+					$bed->update( [ 'is_occupied' => true, 'user_id' => $guest->id ] );
+				}
+			}
+
+			// Create Payment record
+			$this->paymentService->create([
+				'user_id'    => $guest->id,
+				'amount'     => $data['total_amount'] ?? 0,
+				'date_from'  => $data['check_in_date'],
+				'date_to'    => $data['check_out_date'],
+				'deal_date'  => now(),
+				'payment_check' => $data['payment_check'],
+			]);
+
+			DB::commit();
 			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
 		} catch (\Exception $e) {
-			\Log::error( 'Error creating guest:', [ 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString() ] );
+			Log::error( 'Error creating guest:', [ 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString() ] );
+			DB::rollBack();
 			throw $e;
 		}
 	}
@@ -128,6 +163,7 @@ class GuestService {
 			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
 				->findOrFail( $id );
 			$oldRoomId = $guest->room_id;
+			$oldBedId = $guest->guestProfile?->bed_id;
 
 			// If first_name or last_name are provided, construct the full 'name'
 			if (isset($data['first_name']) || isset($data['last_name'])) {
@@ -139,7 +175,7 @@ class GuestService {
 			$guest->update( $data );
 
 			// Update guest profile if needed
-			if ( isset( $data['check_in_date'] ) || isset( $data['check_out_date'] ) || isset( $data['total_amount'] ) || isset( $data['notes'] ) ) {
+			if ( isset( $data['check_in_date'] ) || isset( $data['check_out_date'] ) || isset( $data['total_amount'] ) || isset( $data['notes'] ) || isset( $data['bed_id'] ) ) {
 				$profileData = [];
 				if ( isset( $data['check_in_date'] ) )
 					$profileData['visit_start_date'] = $data['check_in_date'];
@@ -149,6 +185,8 @@ class GuestService {
 					$profileData['daily_rate'] = $data['total_amount'];
 				if ( isset( $data['notes'] ) )
 					$profileData['purpose_of_visit'] = $data['notes'];
+				if ( isset( $data['bed_id'] ) )
+					$profileData['bed_id'] = $data['bed_id'];
 
 				if ( $guest->guestProfile ) {
 					$guest->guestProfile->update( $profileData );
@@ -174,6 +212,22 @@ class GuestService {
 				}
 			}
 
+			// Handle bed changes
+			if ( isset( $data['bed_id'] ) && $data['bed_id'] != $oldBedId ) {
+				// Free up old bed
+				if ( $oldBedId ) {
+					$oldBed = Bed::find( $oldBedId );
+					if ( $oldBed ) {
+						$oldBed->update( [ 'is_occupied' => false, 'user_id' => null ] );
+					}
+				}
+				// Occupy new bed
+				$newBed = Bed::find( $data['bed_id'] );
+				if ( $newBed ) {
+					$newBed->update( [ 'is_occupied' => true, 'user_id' => $guest->id ] );
+				}
+			}
+
 			DB::commit();
 			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
 		} catch (\Exception $e) {
@@ -192,12 +246,20 @@ class GuestService {
 			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
 				->findOrFail( $id );
 
+			// Free up bed if assigned
+			if ( $guest->guestProfile && $guest->guestProfile->bed_id ) {
+				$bed = Bed::find( $guest->guestProfile->bed_id );
+				if ( $bed ) {
+					$bed->update( [ 'is_occupied' => false, 'user_id' => null ] );
+				}
+			}
+
 			// Free up room if assigned
 			if ( $guest->room_id ) {
 				$room = Room::find( $guest->room_id );
 				if ( $room ) {
 					$room->update( [ 'is_occupied' => false ] );
-				}
+				} // This might be redundant if bed management implies room occupancy
 			}
 
 			$guest->delete();
@@ -248,6 +310,14 @@ class GuestService {
 				$room = Room::find( $guest->room_id );
 				if ( $room ) {
 					$room->update( [ 'is_occupied' => false ] );
+				}
+			}
+
+			// Free up bed
+			if ( $guest->guestProfile && $guest->guestProfile->bed_id ) {
+				$bed = Bed::find( $guest->guestProfile->bed_id );
+				if ( $bed ) {
+					$bed->update( [ 'is_occupied' => false, 'user_id' => null ] );
 				}
 			}
 

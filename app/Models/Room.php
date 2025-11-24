@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,14 +18,11 @@ class Room extends Model {
 		'notes',
 		'dormitory_id',
 		'room_type_id',
-		'is_occupied',
-		'quota',
+		'occupant_type',
 	];
 
 	protected $casts = [ 
 		'floor'       => 'integer',
-		'is_occupied' => 'boolean',
-		'quota'       => 'integer',
 	];
 
 	public function dormitory(): BelongsTo {
@@ -36,10 +35,5 @@ class Room extends Model {
 
 	public function beds(): HasMany {
 		return $this->hasMany( Bed::class);
-	}
-
-	// Get default quota from room type if not set
-	public function getQuotaAttribute( $value ) {
-		return $value ?? $this->roomType?->capacity ?? 0;
 	}
 }

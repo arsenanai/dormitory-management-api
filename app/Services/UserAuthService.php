@@ -57,30 +57,6 @@ class UserAuthService {
 		return null;
 	}
 
-	/**
-	 * Register a new student with comprehensive profile data
-	 * 
-	 * Creates a new user with 'student' role and associated StudentProfile.
-	 * Handles file uploads for required documents and sets default status to 'pending'.
-	 * 
-	 * @param array $data Student registration data including:
-	 *                    - name, email, password, phone_numbers
-	 *                    - faculty, specialist, enrollment_year, gender
-	 *                    - deal_number, city_id, files (uploaded documents)
-	 *                    - agree_to_dormitory_rules
-	 * @return User Created user with loaded relationships
-	 * @throws \Illuminate\Validation\ValidationException When validation fails
-	 * 
-	 * @example
-	 * $studentData = [
-	 *     'name' => 'John Doe',
-	 *     'email' => 'john@student.com',
-	 *     'password' => 'password123',
-	 *     'faculty' => 'Engineering',
-	 *     'files' => [$uploadedFile1, $uploadedFile2]
-	 * ];
-	 * $student = $authService->registerStudent($studentData);
-	 */
 	public function registerStudent( array $data ) {
 		// Handle file uploads for required documents
 		$filePaths = [];
@@ -98,7 +74,7 @@ class UserAuthService {
 
 		// Separate user fields from profile fields
 		$userFields = [ 'name', 'first_name', 'last_name', 'email', 'phone_numbers', 'room_id', 'password', 'status', 'role_id' ];
-		$profileFields = [ 'faculty', 'specialist', 'enrollment_year', 'gender', 'deal_number', 'city_id', 'country', 'region', 'city', 'files', 'agree_to_dormitory_rules' ];
+		$profileFields = [ 'faculty', 'specialist', 'enrollment_year', 'gender', 'deal_number', 'country', 'region', 'city', 'files', 'agree_to_dormitory_rules' ];
 
 		// Create user record
 		$userData = array_intersect_key( $data, array_flip( $userFields ) );
@@ -272,7 +248,6 @@ class UserAuthService {
 					'enrollment_year'          => 'required|integer|min:2000|max:' . ( date( 'Y' ) + 10 ),
 					'gender'                   => 'required|in:male,female',
 					'deal_number'              => 'required|string|max:255',
-					'city_id'                  => 'required|exists:cities,id',
 					'files'                    => 'required|array|min:1',
 					'files.*'                  => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
 					'agree_to_dormitory_rules' => 'required|boolean|accepted',

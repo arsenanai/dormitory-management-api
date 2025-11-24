@@ -65,12 +65,16 @@ class DevelopmentSeeder extends Seeder {
 		for ( $i = 1; $i <= 50; $i++ ) {
 			$floor = ceil( $i / 10 );
 			$roomNum = $i % 10 === 0 ? 10 : $i % 10;
-			$roomType = ( $i % 5 === 0 ) ? $luxRoomType : $standardRoomType; // Mix in some lux rooms
+			// Ensure first floor has both standard and lux rooms for guests
+			$roomType = ( $floor === 1 && $i % 5 === 0 ) || ( $floor > 1 && $i % 5 === 0 ) ? $luxRoomType : $standardRoomType;
+			$isGuestRoom = ($floor === 1);
+			$occupantType = $isGuestRoom ? 'guest' : 'student';
 
 			$room = Room::create( [
 				'number' => $floor . str_pad( $roomNum, 2, '0', STR_PAD_LEFT ),
 				'dormitory_id' => $adminDormitory->id,
 				'room_type_id' => $roomType->id,
+				'occupant_type' => $occupantType,
 				'floor' => $floor,
 			] );
 
@@ -84,9 +88,10 @@ class DevelopmentSeeder extends Seeder {
 		}
 
 		// Get all available beds to assign to students
-		$availableBeds = \App\Models\Bed::whereHas( 'room', function ($q) use ($adminDormitory) {
-			$q->where( 'dormitory_id', $adminDormitory->id );
-		} )->whereNull( 'user_id' )->get();
+		$availableBeds = \App\Models\Bed::whereHas('room', function ($q) use ($adminDormitory) {
+			$q->where('dormitory_id', $adminDormitory->id)
+			  ->where('occupant_type', 'student');
+		})->whereNull('user_id')->get();
 
 		$bedIterator = 0;
 
@@ -135,7 +140,7 @@ class DevelopmentSeeder extends Seeder {
 			];
 			foreach ( $base64Images as $key => $base64Image ) {
 				$filename = 'student_' . $student->id . '_doc_' . ( $key + 1 ) . '.png';
-				$filePaths[] = $this->storeBase64Image( $base64Image, 'student_documents', $filename );
+				$filePaths[$key] = $this->storeBase64Image( $base64Image, 'student_files', $filename );
 			}
 
 			// Create Student Profile with all fields
@@ -166,32 +171,40 @@ class DevelopmentSeeder extends Seeder {
 			] );
 		}
 
-		// Create 10 Guests
-		$guestRooms = Room::where('dormitory_id', $adminDormitory->id)->inRandomOrder()->take(10)->get();
+		// Create 5 Guests, leaving some rooms available
+		$guestRooms = Room::where('dormitory_id', $adminDormitory->id)
+			->where('occupant_type', 'guest')
+			->with('beds')
+			->inRandomOrder()->take(5)->get();
 		foreach ($guestRooms as $guestRoom) {
-			if ($guestRoom) {
+			$availableBed = $guestRoom->beds()->where('is_occupied', false)->first();
+
+			if ($availableBed) {
 				$firstName = $faker->firstName;
 				$lastName = $faker->lastName;
 				$guestUser = User::create([
-					'name' => $firstName . ' ' . $lastName,
-					'first_name' => $firstName,
-					'last_name' => $lastName,
-					'email' => $faker->unique()->safeEmail,
+					'name'          => $firstName . ' ' . $lastName,
+					'first_name'    => $firstName,
+					'last_name'     => $lastName,
+					'email'         => $faker->unique()->safeEmail,
 					'phone_numbers' => json_encode( [ $faker->phoneNumber ] ),
-					'password' => Hash::make('password'),
-					'role_id' => $guestRole->id,
-					'status' => 'active',
-					'dormitory_id' => $adminDormitory->id,
-					'room_id' => $guestRoom->id,
+					'password'      => Hash::make('password'),
+					'role_id'       => $guestRole->id,
+					'status'        => 'active',
+					'dormitory_id'  => $adminDormitory->id,
+					'room_id'       => $guestRoom->id,
 				]);
-	
+
 				\App\Models\GuestProfile::create([
-					'user_id' => $guestUser->id,
+					'user_id'          => $guestUser->id,
 					'purpose_of_visit' => $faker->sentence,
 					'visit_start_date' => now()->subDays(rand(1, 5)),
-					'visit_end_date' => now()->addDays(rand(2, 10)),
-					'is_approved' => true,
+					'visit_end_date'   => now()->addDays(rand(2, 10)),
+					'is_approved'      => true,
+					'bed_id'           => $availableBed->id,
 				]);
+
+				$availableBed->update(['is_occupied' => true, 'user_id' => $guestUser->id]);
 			}
 		}
 

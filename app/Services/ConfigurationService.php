@@ -248,8 +248,8 @@ class ConfigurationService {
 			'registration_enabled'       => $this->getConfiguration( 'registration_enabled' ),
 			'backup_list_enabled'        => $this->getConfiguration( 'backup_list_enabled' ),
 			'payment_deadline_days'      => $this->getConfiguration( 'payment_deadline_days' ),
-			'default_room_price'         => $this->getConfiguration( 'default_room_price' ),
 			'dormitory_rules'            => $this->getConfiguration( 'dormitory_rules' ),
+			'bank_requisites'            => $this->getConfiguration( 'bank_requisites' ),
 		];
 	}
 
@@ -258,7 +258,8 @@ class ConfigurationService {
 	 */
 	public function updateDormitorySettings( array $settings ): array{
 		foreach ( $settings as $key => $value ) {
-			$type = in_array( $key, [ 'registration_enabled', 'backup_list_enabled' ] ) ? 'boolean' : (
+			$type = in_array( $key, 
+			[ 'registration_enabled', 'backup_list_enabled' ] ) ? 'boolean' : (
 				$key === 'dormitory_rules' ? 'string' : 'number'
 			);
 			$this->setConfiguration( $key, $value, $type, 'Dormitory Configuration' );
@@ -276,8 +277,8 @@ class ConfigurationService {
 			'registration_enabled'       => [ 'value' => true, 'type' => 'boolean' ],
 			'backup_list_enabled'        => [ 'value' => true, 'type' => 'boolean' ],
 			'payment_deadline_days'      => [ 'value' => 30, 'type' => 'number' ],
-			'default_room_price'         => [ 'value' => 50000, 'type' => 'number' ],
 			'dormitory_rules'            => [ 'value' => 'Default dormitory rules: Please be respectful of others.', 'type' => 'string' ],
+			'bank_requisites'            => [ 'value' => 'Bank Name: XYZ Bank\nAccount Number: 1234567890\nIBAN: KZ0000000000000000', 'type' => 'string' ],
 			'currency_symbol'            => [ 'value' => 'KZT', 'type' => 'string' ],
 			'smtp_host'                  => [ 'value' => 'smtp.gmail.com', 'type' => 'string' ],
 			'smtp_port'                  => [ 'value' => 587, 'type' => 'number' ],

@@ -2,6 +2,7 @@
 use App\Http\Controllers\AccountingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BedController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
@@ -36,30 +37,6 @@ Route::get( '/room-types', [ RoomTypeController::class, 'index' ] );
 Route::get( '/room-types/{roomType}', [ RoomTypeController::class, 'show' ] );
 Route::get('/configurations/public', [ConfigurationController::class, 'getPublicSettings']);
 
-// Debug route to test API functionality
-Route::post( '/debug/test', function () {
-	return response()->json( [ 'message' => 'Debug route working', 'timestamp' => now() ] );
-} );
-
-// Debug route to test room relationships
-Route::get( '/debug/room/{id}', function ($id) {
-	$room = \App\Models\Room::find( $id );
-	if ( ! $room ) {
-		return response()->json( [ 'error' => 'Room not found' ], 404 );
-	}
-
-	$roomType = \App\Models\RoomType::find( $room->room_type_id );
-
-	return response()->json( [ 
-		'room_id'                    => $room->id,
-		'room_number'                => $room->number,
-		'room_type_id'               => $room->room_type_id,
-		'room_type_direct'           => $roomType,
-		'room_type_via_relationship' => $room->roomType,
-		'room_with_relationship'     => $room->load( 'roomType' ),
-	] );
-} );
-
 // Protected routes
 Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
@@ -87,7 +64,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::post( '/rooms', [ RoomController::class, 'store' ] );
 		Route::put( '/rooms/{room}', [ RoomController::class, 'update' ] );
 		Route::delete( '/rooms/{room}', [ RoomController::class, 'destroy' ] );
-		Route::get( '/rooms/available', [ RoomController::class, 'available' ] );
 
 		// Bed management
 		Route::put( '/beds/{bed}', [ BedController::class, 'update' ] );
@@ -176,7 +152,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
 		// Guest management
 		Route::get( '/guests/export', [ GuestController::class, 'export' ] );
-		Route::get( '/guests/available-rooms', [ GuestController::class, 'availableRooms' ] );
 		Route::post( '/guests/{id}/check-out', [ GuestController::class, 'checkOut' ] );
 		Route::apiResource( 'guests', GuestController::class);
 		Route::get( 'guests-list', [ GuestController::class, 'listAll' ] );
@@ -210,26 +185,12 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::apiResource( 'regions', RegionController::class);
 		Route::apiResource( 'cities', CityController::class);
 
-		// Configuration settings accessible to admin and sudo
-		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
-		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
-		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
-		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
-		// Kaspi integration settings (admin and sudo can manage)
-		Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
-		Route::put('/configurations/kaspi', [ConfigurationController::class, 'updateKaspiSettings']);
-		Route::put('/configurations/currency', [ConfigurationController::class, 'updateCurrencySetting']);
-
 	} );
 	// Room type management (sudo and admin)
 	Route::middleware(['role:sudo'])->group(function () {
 		Route::post('/room-types', [RoomTypeController::class, 'store']);
 		Route::put('/room-types/{roomType}', [RoomTypeController::class, 'update']);
 		Route::delete('/room-types/{roomType}', [RoomTypeController::class, 'destroy']);
-	});
-
-	// Sudo-only routes
-	Route::middleware( [ 'role:sudo' ] )->group( function () {
 
 		// Admin management
 		Route::apiResource( 'admins', AdminController::class);
@@ -260,9 +221,20 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/configurations/logs', [ ConfigurationController::class, 'getSystemLogs' ] );
 		Route::delete( '/configurations/logs', [ ConfigurationController::class, 'clearSystemLogs' ] );
 
-		// Dormitory settings saving
-		Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
+		// // Dormitory settings saving
+		// Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
+		// Configuration settings accessible to admin and sudo
+		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
+		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
+		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
+		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
+		// Kaspi integration settings (admin and sudo can manage)
+		Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
+		Route::put('/configurations/kaspi', [ConfigurationController::class, 'updateKaspiSettings'] );
+
+		Route::put('/configurations/currency', [ConfigurationController::class, 'updateCurrencySetting'] );
 		Route::put( '/configurations/dormitory-rules', [ ConfigurationController::class, 'updateDormitoryRules' ] );
+		Route::put( '/configurations/bank-requisites', [ ConfigurationController::class, 'updateBankRequisites' ] );
 
 	} );
 

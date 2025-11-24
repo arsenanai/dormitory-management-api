@@ -7,6 +7,8 @@ namespace App\Services;
 use App\Models\Room;
 use App\Models\Bed;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class RoomService {
 	public function listRooms( array $filters = [], int $perPage = 15, $user = null ) {
@@ -46,6 +48,9 @@ class RoomService {
 		}
 		if ( isset( $filters['number'] ) ) {
 			$query->where( 'number', 'like', '%' . $filters['number'] . '%' );
+		}
+		if ( isset( $filters['occupant_type'] ) ) {
+			$query->where( 'occupant_type', $filters['occupant_type'] );
 		}
 
 		// Pagination
@@ -114,17 +119,53 @@ class RoomService {
 		return response()->json( [ 'message' => 'Room deleted successfully' ], 200 );
 	}
 
-	public function available( $dormitoryId ) {
-		$query = Room::whereHas('beds', function ($bedQuery) {
-			$bedQuery->where('reserved_for_staff', false);
-		})->with(['beds' => function ($bedQuery) {
-			$bedQuery->where('reserved_for_staff', false);
-		}, 'dormitory', 'roomType']);
+	public function available( $dormitoryId, $occupantType = 'student', array $params = [] ) {
+		$query = Room::with(['dormitory', 'roomType']);
 
 		if ( $dormitoryId ) {
 			$query->where( 'dormitory_id', $dormitoryId );
 		}
-		$rooms = $query->get();
-		return $rooms;
+
+		$query->where('occupant_type', $occupantType);
+
+		if ($occupantType === 'student') {
+			$query->with(['beds' => function ($bedQuery) {
+				$bedQuery->where('is_occupied', false)
+					->whereNull('user_id')
+					->where('reserved_for_staff', false);
+			}])->whereHas('beds', function ($bedQuery) {
+				$bedQuery->where('is_occupied', false)
+					->whereNull('user_id')
+					->where('reserved_for_staff', false);
+			});
+		} else {
+			// For guests, we need to check availability within a date range.
+			$startDate = Carbon::parse($params['start_date']);
+			$endDate = Carbon::parse($params['end_date']);
+			$guestId = $params['guest_id'] ?? null;
+
+			$bedQueryLogic = function ($bedQuery) use ($startDate, $endDate, $guestId) {
+				$bedQuery->where(function (Builder $q) use ($startDate, $endDate, $guestId) {
+					// Condition 1: The bed is not occupied by any guest during the date range.
+					$q->where(function (Builder $subQ) use ($startDate, $endDate) {
+						$subQ->whereDoesntHave('guestProfiles', function (Builder $gp) use ($startDate, $endDate) {
+							$gp->where('visit_start_date', '<', $endDate)
+							   ->where('visit_end_date', '>', $startDate);
+						});
+					});
+
+					// Condition 2: OR the bed is occupied by the specific guest we are editing.
+					if ($guestId) {
+						$q->orWhereHas('guestProfiles', function (Builder $gp) use ($guestId) {
+							$gp->where('user_id', $guestId);
+						});
+					}
+				});
+			};
+
+			$query->with(['beds' => $bedQueryLogic])
+				->whereHas('beds', $bedQueryLogic);
+		}
+		return $query->get();
 	}
 }

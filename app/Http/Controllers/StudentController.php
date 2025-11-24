@@ -131,7 +131,6 @@ class StudentController extends Controller {
 			'student_profile.agree_to_dormitory_rules'       => 'required|boolean',
 			'student_profile.allergies'                      => 'nullable|string|max:1000',
 			'student_profile.blood_type'                     => ['nullable', 'string'],
-			'student_profile.city_id'                        => 'nullable|integer|exists:cities,id',
 			'student_profile.city'                           => 'nullable|string|max:255',
 			'student_profile.country'                        => 'nullable|string|max:255',
 			'student_profile.deal_number'                    => 'nullable|string|max:255',
@@ -141,7 +140,7 @@ class StudentController extends Controller {
 			'student_profile.enrollment_year'                => 'required|integer|digits:4',
 			'student_profile.faculty'                        => 'required|string|max:255',
 			'student_profile.files.*'                        => 'nullable|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
-			'student_profile.files'                          => 'nullable|array|max:4',
+			'student_profile.files'                          => 'nullable|array|max:3',
 			'student_profile.gender'                         => 'required|in:male,female',
 			'student_profile.has_meal_plan'                  => 'required|boolean',
 			'student_profile.iin'                            => 'required|digits:12|unique:student_profiles,iin',
@@ -153,6 +152,7 @@ class StudentController extends Controller {
 			'student_profile.region'                         => 'nullable|string|max:255',
 			'student_profile.specialist'                     => 'required|string|max:255',
 			'student_profile.violations'                     => 'nullable|string|max:1000',
+			'payment.payment_check'						     => 'required|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
 		] );
 
 		$student = $this->studentService->createStudent( $validated, Auth::user()->adminDormitory );
@@ -241,7 +241,6 @@ class StudentController extends Controller {
 			'student_profile.agree_to_dormitory_rules'       => 'nullable|boolean',
 			'student_profile.allergies'                      => 'nullable|string|max:1000',
 			'student_profile.blood_type'                     => ['nullable', 'string'],
-			'student_profile.city_id'                        => 'nullable|integer|exists:cities,id',
 			'student_profile.city'                           => 'nullable|string|max:255',
 			'student_profile.country'                        => 'nullable|string|max:255',
 			'student_profile.deal_number'                    => 'nullable|string|max:255',
@@ -252,18 +251,7 @@ class StudentController extends Controller {
 			'student_profile.faculty'                        => 'nullable|string|max:255',
 			'student_profile.files.*'                        => [
 				'nullable',
-				function ($attribute, $value, $fail) {
-					if ($value instanceof UploadedFile) {
-						// It's a new file, so we validate its type and size.
-						$validator = \Illuminate\Support\Facades\Validator::make(
-							['file' => $value],
-							['file' => 'mimes:jpeg,jpg,png,pdf|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048']
-						);
-						if ($validator->fails()) {
-							$fail($validator->errors()->first('file'));
-						}
-					} // If it's a string (existing path) or null, it's considered valid.
-				},
+				$this->validateUploadedFile(...),
 			],
 			'student_profile.files'                          => 'nullable|array|max:4',
 			'student_profile.gender'                         => 'nullable|in:male,female',
@@ -278,10 +266,26 @@ class StudentController extends Controller {
 			'student_profile.specialist'                     => 'nullable|string|max:255', 
 			'student_profile.student_id'                     => 'nullable|string|max:255',
 			'student_profile.violations'                     => 'nullable|string|max:1000',
+			'payment.payment_check'						     => [
+				'nullable',
+				$this->validateUploadedFile(...),
+			],
 		] );
 
 		$student = $this->studentService->updateStudent( $id, $validated, Auth::user()->load('adminDormitory') );
 		return response()->json($student);
+	}
+
+	private function validateUploadedFile( $attribute, $value, $fail ): void {
+		if ( $value instanceof UploadedFile ) {
+			$validator = \Illuminate\Support\Facades\Validator::make(
+				[ 'file' => $value ],
+				[ 'file' => 'mimes:jpeg,jpg,png,pdf|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048' ]
+			);
+			if ( $validator->fails() ) {
+				$fail( $validator->errors()->first( 'file' ) );
+			}
+		}
 	}
 
 	/**

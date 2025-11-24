@@ -189,19 +189,19 @@ class ConfigurationController extends Controller {
 	/**
 	 * Update dormitory settings
 	 */
-	public function updateDormitorySettings( Request $request ) {
-		$validated = $request->validate( [ 
-			'max_students_per_dormitory' => 'required|integer|min:1|max:10000',
-			'registration_enabled'       => 'required|boolean',
-			'backup_list_enabled'        => 'required|boolean',
-			'payment_deadline_days'      => 'required|integer|min:1|max:365',
-			'default_room_price'         => 'required|numeric|min:0',
-			'dormitory_rules'            => 'sometimes|nullable|string',
-		] );
+	// public function updateDormitorySettings( Request $request ) {
+	// 	$validated = $request->validate( [ 
+	// 		'max_students_per_dormitory' => 'required|integer|min:1|max:10000',
+	// 		'registration_enabled'       => 'required|boolean',
+	// 		'backup_list_enabled'        => 'required|boolean',
+	// 		'payment_deadline_days'      => 'required|integer|min:1|max:365',
+	// 		'dormitory_rules'            => 'sometimes|nullable|string',
+	// 		'bank_requisites'            => 'sometimes|nullable|string',
+	// 	] );
 
-		$settings = $this->configurationService->updateDormitorySettings( $validated );
-		return response()->json( $settings );
-	}
+	// 	$settings = $this->configurationService->updateDormitorySettings( $validated );
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Get all public settings
@@ -211,6 +211,7 @@ class ConfigurationController extends Controller {
 			// Provide a default empty string if the rule is not set
 			'dormitory_rules' => $this->configurationService->getConfiguration( 'dormitory_rules' ) ?? '',
 			'currency_symbol' => $this->configurationService->getConfiguration( 'currency_symbol' ) ?? 'USD',
+			'bank_requisites' => $this->configurationService->getConfiguration( 'bank_requisites' ) ?? 'Bank Name: XYZ Bank\nAccount Number: 1234567890\nIBAN: KZ0000000000000000',
 		];
 		return response()->json( $settings );
 	}
@@ -236,5 +237,31 @@ class ConfigurationController extends Controller {
 		);
 
 		return response()->json( [ 'message' => 'Currency settings updated successfully.' ] );
+	}
+
+	/**
+	 * Update dormitory rules setting
+	 */
+	public function updateDormitoryRules( Request $request ) {
+		$validated = $request->validate( [
+			'dormitory_rules' => 'nullable|string',
+		] );
+
+		$this->configurationService->setConfiguration( 'dormitory_rules', $validated['dormitory_rules'], 'string', 'Dormitory Rules and Regulations' );
+
+		return response()->json( [ 'message' => 'Dormitory rules updated successfully.' ] );
+	}
+
+	/**
+	 * Update bank requisites setting
+	 */
+	public function updateBankRequisites( Request $request ) {
+		$validated = $request->validate( [
+			'bank_requisites' => 'nullable|string',
+		] );
+
+		$this->configurationService->setConfiguration( 'bank_requisites', $validated['bank_requisites'], 'string', 'Bank Requisites' );
+
+		return response()->json( [ 'message' => 'Bank requisites updated successfully.' ] );
 	}
 }

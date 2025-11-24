@@ -1,9 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Payment;
+use App\Models\User;
 
 class StudentProfile extends Model {
 	use HasFactory;
@@ -17,7 +23,6 @@ class StudentProfile extends Model {
 		'course',
 		'year_of_study',
 		'enrollment_year',
-		'enrollment_date',
 		'blood_type',
 		'violations',
 		'parent_name',
@@ -38,20 +43,18 @@ class StudentProfile extends Model {
 		'deal_number',
 		'agree_to_dormitory_rules',
 		'has_meal_plan',
-		'registration_limit_reached',
 		'is_backup_list',
 		'date_of_birth',
 		'gender',
 		'allergies',
 		'files',
-		'city_id', // Keep for backward compatibility
 		'country',
 		'region',
 		'city',
 	];
 
 	protected $casts = [ 
-		'enrollment_date'            => 'date',
+		'enrollment_year'            => 'integer',
 		'course'                     => 'string',
 		'year_of_study'              => 'integer',
 		'year_level'                 => 'integer',
@@ -62,38 +65,7 @@ class StudentProfile extends Model {
 		'files'                      => 'array',
 	];
 
-	public function user() {
+	public function user(): BelongsTo {
 		return $this->belongsTo( User::class);
-	}
-
-	public function semesterPayments() {
-		return $this->hasMany( Payment::class, 'user_id', 'user_id' );
-	}
-
-	public function getCurrentSemesterPayment() {
-		$currentSemester = $this->getCurrentSemester();
-		// This logic is deprecated. You may need to find the latest payment
-		// within a specific date range instead.
-		return $this->semesterPayments()->latest()->first();
-	}
-
-	public function hasCurrentSemesterAccess() {
-		$currentPayment = $this->getCurrentSemesterPayment();
-		return $currentPayment &&
-			$currentPayment->payment_approved &&
-			$currentPayment->dormitory_access_approved;
-	}
-
-	private function getCurrentSemester() {
-		$currentMonth = now()->month;
-		$currentYear = now()->year;
-
-		if ( $currentMonth >= 8 ) {
-			return $currentYear . '-fall';
-		} elseif ( $currentMonth >= 1 && $currentMonth <= 5 ) {
-			return $currentYear . '-spring';
-		} else {
-			return $currentYear . '-summer';
-		}
 	}
 }

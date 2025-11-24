@@ -29,17 +29,22 @@ class GuestController extends Controller {
 	 * Store a newly created guest
 	 */
 	public function store( Request $request ) {
-		$validated = $request->validate( [ 
-			'name'           => 'required|string|max:255',
-			'email'          => 'nullable|email|max:255',
+		$validated = $request->validate( [
+			'first_name'     => 'required|string|max:255',
+			'last_name'      => 'required|string|max:255',
+			'email'          => 'nullable|email|max:255|unique:users,email',
 			'phone'          => 'nullable|string|max:20',
 			'room_id'        => 'nullable|integer|exists:rooms,id',
 			'check_in_date'  => 'required|date',
 			'check_out_date' => 'required|date|after:check_in_date',
 			'payment_status' => 'sometimes|in:pending,paid,cancelled',
+			'bed_id'         => 'required|integer|exists:beds,id',
 			'total_amount'   => 'required|numeric|min:0',
 			'notes'          => 'nullable|string',
 		] );
+
+		// The GuestService expects a 'name' field, so we construct it.
+		$validated['name'] = trim(($validated['first_name'] ?? '') . ' ' . ($validated['last_name'] ?? ''));
 
 		$guest = $this->guestService->createGuest( $validated );
 		return response()->json( $guest, 201 );
@@ -67,6 +72,7 @@ class GuestController extends Controller {
 			'check_in_date'  => 'sometimes|date',
 			'check_out_date' => 'sometimes|date|after:check_in_date',
 			'payment_status' => 'sometimes|in:pending,paid,cancelled',
+			'bed_id'         => 'required|integer|exists:beds,id',
 			'total_amount'   => 'sometimes|numeric|min:0',
 			'notes'          => 'sometimes|string',
 		] );

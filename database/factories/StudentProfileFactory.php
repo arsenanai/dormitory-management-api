@@ -26,8 +26,7 @@ class StudentProfileFactory extends Factory {
 		   'specialist'             => fake()->randomElement(['Computer Science', 'Mechanical Engineering', 'Accounting', 'Marketing']),
 		   'course'                 => fake()->numberBetween(1, 4),
 		   'year_of_study'          => fake()->numberBetween(1, 4),
-		   'enrollment_year'        => fake()->year(),
-		   'enrollment_date'        => fake()->dateTimeBetween('-4 years', 'now')->format('Y-m-d'),
+		   'enrollment_year'        => fake()->dateTimeBetween('-4 years', 'now')->format('Y'),
 		   'blood_type'             => fake()->randomElement(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']),
 		   'violations'             => null,
 		   'parent_name'            => fake()->name(),
@@ -53,7 +52,6 @@ class StudentProfileFactory extends Factory {
 		   'date_of_birth'                  => fake()->dateTimeBetween('-25 years', '-18 years'),
 		   'gender'                         => fake()->randomElement(['male', 'female']),
 		   'files'                          => json_encode(fake()->optional()->randomElements(['document1.pdf', 'document2.jpg'], rand(0, 2))),
-		   'city_id'                        => null, // Will be set based on relationship if needed
 		];
 	}
 }

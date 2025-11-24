@@ -82,6 +82,30 @@ class PaymentService {
 		});
 	}
 
+	public function create( array $data ): Payment {
+		return DB::transaction(function () use ($data) {
+			if ( isset( $data['payment_check'] ) ) {
+				$data['payment_check'] = $data['payment_check']->store( 'payment_checks', 'local' );
+			}
+			$payment = new Payment($data);
+			return $payment;
+		});
+	}
+
+	public function update( Payment $payment, array $data ): Payment {
+		return DB::transaction(function () use ($data, $payment) {
+			if ( isset( $data['payment_check'] ) ) {
+				// Delete old file if exists
+				if ( $payment->payment_check ) {
+					Storage::disk( 'local' )->delete( $payment->payment_check );
+				}
+				$data['payment_check'] = $data['payment_check']->store( 'payment_checks', 'local' );
+			}
+			$payment->update($data);
+			return $payment;
+		});
+	}
+
 	/**
 	 * Get payment details
 	 */

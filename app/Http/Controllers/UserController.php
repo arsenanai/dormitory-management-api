@@ -19,6 +19,7 @@ use App\Services\UserAuthService;
 use App\Services\IINValidationService;
 use App\Services\StudentService;
 use App\Http\Resources\StudentResource;
+use App\Services\GuestService;
 use App\Http\Requests\StudentRegistrationRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
@@ -33,11 +34,26 @@ class UserController extends Controller {
 	];
 
 	private array $guestRegisterRules = [ 
-		'name'      => 'required|string|max:255',
-		'room_type' => 'required|integer|exists:room_types,id',
-		'files'     => 'nullable|array|max:4',
-		'files.*'   => 'file|mimes:jpg,jpeg,png,pdf|max:2048',
-		'email'     => 'nullable|email|max:255|unique:users,email',
+		'first_name'              => 'required|string|max:255',
+		'last_name'               => 'required|string|max:255',
+		'email'                   => 'required|email|max:255|unique:users,email',
+		'phone'                   => 'required|string|max:20',
+		'gender'                  => 'required|in:male,female',
+		'check_in_date'           => 'required|date',
+		'check_out_date'          => 'required|date|after:check_in_date',
+		'dormitory_id'            => 'required|integer|exists:dormitories,id',
+		'room_type_id'            => 'required|integer|exists:room_types,id',
+		'room_id'                 => 'required|integer|exists:rooms,id',
+		'bed_id'                  => 'required|integer|exists:beds,id',
+		'total_amount'            => 'required|numeric|min:0',
+		'notes'                   => 'nullable|string', // Purpose of visit
+		'host_name'               => 'nullable|string|max:255',
+		'host_contact'            => 'nullable|string|max:255',
+		'reminder'                => 'nullable|string',
+		'identification_type'     => 'nullable|string|max:255',
+		'identification_number'   => 'nullable|string|max:255',
+		'emergency_contact_name'  => 'nullable|string|max:255',
+		'emergency_contact_phone' => 'nullable|string|max:255',
 	];
 
 	public function __construct( UserAuthService $authService ) {
@@ -93,27 +109,37 @@ class UserController extends Controller {
 	}
 
 	public function register( Request $request ) {
-		if( isset( $request->student_profile ) 
-			&& isset( $request->student_profile['files'] ) 
-		    && is_array( $request->student_profile['files'] ) ) {
-			foreach($request->student_profile['files'] as $index => $file) {
-				if( isset( $file ) && $file instanceof UploadedFile ) {
-					Log::info('Debugging student file ' . $index, [
-						'original_name' => $file->getClientOriginalName(),
-						'extension' => $file->getClientOriginalExtension(),
-						'mime_type' => $file->getMimeType(),
-						'size' => $file->getSize(),
-						'is_valid' => $file->isValid(),
-					]);
-				}
-			}
-		}
+		// if( isset( $request->student_profile ) 
+		// 	&& isset( $request->student_profile['files'] ) 
+		//     && is_array( $request->student_profile['files'] ) ) {
+		// 	foreach($request->student_profile['files'] as $index => $file) {
+		// 		if( isset( $file ) && $file instanceof UploadedFile ) {
+		// 			Log::info('Debugging student file ' . $index, [
+		// 				'original_name' => $file->getClientOriginalName(),
+		// 				'extension' => $file->getClientOriginalExtension(),
+		// 				'mime_type' => $file->getMimeType(),
+		// 				'size' => $file->getSize(),
+		// 				'is_valid' => $file->isValid(),
+		// 			]);
+		// 		}
+		// 	}
+		// }
 
 		$userType = $request->input( 'user_type', 'student' );
 		if ( $userType === 'admin' ) {
 			$rules = $this->adminRegisterRules;
 		} elseif ( $userType === 'guest' ) {
 			$rules = $this->guestRegisterRules;
+			$validatedData = $request->validate($rules);
+
+			// The GuestService will be used for creation.
+			$guestService = new GuestService();
+			$guest = $guestService->createGuest($validatedData);
+
+			return response()->json([
+				'message' => __('auth.registration_success'),
+				'data' => $guest->load(['guestProfile', 'role', 'room.dormitory'])
+			], 201);
 		} else {
 			// Handle nested student_profile payload by merging it into the root request
 			// $data = $request->all();
@@ -246,7 +272,6 @@ class UserController extends Controller {
 			'emergency_phone'   => 'nullable|string|max:20',
 			'violations'        => 'nullable|string',
 			'deal_number'       => 'nullable|string|max:255',
-			'city_id'           => 'nullable|integer|exists:cities,id',
 			'country'           => 'nullable|string|max:255',
 			'region'            => 'nullable|string|max:255',
 			'city'              => 'nullable|string|max:255',
@@ -302,7 +327,7 @@ class UserController extends Controller {
 				'emergency_contact_phone'  => $validated['emergency_phone'] ?? null,
 				'violations'               => $validated['violations'] ?? null,
 				'deal_number'              => $validated['deal_number'] ?? null,
-				'city_id'                  => $validated['city_id'] ?? null,
+				'city'                     => $validated['city'] ?? null,
 				'course'                   => $validated['course'] ?? null,
 				'year_of_study'            => $validated['year_of_study'] ?? null,
 				'agree_to_dormitory_rules' => true,
@@ -374,7 +399,6 @@ class UserController extends Controller {
 			'emergency_phone'         => 'nullable|string|max:20',
 			'violations'              => 'nullable|string',
 			'deal_number'             => 'nullable|string|max:255',
-			'city_id'                 => 'nullable|integer|exists:cities,id',
 			'country'                 => 'nullable|string|max:255',
 			'region'                  => 'nullable|string|max:255',
 			'city'                    => 'nullable|string|max:255',
@@ -446,8 +470,6 @@ class UserController extends Controller {
 				$studentProfileData['violations'] = $profileData['violations'];
 			if ( isset( $profileData['deal_number'] ) )
 				$studentProfileData['deal_number'] = $profileData['deal_number'];
-			if ( isset( $profileData['city_id'] ) )
-				$studentProfileData['city_id'] = $profileData['city_id'];
 			if ( isset( $profileData['iin'] ) )
 				$studentProfileData['iin'] = $profileData['iin'];
 			if ( isset( $profileData['student_id'] ) )
@@ -544,7 +566,6 @@ class UserController extends Controller {
 			'emergency_phone'         => 'nullable|string|max:20',
 			'violations'              => 'nullable|string',
 			'deal_number'             => 'nullable|string|max:255',
-			'city_id'                 => 'nullable|integer|exists:cities,id',
 			'country'                 => 'nullable|string|max:255',
 			'region'                  => 'nullable|string|max:255',
 			'city'                    => 'nullable|string|max:255',
@@ -607,8 +628,6 @@ class UserController extends Controller {
 				$studentProfileData['violations'] = $profileData['violations'];
 			if ( isset( $profileData['deal_number'] ) )
 				$studentProfileData['deal_number'] = $profileData['deal_number'];
-			if ( isset( $profileData['city_id'] ) )
-				$studentProfileData['city_id'] = $profileData['city_id'];
 			if ( isset( $profileData['iin'] ) )
 				$studentProfileData['iin'] = $profileData['iin'];
 			if ( isset( $profileData['student_id'] ) )

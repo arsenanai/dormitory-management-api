@@ -12,7 +12,7 @@ class AdminController extends Controller {
 	private array $rules;
 
 	// admin not need student-related fields, but we set defaults for consistency
-	private array $defaults = [ 
+	private array $defaults = [
 		'iin'             => null,
 		'faculty'         => 'N/A',
 		'specialist'      => 'N/A',
@@ -21,11 +21,14 @@ class AdminController extends Controller {
 
 	public function __construct( private AdminService $service ) {
 		$this->adminRoleId = Role::where( 'name', 'admin' )->firstOrFail()->id;
-		$this->rules = [ 
-			'name'     => 'required|string|max:255',
-			'email'    => 'required|email|max:255|unique:users,email',
-			'password' => 'required|string|min:6',
-			'gender'   => 'nullable|string|in:male,female',
+		$this->rules = [
+			'first_name'      => 'required|string|max:255',
+			'last_name'       => 'required|string|max:255',
+			'email'           => 'required|email|max:255|unique:users,email',
+			'password'        => 'required|string|min:6|confirmed',
+			'phone_numbers'   => 'required|array|min:1',
+			'phone_numbers.*' => 'string|max:20',
+			'dormitory_id'    => 'required|integer|exists:dormitories,id',
 		];
 	}
 
@@ -40,26 +43,26 @@ class AdminController extends Controller {
 	}
 
 	public function store( Request $request ) {
-		$rules = array_merge(
-			$this->rules,
-			[ 
-				'surname'         => 'nullable|string|max:255',
-				'phone_numbers'   => 'nullable|array',
-				'phone_numbers.*' => 'nullable|string|max:20',
-				'position'        => 'nullable|string|max:255',
-				'department'      => 'nullable|string|max:255',
-				'office_phone'    => 'nullable|string|max:255',
-				'office_location' => 'nullable|string|max:255',
-				'dormitory'       => 'sometimes|nullable|integer|exists:dormitories,id',
-			]
-		);
-		$validated = $request->validate( $rules );
+		// Validate using the rules only (don't merge data defaults into rules)
+		$validated = $request->validate( $this->rules );
 
-		// Handle surname mapping to last_name
-		if ( isset( $validated['surname'] ) ) {
-			$validated['last_name'] = $validated['surname'];
-			unset( $validated['surname'] );
+		// ensure phone_numbers contains at least one non-empty entry
+		$phones = array_filter( $validated['phone_numbers'] ?? [], fn( $p ) => is_string( $p ) && trim( $p ) !== '' );
+		if ( count( $phones ) === 0 ) {
+			return response()->json(
+				[
+					'message' => 'validation.phone_required',
+					'errors'  => [ 'phone_numbers' => [ 'validation.phone_required' ] ],
+				],
+				422
+			);
 		}
+
+		// normalize dormitory key: accept dormitory_id or dormitory
+		$validated['dormitory_id'] = $validated['dormitory_id'] ?? $validated['dormitory'] ?? null;
+
+		// combine name
+		$validated['name'] = trim( $validated['first_name'] . ' ' . $validated['last_name'] );
 
 		$data = array_merge( $this->defaults, $validated );
 		$data['role_id'] = $this->adminRoleId;
@@ -68,25 +71,46 @@ class AdminController extends Controller {
 	}
 
 	public function update( Request $request, $id ) {
-		// Create update rules with email uniqueness excluding current user
-		$updateRules = [ 
-			'name'            => 'sometimes|required|string|max:255',
-			'surname'         => 'sometimes|nullable|string|max:255',
-			'email'           => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-			'password'        => 'sometimes|nullable|string|min:6',
-			'gender'          => 'sometimes|nullable|string|in:male,female',
-			'phone_numbers'   => 'sometimes|nullable|array',
-			'phone_numbers.*' => 'sometimes|nullable|string|max:20',
-			'dormitory'       => 'sometimes|nullable|integer|exists:dormitories,id',
+
+		// For updates require essential fields as well
+		$updateRules = [
+			'first_name'      => 'required|string|max:255',
+			'last_name'       => 'required|string|max:255',
+			'email'           => 'required|email|max:255|unique:users,email,' . $id,
+			'password'        => 'sometimes|nullable|string|min:6|confirmed',
+			'phone_numbers'   => 'required|array|min:1',
+			'phone_numbers.*' => 'string|max:20',
+			'dormitory_id'    => 'required|integer|exists:dormitories,id',
 		];
-		$profileRules = [ 
-			'position'        => 'nullable|string|max:255',
-			'department'      => 'nullable|string|max:255',
-			'office_phone'    => 'nullable|string|max:255',
-			'office_location' => 'nullable|string|max:255',
-		];
-		$rules = array_merge( $updateRules, $profileRules );
-		$validated = $request->validate( $rules );
+
+		// $profileRules = [
+		// 	'position'        => 'nullable|string|max:255',
+		// 	'department'      => 'nullable|string|max:255',
+		// 	'office_phone'    => 'nullable|string|max:255',
+		// 	'office_location' => 'nullable|string|max:255',
+		// ];
+
+		// $updateRules = array_merge( $updateRules, $profileRules );
+		$validated = $request->validate( $updateRules );
+
+		// ensure phone numbers non-empty
+		$phones = array_filter( $validated['phone_numbers'] ?? [], fn( $p ) => is_string( $p ) && trim( $p ) !== '' );
+		if ( count( $phones ) === 0 ) {
+			return response()->json(
+				[
+					'message' => 'validation.phone_required',
+					'errors'  => [ 'phone_numbers' => [ 'validation.phone_required' ] ],
+				],
+				422
+			);
+		}
+
+		// normalize dormitory key
+		$validated['dormitory_id'] = $validated['dormitory_id'] ?? $validated['dormitory'] ?? null;
+
+		// combine name
+		$validated['name'] = trim( $validated['first_name'] . ' ' . $validated['last_name'] );
+
 		$data = array_merge( $this->defaults, $validated );
 		$admin = $this->service->updateAdmin( $id, $data );
 		return response()->json( $admin, 200 );
@@ -94,6 +118,6 @@ class AdminController extends Controller {
 
 	public function destroy( $id ) {
 		$this->service->deleteAdmin( $id );
-		return response()->json( [ 'message' => 'Admin deleted successfully' ], 200 );
+		return response()->json( [ 'message' => 'success.admin_deleted' ], 200 );
 	}
 }
