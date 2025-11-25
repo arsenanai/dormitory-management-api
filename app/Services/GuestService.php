@@ -8,6 +8,7 @@ use App\Models\GuestProfile;
 use App\Models\Bed;
 use App\Models\Room;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use App\Services\PaymentService;
 use Carbon\Carbon;
@@ -16,7 +17,8 @@ class GuestService {
 
 	public function __construct(
 		protected PaymentService $paymentService
-	){}
+	) {
+	}
 	/**
 	 * Get guests with filters and pagination
 	 */
@@ -30,24 +32,25 @@ class GuestService {
 			$query->where( 'room_id', $filters['room_id'] );
 		}
 
-		if ( isset( $filters['payment_status'] ) ) {
-			$query->where( 'payment_status', $filters['payment_status'] );
-		}
+		// Payment filtering disabled temporarily
+		// if ( isset( $filters['payment_status'] ) ) {
+		//     $query->where( 'payment_status', $filters['payment_status'] );
+		// }
 
 		if ( isset( $filters['check_in_date'] ) ) {
-			$query->whereHas( 'guestProfile', function ($q) use ($filters) {
+			$query->whereHas( 'guestProfile', function ( $q ) use ( $filters ) {
 				$q->whereDate( 'visit_start_date', '>=', $filters['check_in_date'] );
 			} );
 		}
 
 		if ( isset( $filters['check_out_date'] ) ) {
-			$query->whereHas( 'guestProfile', function ($q) use ($filters) {
+			$query->whereHas( 'guestProfile', function ( $q ) use ( $filters ) {
 				$q->whereDate( 'visit_end_date', '<=', $filters['check_out_date'] );
 			} );
 		}
 
 		if ( isset( $filters['search'] ) ) {
-			$query->where( function ($q) use ($filters) {
+			$query->where( function ( $q ) use ( $filters ) {
 				$q->where( 'name', 'like', '%' . $filters['search'] . '%' )
 					->orWhere( 'email', 'like', '%' . $filters['search'] . '%' )
 					->orWhereRaw( "phone_numbers::text ILIKE ?", [ '%' . $filters['search'] . '%' ] );
@@ -64,22 +67,27 @@ class GuestService {
 	public function createGuest( array $data ) {
 		DB::beginTransaction();
 		try {
-			Log::info( 'Starting guest creation...' );
 			$guestRole = Role::where( 'name', 'guest' )->first();
-			Log::info( 'Guest role found:', [ 'role' => $guestRole ] );
 			$guestRoleId = $guestRole->id;
-
+			$auth = auth()->user();
+			if (!isset($data['dormitory_id']) && $auth->hasRole('admin')) {
+				$data['dormitory_id'] = $auth->adminDormitory->id;
+			}
+			if ( !isset($data['password'] ) ) {
+				$data['password'] = Hash::make(config('constants.GUEST_DEFAULT_PASSWORD'));
+			}
 			// Only pass valid User fields
-			$userData = [ 
+			$userData = [
 				'first_name'    => $data['first_name'],
 				'last_name'     => $data['last_name'],
 				'name'          => $data['first_name'] . ' ' . $data['last_name'],
 				'email'         => $data['email'] ?? null,
-				'phone_numbers' => isset($data['phone']) ? [ $data['phone'] ] : [],
+				'phone_numbers' => isset( $data['phone'] ) ? [ $data['phone'] ] : [],
 				'room_id'       => $data['room_id'] ?? null,
 				'role_id'       => $guestRoleId,
 				'status'        => 'active',
-				'password'      => bcrypt( 'guest123' ), // Temporary password for guests
+				'password'      => Hash::make( $data['password'] ),
+				'dormitory_id'  => $data['dormitory_id'],
 			];
 
 			// Debug logging
@@ -88,21 +96,21 @@ class GuestService {
 			$guest = User::create( $userData );
 
 			$dailyRate = 0;
-			if (isset($data['total_amount']) && isset($data['check_in_date']) && isset($data['check_out_date'])) {
-				$startDate = Carbon::parse($data['check_in_date']);
-				$endDate = Carbon::parse($data['check_out_date']);
-				$days = $endDate->diffInDays($startDate);
-				if ($days > 0 && $data['total_amount'] > 0) {
+			if ( isset( $data['total_amount'] ) && isset( $data['check_in_date'] ) && isset( $data['check_out_date'] ) ) {
+				$startDate = Carbon::parse( $data['check_in_date'] );
+				$endDate = Carbon::parse( $data['check_out_date'] );
+				$days = $endDate->diffInDays( $startDate );
+				if ( $days > 0 && $data['total_amount'] > 0 ) {
 					$dailyRate = $data['total_amount'] / $days;
 				} else {
 					// Fallback to room type's daily rate if calculation is not possible
-					$room = Room::with('roomType')->find($data['room_id']);
+					$room = Room::with( 'roomType' )->find( $data['room_id'] );
 					$dailyRate = $room?->roomType?->daily_rate ?? 0;
 				}
 			}
 
 			// Create guest profile with profile-specific fields
-			GuestProfile::create( [ 
+			GuestProfile::create( [
 				'user_id'                 => $guest->id,
 				'visit_start_date'        => $data['check_in_date'] ?? null,
 				'visit_end_date'          => $data['check_out_date'] ?? null,
@@ -135,14 +143,16 @@ class GuestService {
 			}
 
 			// Create Payment record
-			$this->paymentService->create([
-				'user_id'    => $guest->id,
-				'amount'     => $data['total_amount'] ?? 0,
-				'date_from'  => $data['check_in_date'],
-				'date_to'    => $data['check_out_date'],
-				'deal_date'  => now(),
-				'payment_check' => $data['payment_check'],
-			]);
+			if ( isset( $data['payment_check'] ) ) {
+				$this->paymentService->create([
+				    'user_id'    => $guest->id,
+				    'amount'     => $data['total_amount'] ?? 0,
+				    'date_from'  => $data['check_in_date'],
+				    'date_to'    => $data['check_out_date'],
+				    'deal_date'  => now(),
+				    'payment_check' => $data['payment_check'],
+				]);
+			}
 
 			DB::commit();
 			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
@@ -160,18 +170,21 @@ class GuestService {
 		DB::beginTransaction();
 
 		try {
+			$auth = auth()->user();
 			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
 				->findOrFail( $id );
 			$oldRoomId = $guest->room_id;
 			$oldBedId = $guest->guestProfile?->bed_id;
 
 			// If first_name or last_name are provided, construct the full 'name'
-			if (isset($data['first_name']) || isset($data['last_name'])) {
+			if ( isset( $data['first_name'] ) || isset( $data['last_name'] ) ) {
 				$firstName = $data['first_name'] ?? $guest->first_name;
 				$lastName = $data['last_name'] ?? $guest->last_name;
-				$data['name'] = trim($firstName . ' ' . $lastName);
+				$data['name'] = trim( $firstName . ' ' . $lastName );
 			}
-
+			if ( !isset( $data['dormitory_id']) && $auth->hasRole('admin') ) {
+				$data['dormitory_id'] = $auth->adminDormitory->id;
+			}
 			$guest->update( $data );
 
 			// Update guest profile if needed
@@ -181,8 +194,8 @@ class GuestService {
 					$profileData['visit_start_date'] = $data['check_in_date'];
 				if ( isset( $data['check_out_date'] ) )
 					$profileData['visit_end_date'] = $data['check_out_date'];
-				if ( isset( $data['total_amount'] ) )
-					$profileData['daily_rate'] = $data['total_amount'];
+				// if ( isset( $data['total_amount'] ) )
+				//     $profileData['daily_rate'] = $data['total_amount'];
 				if ( isset( $data['notes'] ) )
 					$profileData['purpose_of_visit'] = $data['notes'];
 				if ( isset( $data['bed_id'] ) )
@@ -277,7 +290,11 @@ class GuestService {
 	 */
 	public function getGuestById( $id ) {
 		return User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
-			->with( [ 'guestProfile', 'room', 'room.dormitory' ] )
+				->with( [ 
+					'guestProfile', 
+					'room', 
+					'room.roomType', 
+					'room.dormitory' ] )
 			->findOrFail( $id );
 	}
 
@@ -300,9 +317,9 @@ class GuestService {
 			$guest = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
 				->findOrFail( $id );
 
-			$guest->update( [ 
+			$guest->update( [
 				'check_out_date' => now(),
-				'payment_status' => 'paid'
+				// 'payment_status' => 'paid' // marking payment status disabled
 			] );
 
 			// Free up room
@@ -342,9 +359,10 @@ class GuestService {
 			$query->where( 'room_id', $filters['room_id'] );
 		}
 
-		if ( isset( $filters['payment_status'] ) ) {
-			$query->where( 'payment_status', $filters['payment_status'] );
-		}
+		// Payment filtering disabled temporarily
+		// if ( isset( $filters['payment_status'] ) ) {
+		//     $query->where( 'payment_status', $filters['payment_status'] );
+		// }
 
 		if ( isset( $filters['check_in_date'] ) ) {
 			$query->whereDate( 'check_in_date', '>=', $filters['check_in_date'] );
@@ -357,48 +375,48 @@ class GuestService {
 		$guests = $query->get();
 
 		// Create CSV content
-		$csvContent = "Name,Email,Phone,Room,Dormitory,Check In,Check Out,Payment Status,Amount,Notes\n";
+		$csvContent = "Name,Email,Phone,Room,Dormitory,Check In,Check Out,Notes\n";
 
 		foreach ( $guests as $guest ) {
 			$csvContent .= sprintf(
-				"%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+				"%s,%s,%s,%s,%s,%s,%s,%s\n",
 				$guest->first_name . " " . $guest->last_name,
 				$guest->email,
-				$guest->phone,
+				$guest->phone_numbers ? implode('; ', $guest->phone_numbers) : '',
 				$guest->room ? $guest->room->number : '',
 				$guest->room && $guest->room->dormitory ? $guest->room->dormitory->name : '',
 				$guest->guestProfile->visit_start_date,
 				$guest->guestProfile->visit_end_date,
-				$guest->payment_status,
-				$guest->total_amount,
+				// $guest->payment_status,
+				// $guest->total_amount,
 				str_replace( [ "\n", "\r" ], ' ', $guest->notes ?? '' )
 			);
 		}
 
 		$fileName = 'guests_export_' . now()->format( 'Y_m_d_H_i_s' ) . '.csv';
 
-		return response($csvContent)
-			->header('Content-Type', 'text/csv')
-			->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+		return response( $csvContent )
+			->header( 'Content-Type', 'text/csv' )
+			->header( 'Content-Disposition', 'attachment; filename="' . $fileName . '"' );
 	}
 
 	public function listAll(): \Illuminate\Database\Eloquent\Collection {
 		$authUser = auth()->user();
-		if (!$authUser) {
+		if ( ! $authUser ) {
 			return collect();
 		}
-		$query = User::select('id', 'name', 'email')
-			->where('role_id', Role::where('name', 'guest')->firstOrFail()->id);
+		$query = User::select( 'id', 'name', 'email' )
+			->where( 'role_id', Role::where( 'name', 'guest' )->firstOrFail()->id );
 
 		// Sudo can see all students. Admin can only see students from their assigned dormitory.
-		if ($authUser->hasRole('admin') && !$authUser->hasRole('sudo') && $authUser->adminDormitory) {
-			$query->where('dormitory_id', $authUser->adminDormitory->id);
-		} elseif ($authUser->hasRole('admin') && !$authUser->hasRole('sudo')) {
+		if ( $authUser->hasRole( 'admin' ) && ! $authUser->hasRole( 'sudo' ) && $authUser->adminDormitory ) {
+			$query->where( 'dormitory_id', $authUser->adminDormitory->id );
+		} elseif ( $authUser->hasRole( 'admin' ) && ! $authUser->hasRole( 'sudo' ) ) {
 			// Admin with no dormitory assigned sees no students.
 			return collect();
 		}
 		return $query
-			->orderBy('name', 'asc')
+			->orderBy( 'name', 'asc' )
 			->get();
 	}
 }

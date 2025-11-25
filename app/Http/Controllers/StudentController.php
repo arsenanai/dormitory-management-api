@@ -152,7 +152,7 @@ class StudentController extends Controller {
 			'student_profile.region'                         => 'nullable|string|max:255',
 			'student_profile.specialist'                     => 'required|string|max:255',
 			'student_profile.violations'                     => 'nullable|string|max:1000',
-			'payment.payment_check'						     => 'required|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
+			// 'payment.payment_check'						     => 'required|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
 		] );
 
 		$student = $this->studentService->createStudent( $validated, Auth::user()->adminDormitory );
@@ -266,10 +266,10 @@ class StudentController extends Controller {
 			'student_profile.specialist'                     => 'nullable|string|max:255', 
 			'student_profile.student_id'                     => 'nullable|string|max:255',
 			'student_profile.violations'                     => 'nullable|string|max:1000',
-			'payment.payment_check'						     => [
-				'nullable',
-				$this->validateUploadedFile(...),
-			],
+			// 'payment.payment_check'						     => [
+			// 	'nullable',
+			// 	$this->validateUploadedFile(...),
+			// ],
 		] );
 
 		$student = $this->studentService->updateStudent( $id, $validated, Auth::user()->load('adminDormitory') );

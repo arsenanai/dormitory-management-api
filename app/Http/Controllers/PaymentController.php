@@ -13,13 +13,13 @@ class PaymentController extends Controller {
 	 * Display a listing of payments
 	 */
 	public function index( Request $request ) {
-		$filters = $request->validate( [ 
-			'user_id'        => 'sometimes|integer|exists:users,id',
-			'date_from'      => 'sometimes|date',
-			'date_to'        => 'sometimes|date',
-			'search'         => 'sometimes|nullable|string|max:255', // Searches deal_number or user name
-			'role'           => 'sometimes|nullable|string|max:50', // Add role filter
-			'per_page'       => 'sometimes|integer|min:1|max:1000',
+		$filters = $request->validate( [
+			'user_id'   => 'sometimes|integer|exists:users,id',
+			'date_from' => 'sometimes|date',
+			'date_to'   => 'sometimes|date',
+			'search'    => 'sometimes|nullable|string|max:255', // Searches deal_number or user name
+			'role'      => 'sometimes|nullable|string|max:50', // Add role filter
+			'per_page'  => 'sometimes|integer|min:1|max:1000',
 		] );
 
 		$payments = $this->paymentService->getPaymentsWithFilters( $filters );
@@ -30,14 +30,14 @@ class PaymentController extends Controller {
 	 * Store a newly created payment
 	 */
 	public function store( Request $request ) {
-		$validated = $request->validate( [ 
-			'user_id'         => 'required|integer|exists:users,id',
-			'date_from'       => 'required|date',
-			'date_to'         => 'required|date|after_or_equal:date_from',
-			'amount'          => 'required|numeric|min:0',
-			'deal_number'     => 'nullable|string|max:255',
-			'deal_date'       => 'nullable|date',
-			'payment_check'   => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB
+		$validated = $request->validate( [
+			'user_id'       => 'required|integer|exists:users,id',
+			'date_from'     => 'required|date',
+			'date_to'       => 'required|date|after_or_equal:date_from',
+			'amount'        => 'required|numeric|min:0',
+			'deal_number'   => 'nullable|string|max:255',
+			'deal_date'     => 'nullable|date',
+			'payment_check' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048', // 2MB
 		] );
 
 		return $this->paymentService->createPayment( $validated );
@@ -54,13 +54,17 @@ class PaymentController extends Controller {
 	 * Update the specified payment
 	 */
 	public function update( Request $request, $id ) {
-		$validated = $request->validate( [ 
-			'date_from'       => 'sometimes|date',
-			'date_to'         => 'sometimes|date|after_or_equal:date_from',
-			'amount'          => 'sometimes|numeric|min:0',
-			'deal_number'     => 'sometimes|nullable|string|max:255',
-			'deal_date'       => 'sometimes|nullable|date',
-			'payment_check'   => 'sometimes|nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+		$validated = $request->validate( [
+			'date_from'     => 'sometimes|date',
+			'date_to'       => 'sometimes|date|after_or_equal:date_from',
+			'amount'        => 'sometimes|numeric|min:0',
+			'deal_number'   => 'sometimes|nullable|string|max:255',
+			'deal_date'     => 'sometimes|nullable|date',
+			// Allow string for deletion signal ('') or file for upload.
+			// The 'file' rule only applies if the input is an actual file upload.
+			'payment_check' => [
+				'sometimes', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048' // 2MB max
+			],
 		] );
 
 		return $this->paymentService->updatePayment( $id, $validated );
@@ -78,10 +82,10 @@ class PaymentController extends Controller {
 	 * Export payments to CSV
 	 */
 	public function export( Request $request ) {
-		$filters = $request->validate( [ 
-			'user_id'        => 'sometimes|integer|exists:users,id',
-			'date_from'      => 'sometimes|date',
-			'date_to'        => 'sometimes|date',
+		$filters = $request->validate( [
+			'user_id'   => 'sometimes|integer|exists:users,id',
+			'date_from' => 'sometimes|date',
+			'date_to'   => 'sometimes|date',
 		] );
 
 		return $this->paymentService->exportPayments( $filters );

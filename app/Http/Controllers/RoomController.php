@@ -138,4 +138,16 @@ class RoomController extends Controller {
 		);
 		return response()->json( $rooms );
 	}
+
+	public function listAll( ) {
+		$user = Auth::user();
+		$dormitory = $user->adminDormitory;
+		if ( ! $dormitory ) {
+			// use keyword in message, frontend will translate
+			return response()->json( [ 'message' => 'no_dormitory_assigned'
+			], 403 );
+		}
+		$rooms = $this->service->listAllRoomsInDormitory( $dormitory->id );
+		return response()->json( $rooms, 200 );
+	}
 }

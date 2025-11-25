@@ -13,9 +13,9 @@ class GuestController extends Controller {
 	 * Display a listing of guests
 	 */
 	public function index( Request $request ) {
-		$filters = $request->validate( [ 
+		$filters = $request->validate( [
 			'room_id'        => 'sometimes|integer|exists:rooms,id',
-			'payment_status' => 'sometimes|in:pending,paid,cancelled',
+			// 'payment_status' => 'sometimes|in:pending,paid,cancelled', // payment filter disabled temporarily
 			'check_in_date'  => 'sometimes|date',
 			'check_out_date' => 'sometimes|date',
 			'search'         => 'sometimes|string|max:255',
@@ -37,14 +37,14 @@ class GuestController extends Controller {
 			'room_id'        => 'nullable|integer|exists:rooms,id',
 			'check_in_date'  => 'required|date',
 			'check_out_date' => 'required|date|after:check_in_date',
-			'payment_status' => 'sometimes|in:pending,paid,cancelled',
+			// 'payment_status' => 'sometimes|in:pending,paid,cancelled', // payment disabled
 			'bed_id'         => 'required|integer|exists:beds,id',
-			'total_amount'   => 'required|numeric|min:0',
+			// 'total_amount'   => 'required|numeric|min:0', // payment amount disabled for now
 			'notes'          => 'nullable|string',
 		] );
 
 		// The GuestService expects a 'name' field, so we construct it.
-		$validated['name'] = trim(($validated['first_name'] ?? '') . ' ' . ($validated['last_name'] ?? ''));
+		$validated['name'] = trim( ( $validated['first_name'] ?? '' ) . ' ' . ( $validated['last_name'] ?? '' ) );
 
 		$guest = $this->guestService->createGuest( $validated );
 		return response()->json( $guest, 201 );
@@ -62,7 +62,7 @@ class GuestController extends Controller {
 	 * Update the specified guest
 	 */
 	public function update( Request $request, $id ) {
-		$validated = $request->validate( [ 
+		$validated = $request->validate( [
 			'first_name'     => 'sometimes|string|max:255',
 			'last_name'      => 'sometimes|string|max:255',
 			'name'           => 'sometimes|string|max:255',
@@ -71,9 +71,9 @@ class GuestController extends Controller {
 			'room_id'        => 'sometimes|integer|exists:rooms,id',
 			'check_in_date'  => 'sometimes|date',
 			'check_out_date' => 'sometimes|date|after:check_in_date',
-			'payment_status' => 'sometimes|in:pending,paid,cancelled',
+			// 'payment_status' => 'sometimes|in:pending,paid,cancelled', // payment disabled
 			'bed_id'         => 'required|integer|exists:beds,id',
-			'total_amount'   => 'sometimes|numeric|min:0',
+			// 'total_amount'   => 'sometimes|numeric|min:0', // payment amount disabled for now
 			'notes'          => 'sometimes|string',
 		] );
 
@@ -108,9 +108,9 @@ class GuestController extends Controller {
 	 * Export guests to CSV
 	 */
 	public function export( Request $request ) {
-		$filters = $request->validate( [ 
+		$filters = $request->validate( [
 			'room_id'        => 'sometimes|integer|exists:rooms,id',
-			'payment_status' => 'sometimes|in:pending,paid,cancelled',
+			// 'payment_status' => 'sometimes|in:pending,paid,cancelled', // payment filter disabled
 			'check_in_date'  => 'sometimes|date',
 			'check_out_date' => 'sometimes|date',
 		] );
@@ -118,36 +118,13 @@ class GuestController extends Controller {
 		return $this->guestService->exportGuests( $filters );
 	}
 
-	/**
-	 * GET /guests/payments
-	 * Returns a list of guest payments with guest info, amount, status, and date.
-	 */
+	/*
 	public function payments( Request $request ) {
-		$query = \App\Models\Guest::query();
-		if ( $request->has( 'guest_id' ) ) {
-			$query->where( 'id', $request->input( 'guest_id' ) );
-		}
-		if ( $request->has( 'from_date' ) ) {
-			$query->whereDate( 'check_in_date', '>=', $request->input( 'from_date' ) );
-		}
-		if ( $request->has( 'to_date' ) ) {
-			$query->whereDate( 'check_out_date', '<=', $request->input( 'to_date' ) );
-		}
-		$guests = $query->with( [ 'room', 'room.dormitory' ] )->get();
-		$payments = $guests->map( function ($guest) {
-			return [ 
-				'guest_id'       => $guest->id,
-				'guest_name'     => $guest->name,
-				'room'           => $guest->room ? $guest->room->number : null,
-				'dormitory'      => $guest->room && $guest->room->dormitory ? $guest->room->dormitory->name : null,
-				'amount'         => $guest->total_amount,
-				'status'         => $guest->payment_status,
-				'check_in_date'  => $guest->check_in_date,
-				'check_out_date' => $guest->check_out_date,
-			];
-		} );
-		return response()->json( $payments );
+		// Payments endpoint temporarily disabled while payment UI is removed.
+		// Implementation retained here for future re-enable.
+		return response()->json( [] );
 	}
+	*/
 
 	public function listAll(): \Illuminate\Database\Eloquent\Collection {
 		return $this->guestService->listAll();

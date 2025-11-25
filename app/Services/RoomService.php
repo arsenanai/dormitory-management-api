@@ -168,4 +168,11 @@ class RoomService {
 		}
 		return $query->get();
 	}
+
+	public function listAllRoomsInDormitory( int $dormitoryId ) {
+		$rooms = Room::select(['id', 'number'])
+			->where( 'dormitory_id', $dormitoryId )
+			->get();
+		return $rooms;
+	}
 }

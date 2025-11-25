@@ -11,11 +11,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class GuestProfile extends Model {
 	use HasFactory;
 
-	protected $fillable = [ 
+	protected $fillable = [
 		'user_id',
 		'purpose_of_visit',
 		'host_name',
 		'host_contact',
+		'visit_start_date',
+		'visit_end_date',
+		'daily_rate',
 		'identification_type',
 		'identification_number',
 		'emergency_contact_name',
@@ -25,15 +28,15 @@ class GuestProfile extends Model {
 		'bed_id',
 	];
 
-	protected $casts = [ 
-		'is_approved'      => 'boolean',
+	protected $casts = [
+		'is_approved' => 'boolean',
 	];
 
 	public function user(): BelongsTo {
-		return $this->belongsTo( User::class );
+		return $this->belongsTo( User::class);
 	}
 
 	public function bed(): BelongsTo {
-		return $this->belongsTo( Bed::class );
+		return $this->belongsTo( Bed::class);
 	}
 }

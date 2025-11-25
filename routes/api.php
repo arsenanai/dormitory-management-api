@@ -238,6 +238,10 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 
 	} );
 
+	Route::middleware( [ 'role:admin' ] )->group( function () {
+		Route::get( '/rooms-list', [ RoomController::class, 'listAll' ] );
+	} );
+
 	// Dormitory access check
 	Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::get( '/me/can-access-dormitory', [ UserController::class, 'canAccessDormitory' ] );

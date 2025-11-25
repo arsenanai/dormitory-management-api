@@ -21,7 +21,7 @@ class User extends Authenticatable {
 	use HasFactory, Notifiable, HasApiTokens;
 
 	protected $fillable = [
-		'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'password', 'status', 'role_id', 'remember_token', 'room_id', 'dormitory_id',
+		'name', 'first_name', 'last_name', 'email', 'email_verified_at', 'phone_numbers', 'password', 'status', 'role_id', 'remember_token', 'room_id', 'dormitory_id',
 	];
 	
 	protected $casts = [
