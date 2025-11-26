@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace( '_', '-', app()->getLocale() ) }}">
 <head>
     <link rel="icon" type="image/png" href="/assets/wanyrak-logo.png">
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ __('Password Reset Request') }}</title>
+    <title>{{ __( 'Password Reset Request' ) }}</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap&subset=cyrillic-ext');
         body {
@@ -67,16 +67,16 @@
 </head>
 <body>
     <div class="container">
-        <img src="/assets/sdu-logo.png" alt="SDU Logo" class="logo" style="display:block; margin:0 auto 1.5rem auto; height:90px; width: 160px;" onerror="this.style.display='none'">
-        <h1>{{ __('Password Reset Request') }}</h1>
-        <p style="margin-bottom: 1.5rem;">{{ __('Click the button below to reset your password:') }}</p>
+        <img src="{{ config('app.spa_url') }}/src/assets/sdu%20logo.png" alt="SDU Logo" class="logo" style="display:block; margin:0 auto 1.5rem auto; height:90px; width: 160px;" onerror="this.style.display='none'">
+        <h1>{{ __( 'Password Reset Request' ) }}</h1>
+        <p style="margin-bottom: 1.5rem;">{{ __( 'Click the button below to reset your password:' ) }}</p>
         <div style="text-align:center;">
-            <a href="{{ $resetUrl }}" class="button">{{ __('Reset Password') }}</a>
+            <a href="{{ $resetUrl }}" class="button">{{ __( 'Reset Password' ) }}</a>
         </div>
-        <p style="margin-top: 2rem;">{{ __('If you did not request a password reset, no further action is required.') }}</p>
+        <p style="margin-top: 2rem;">{{ __( 'If you did not request a password reset, no further action is required.' ) }}</p>
         <div class="mail-footer">
-            {{ __('Sincerely yours,') }}<br>
-            <a href="{{ config('app.url') }}">{{ config('app.name') }}</a>
+            {{ __( 'Sincerely yours,' ) }}<br>
+            <a href="{{ config( 'app.spa_url' ) }}">{{ config( 'app.name' ) }}</a>
         </div>
     </div>
 </body>

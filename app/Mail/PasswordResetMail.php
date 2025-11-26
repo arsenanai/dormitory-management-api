@@ -18,12 +18,12 @@ class PasswordResetMail extends Mailable
 
     public function __construct(
         public string $token,
-        public string $email
+        public string $email,
     ) {}
 
     public function build()
     {
-        $resetUrl = url('/reset-password?token=' . $this->token . '&email=' . urlencode($this->email));
+        $resetUrl = config('app.spa_url') . '/reset-password-form?token=' . $this->token . '&email=' . urlencode($this->email);
         return $this->subject('Password Reset Mail')
             ->markdown('emails.password.reset')
             ->with([

@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\GuestProfile;
 use App\Models\Bed;
 use App\Models\Room;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -14,10 +15,10 @@ use App\Services\PaymentService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 class GuestService {
+	protected PaymentService $paymentService;
 
-	public function __construct(
-		protected PaymentService $paymentService
-	) {
+	public function __construct() {
+		$this->paymentService = new PaymentService();
 	}
 	/**
 	 * Get guests with filters and pagination
@@ -70,11 +71,11 @@ class GuestService {
 			$guestRole = Role::where( 'name', 'guest' )->first();
 			$guestRoleId = $guestRole->id;
 			$auth = auth()->user();
-			if (!isset($data['dormitory_id']) && $auth->hasRole('admin')) {
+			if ( ! isset( $data['dormitory_id'] ) && $auth->hasRole( 'admin' ) ) {
 				$data['dormitory_id'] = $auth->adminDormitory->id;
 			}
-			if ( !isset($data['password'] ) ) {
-				$data['password'] = Hash::make(config('constants.GUEST_DEFAULT_PASSWORD'));
+			if ( ! isset( $data['password'] ) ) {
+				$data['password'] = Hash::make( config( 'constants.GUEST_DEFAULT_PASSWORD' ) );
 			}
 			// Only pass valid User fields
 			$userData = [
@@ -91,7 +92,7 @@ class GuestService {
 			];
 
 			// Debug logging
-			Log::info( 'Creating guest with userData:', $userData );
+			Log::info( 'Creating guest with userData:', $data );
 
 			$guest = User::create( $userData );
 
@@ -142,17 +143,19 @@ class GuestService {
 				}
 			}
 
-			// Create Payment record
-			if ( isset( $data['payment_check'] ) ) {
-				$this->paymentService->create([
-				    'user_id'    => $guest->id,
-				    'amount'     => $data['total_amount'] ?? 0,
-				    'date_from'  => $data['check_in_date'],
-				    'date_to'    => $data['check_out_date'],
-				    'deal_date'  => now(),
-				    'payment_check' => $data['payment_check'],
-				]);
+			if ( array_key_exists( 'bank_paycheck', $data ) 
+				&& $data['bank_paycheck'] instanceof UploadedFile ) {
+				// Create Payment record
+				$this->paymentService->createPayment( [
+					'user_id'       => $guest->id,
+					'amount'        => $data['total_amount'] ?? 0,
+					'date_from'     => $data['check_in_date'],
+					'date_to'       => $data['check_out_date'],
+					'deal_date'     => now(),
+					'payment_check' => $data['bank_paycheck'],
+				] );
 			}
+			
 
 			DB::commit();
 			return $guest->load( [ 'guestProfile', 'room', 'room.dormitory' ] );
@@ -182,7 +185,7 @@ class GuestService {
 				$lastName = $data['last_name'] ?? $guest->last_name;
 				$data['name'] = trim( $firstName . ' ' . $lastName );
 			}
-			if ( !isset( $data['dormitory_id']) && $auth->hasRole('admin') ) {
+			if ( ! isset( $data['dormitory_id'] ) && $auth->hasRole( 'admin' ) ) {
 				$data['dormitory_id'] = $auth->adminDormitory->id;
 			}
 			$guest->update( $data );
@@ -290,11 +293,11 @@ class GuestService {
 	 */
 	public function getGuestById( $id ) {
 		return User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'guest' ) )
-				->with( [ 
-					'guestProfile', 
-					'room', 
-					'room.roomType', 
-					'room.dormitory' ] )
+			->with( [
+				'guestProfile',
+				'room',
+				'room.roomType',
+				'room.dormitory' ] )
 			->findOrFail( $id );
 	}
 
@@ -382,7 +385,7 @@ class GuestService {
 				"%s,%s,%s,%s,%s,%s,%s,%s\n",
 				$guest->first_name . " " . $guest->last_name,
 				$guest->email,
-				$guest->phone_numbers ? implode('; ', $guest->phone_numbers) : '',
+				$guest->phone_numbers ? implode( '; ', $guest->phone_numbers ) : '',
 				$guest->room ? $guest->room->number : '',
 				$guest->room && $guest->room->dormitory ? $guest->room->dormitory->name : '',
 				$guest->guestProfile->visit_start_date,

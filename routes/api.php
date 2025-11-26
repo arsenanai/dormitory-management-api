@@ -128,6 +128,10 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	Route::get( '/users/profile', [ UserController::class, 'profile' ] );
 	Route::put( '/users/profile', [ UserController::class, 'updateProfile' ] );
 	Route::put( '/users/change-password', [ UserController::class, 'changePassword' ] );
+	Route::middleware( [ 'role:student,guest' ] )->group( function () {
+		Route::get( '/users/personal-data', [ UserController::class, 'personalData' ] );
+		Route::match( [ 'post', 'put' ], '/users/personal-data', [ UserController::class, 'updatePersonalData' ] );
+	} );
 	Route::post( '/logout', [ UserController::class, 'logout' ] );
 
 	// Admin and sudo routes

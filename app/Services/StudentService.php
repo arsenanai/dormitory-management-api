@@ -63,7 +63,10 @@ class StudentService {
 
 			// Prepare data for User and StudentProfile models
 			$userData = $this->prepareUserData( $data, $student );
-			$userData['dormitory_id'] = $authUser->adminDormitory->id;
+			$dormitoryId = $authUser->adminDormitory->id ?? $student->dormitory_id;
+			if ( $dormitoryId ) {
+				$userData['dormitory_id'] = $dormitoryId;
+			}
 			$profileData = $this->prepareProfileData( $data, true );
 
 			// Only process file uploads if new files are included in the student_profile.
@@ -270,7 +273,7 @@ class StudentService {
 	 * Get students with filters and pagination
 	 */
 	public function createStudent( array $data, Dormitory $dormitory ) {
-		\Log::info( 'StudentService: createStudent method started.', [ 'data_keys' => array_keys( $data ), 'has_files' => isset( $data['files'] ) ] );
+		\Log::info( 'StudentService: createStudent method started.', $data );
 
 		return DB::transaction( function () use ($data, $dormitory) {
 			// Validate that the student's gender is compatible with the dormitory's gender policy.
@@ -313,37 +316,20 @@ class StudentService {
 			$this->processBedAssignment( $student, $data['bed_id'] ?? null, false );
 
 			$room = Room::with( 'roomType' )->findOrFail( $userData['room_id'] );
-			/*
-			// create initial payment record
-			// Normalize payment_check from various possible locations that might
-			// come from the controller/front-end (`payment.payment_check`,
-			// `payment` top-level array, or nested under student_profile).
-			$paymentCheck = null;
-			if ( isset( $data['payment'] ) && is_array( $data['payment'] ) && array_key_exists( 'payment_check', $data['payment'] ) ) {
-				$paymentCheck = $data['payment']['payment_check'];
-			} elseif ( isset( $data['student_profile']['payment'] ) && is_array( $data['student_profile']['payment'] ) && array_key_exists( 'payment_check', $data['student_profile']['payment'] ) ) {
-				$paymentCheck = $data['student_profile']['payment']['payment_check'];
-			} elseif ( isset( $profileData['payment'] ) && is_array( $profileData['payment'] ) && array_key_exists( 'payment_check', $profileData['payment'] ) ) {
-				$paymentCheck = $profileData['payment']['payment_check'];
-			} elseif ( array_key_exists( 'payment.payment_check', $profileData ) ) {
-				$paymentCheck = $profileData['payment.payment_check'];
+
+			if ( request()->hasFile( 'payment.payment_check' ) ) {
+				$file = request()->file( 'payment.payment_check' );
+
+				$this->paymentService->createPayment( [
+					'user_id'       => $student->id,
+					'amount'        => $this->calculateSemesterFee( $room->roomType ),
+					'date_from'     => $this->getSemesterStartDate(),
+					'date_to'       => $this->getSemesterEndDate(),
+					'deal_number'   => $profileData['deal_number'] ?? null,
+					'deal_date'     => now(),
+					'payment_check' => $file,
+				] );
 			}
-
-			// Do not pre-store the payment_check here. On creation PaymentService
-			// expects an UploadedFile instance and will handle storing it. On update
-			// PaymentService accepts a string path (meaning unchanged) or an
-			// UploadedFile to replace the existing file.
-
-			$this->paymentService->create( [
-				'user_id'       => $student->id,
-				'amount'        => $this->calculateSemesterFee( $room->roomType ),
-				'date_from'     => $this->getSemesterStartDate(),
-				'date_to'       => $this->getSemesterEndDate(),
-				'deal_number'   => $profileData['deal_number'] ?? null,
-				'deal_date'     => now(),
-				'payment_check' => $paymentCheck,
-			] );
-			*/
 
 			return $student->load( [ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ] );
 		} );

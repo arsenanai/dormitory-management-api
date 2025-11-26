@@ -97,23 +97,7 @@ class MessageController extends Controller {
 	 */
 	public function myMessages( Request $request ) {
 		$perPage = $request->get( 'per_page', 20 );
-
-		// Debug logging
-		Log::info( '🔍 MessageController::myMessages called', [ 
-			'user_id'        => Auth::id(),
-			'user_role'      => Auth::user()?->role?->name,
-			'per_page'       => $perPage,
-			'request_params' => $request->all()
-		] );
-
-		$result = $this->messageService->getUserMessages( $perPage );
-
-		// Debug logging for response
-		Log::info( '📡 MessageController::myMessages response', [ 
-			'response_type' => get_class( $result ),
-			'has_data'      => method_exists( $result, 'getData' ) ? ! empty( $result->getData() ) : 'N/A'
-		] );
-
+		$result = $this->messageService->getUserMessages( $perPage, $request->get('query') );
 		return $result;
 	}
 

@@ -34,7 +34,6 @@ class DashboardService {
 			->whereNull( 'read_at' )
 			->count();
 
-		// Return flattened structure for the main dashboard with frontend-expected field names
 		$stats = [ 
 			'total_dormitories'      => $user->hasRole('sudo') ? Dormitory::count(): null,
 			'total_rooms'            => $roomStats['total_rooms'],
@@ -53,7 +52,7 @@ class DashboardService {
 			'unread_messages'        => $unreadMessages,
 			'recent_messages'        => $messageStats['recent_messages'],
 			'occupancy_rate'         => $roomStats['occupancy_rate'],
-			'quota_students'         => 0, // Placeholder for quota students count
+			'quota_students'         => 0,
 		];
 
 		return response()->json( $stats );
@@ -63,7 +62,7 @@ class DashboardService {
 	 * Get student statistics
 	 */
 	private function getStudentStats( $dormitoryId = null ) {
-		$query = User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) );
+		$query = User::with('studentProfile')->whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) );
 
 		if ( $dormitoryId ) {
 			$query->whereHas( 'room', fn( $q ) => $q->where( 'dormitory_id', $dormitoryId ) );
@@ -75,7 +74,9 @@ class DashboardService {
 
 		// Students with meals (assuming this is a field or can be determined)
 		// For now, we'll use a placeholder logic
-		$studentsWithMeals = ( clone $query )->where( 'has_meal_plan', true )->count();
+		$studentsWithMeals = ( clone $query )->whereHas('studentProfile', fn($q) =>
+			$q->where('has_meal_plan', true)
+		)->count();
 
 		return [ 
 			'total'         => $totalStudents,

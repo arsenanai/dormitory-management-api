@@ -148,55 +148,58 @@ class MessageService {
 	/**
 	 * Get messages for the authenticated user
 	 */
-	public function getUserMessages( $perPage = 20 ) {
+	public function getUserMessages( $perPage = 20, $searchQuery = null ) {
 		$user = Auth::user();
 
-		// Debug logging
-		\Log::info( '🔍 MessageService::getUserMessages called', [ 
-			'user_id'                => $user->id ?? 'null',
-			'user_role'              => $user->role?->name ?? 'null',
-			'user_room_id'           => $user->room_id ?? 'null',
-			'user_room_dormitory_id' => $user->room?->dormitory_id ?? 'null',
-			'per_page'               => $perPage
-		] );
+		$query = Message::where( 'status', 'sent' );
 
-		$query = Message::where( 'status', 'sent' )
-			->where( function ($q) use ($user) {
-				// Messages for all students
-				$q->where( 'recipient_type', 'all' );
+	    // 1. FILTER LOGIC (Global AND)
+	    if ( $searchQuery ) {
+	        $query->where( function ( $q ) use ( $searchQuery ) {
+	            $term = '%' . strtolower($searchQuery) . '%';
+	            $q->whereRaw( 'LOWER(title) LIKE ?', [ $term ] )
+	              ->orWhereRaw( 'LOWER(content) LIKE ?', [ $term ] );
+	        } );
+	    }
 
-				// Messages for user's dormitory (only if user has a room with dormitory)
-				if ( $user->room && $user->room->dormitory_id ) {
-					$q->orWhere( function ($subQ) use ($user) {
-						$subQ->where( 'recipient_type', 'dormitory' )
-							->where( 'dormitory_id', $user->room->dormitory_id );
-					} );
-				}
+	    // 2. PERMISSION LOGIC (Scoped Group)
+	    $query->where( function ( $q ) use ( $user ) {
+	        
+	        // A. Messages for all students
+	        $q->where( 'recipient_type', 'all' );
 
-				// Messages for user's room (only if user has a room)
-				if ( $user->room_id ) {
-					$q->orWhere( function ($subQ) use ($user) {
-						$subQ->where( 'recipient_type', 'room' )
-							->where( 'room_id', $user->room_id );
-					} );
-				}
+	        // B. Messages for user's dormitory (OR)
+	        if ( $user->room && $user->room->dormitory_id ) {
+	            $q->orWhere( function ( $subQ ) use ( $user ) {
+	                $subQ->where( 'recipient_type', 'dormitory' )
+	                     ->where( 'dormitory_id', $user->room->dormitory_id );
+	            } );
+	        }
 
-				// Individual messages - PostgreSQL compatible approach for TEXT JSON fields
-				$q->orWhere( function ($subQ) use ($user) {
-					$subQ->where( 'recipient_type', 'individual' )
-						->where( function ($innerQ) use ($user) {
-							// Use a more robust JSON query that works for both MySQL and PostgreSQL
-							// Assumes recipient_ids is a JSON array of numbers, e.g., [1, 2, 3]
-							if (config('database.default') === 'pgsql') {
-								$innerQ->whereRaw('recipient_ids::jsonb @> ?', [$user->id]);
-							} else {
-								$innerQ->whereJsonContains('recipient_ids', $user->id);
-							}
-						} );
-				} );
-			} )
-			->with( [ 'sender' ] )
-			->orderBy( 'sent_at', 'desc' );
+	        // C. Messages for user's room (OR)
+	        if ( $user->room_id ) {
+	            $q->orWhere( function ( $subQ ) use ( $user ) {
+	                $subQ->where( 'recipient_type', 'room' )
+	                     ->where( 'room_id', $user->room_id );
+	            } );
+	        }
+
+	        // D. Individual messages (OR)
+	        $q->orWhere( function ( $subQ ) use ( $user ) {
+	            $subQ->where( 'recipient_type', 'individual' )
+	                 ->where( function ( $innerQ ) use ( $user ) {
+	                     if ( config( 'database.default' ) === 'pgsql' ) {
+	                         $innerQ->whereRaw( 'recipient_ids::jsonb @> ?', [ $user->id ] );
+	                     } else {
+	                         $innerQ->whereJsonContains( 'recipient_ids', $user->id );
+	                     }
+	                 } );
+	        } );
+
+	    } );
+	    
+	    $query->with( [ 'sender' ] )
+	          ->orderBy( 'sent_at', 'desc' );
 
 		// Debug: Log the SQL query
 		\Log::info( '📊 MessageService::getUserMessages SQL query', [ 
