@@ -21,7 +21,7 @@ use App\Http\Controllers\CityController;
 // Public routes
 Route::post( '/login', [ UserController::class, 'login' ] );
 Route::get( '/app-version', function () {
-	return response()->json( [ 'version' => '1.0.2' ] );
+	return response()->json( [ 'version' => '1.0.3' ] );
 } );
 Route::post( '/register', [ UserController::class, 'register' ] );
 Route::post( '/password/reset-link', [ UserController::class, 'sendPasswordResetLink' ] );

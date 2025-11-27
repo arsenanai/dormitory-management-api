@@ -523,7 +523,7 @@ class UserController extends Controller {
 		$user = $request->user();
 		// Return role-specific profile data
 		if ( $user->hasRole( 'student' ) ) {
-			return response()->json( $user->load( [ 'studentProfile', 'role', 'room.dormitory', 'studentBed' ] ) );
+			return response()->json( $user->load( [ 'studentProfile', 'role', 'room.dormitory', 'room.dormitory.admin', 'studentBed' ] ) );
 		} elseif ( $user->hasRole( 'guest' ) ) {
 			// You can create a GuestResource for consistency here as well
 			return response()->json( $user->load( [ 'role', 'room.dormitory', 'room', 'guestProfile', 'room.dormitory.admin', 'guestProfile.bed' ] ) );

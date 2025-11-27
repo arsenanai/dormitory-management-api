@@ -41,7 +41,7 @@ class StudentService {
 				->findOrFail( $id );
 
 			// If a new bed/room is being assigned, validate gender compatibility with the new dormitory.
-			if ( isset( $data['bed_id'] ) ) {
+			if ( ! empty( $data['bed_id'] ) ) {
 				$newBed = Bed::with( 'room.dormitory' )->find( $data['bed_id'] );
 				if ( $newBed && $newBed->room ) {
 					$newDormitory = $newBed->room->dormitory;
@@ -56,7 +56,7 @@ class StudentService {
 			}
 
 			// Handle bed assignment and get the new room_id if it changes
-			$newRoomId = $this->processBedAssignment( $student, $data['bed_id'] ?? null, $authUser->hasRole( 'sudo' ) );
+			$newRoomId = $this->processBedAssignment( $student, isset( $data['bed_id'] ) ? (int) $data['bed_id'] : null, $authUser->hasRole( 'sudo' ) );
 			if ( $newRoomId !== false ) { // `false` indicates no change
 				$data['room_id'] = $newRoomId;
 			}
