@@ -1,0 +1,106 @@
+# .gitlab-ci.yml for crm-back (Laravel)
+
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  # Use the official Docker image for Docker-in-Docker
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Define the image name using GitLab's predefined variables
+  # The tag will be the branch/tag name, e.g., 'main'
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+
+# This job runs your PHPUnit tests against a temporary Postgres database.
+# It mimics the testing environment described in your README.
+test:
+  stage: test
+  image: php:8.2-cli-alpine
+  services:
+    - name: postgres:14-alpine
+      alias: postgres
+  variables:
+    # Configure the database service for testing
+    POSTGRES_DB: laravel_test
+    POSTGRES_USER: gitlab
+    POSTGRES_PASSWORD: "secure_password"
+    # Configure Laravel to use the service database
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: $POSTGRES_DB
+    DB_USERNAME: $POSTGRES_USER
+    DB_PASSWORD: $POSTGRES_PASSWORD
+    APP_ENV: testing
+  cache:
+    key:
+      files:
+        - composer.lock
+    paths:
+      - vendor/
+  before_script:
+    # Install system dependencies for composer and postgres driver
+    - apk add --no-cache $PHPIZE_DEPS postgresql-dev
+    - docker-php-ext-install pdo pdo_pgsql
+    # Install composer dependencies
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - composer install --prefer-dist --no-progress --no-ansi
+    # Prepare Laravel environment for testing
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan migrate --seed # Run migrations and seed the test DB
+  script:
+    - php artisan test --coverage
+
+# This job builds a production-ready Docker image and pushes it to the GitLab Container Registry.
+build_image:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind # Docker-in-Docker
+  before_script:
+    # Login to the GitLab Container Registry using predefined variables
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "Building production Docker image..."
+    # Your README indicates the Dockerfile uses APP_ENV to select the build target.
+    # We build the 'production' target.
+    - >
+      docker build
+      --build-arg APP_ENV=production
+      -t $IMAGE_TAG .
+    - echo "Pushing Docker image to registry..."
+    - docker push $IMAGE_TAG
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"' # Only run this job for the main branch
+
+# This job deploys the new image by SSHing into your server and running docker-compose commands.
+deploy_production:
+  stage: deploy
+  image: alpine:latest # A small image with an SSH client
+  before_script:
+    # Setup SSH agent for secure connection
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H "$DEPLOY_SERVER_IP" >> ~/.ssh/known_hosts
+  script:
+    - echo "Deploying to production server..."
+    # This script assumes your docker-compose service is named 'api' as per your README
+    - >
+      ssh $DEPLOY_USER@$DEPLOY_SERVER_IP "
+      cd $DEPLOY_COMPOSE_PATH &&
+      docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+      docker pull $IMAGE_TAG &&
+      docker-compose up -d --no-deps api &&
+      docker-compose exec -T api php artisan migrate --force &&
+      echo 'Deployment complete'
+      "
+  environment:
+    name: production
+    url: https://dorm.sdu.edu.kz:8000 # As per your README
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
