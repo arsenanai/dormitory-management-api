@@ -11,7 +11,6 @@ use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTypeController;
-use App\Http\Controllers\SemesterPaymentController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\BloodTypeController;
@@ -163,16 +162,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		// Payment management
 		Route::get( '/payments/export', [ PaymentController::class, 'export' ] );
 		Route::apiResource( 'payments', PaymentController::class);
-
-		// Semester payment management
-		Route::get( '/semester-payments/stats', [ SemesterPaymentController::class, 'getStats' ] );
-		Route::get( '/semester-payments/users-with-access', [ SemesterPaymentController::class, 'getUsersWithAccess' ] );
-		Route::post( '/semester-payments/create-for-all-students', [ SemesterPaymentController::class, 'createForAllStudents' ] );
-		Route::post( '/semester-payments/{semesterPayment}/approve-payment', [ SemesterPaymentController::class, 'approvePayment' ] );
-		Route::post( '/semester-payments/{semesterPayment}/reject-payment', [ SemesterPaymentController::class, 'rejectPayment' ] );
-		Route::post( '/semester-payments/{semesterPayment}/approve-dormitory', [ SemesterPaymentController::class, 'approveDormitoryAccess' ] );
-		Route::post( '/semester-payments/{semesterPayment}/reject-dormitory', [ SemesterPaymentController::class, 'rejectDormitoryAccess' ] );
-		Route::apiResource( 'semester-payments', SemesterPaymentController::class);
 
 		// Student management (admins and sudo can manage students)
 		Route::get( '/students/export', [ StudentController::class, 'export' ] );
