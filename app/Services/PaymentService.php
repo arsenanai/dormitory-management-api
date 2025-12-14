@@ -7,12 +7,13 @@ use App\Models\User;
 use App\Http\Resources\PaymentResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use App\Enums\PaymentStatus;
 
 class PaymentService {
 	/**
 	 * Get payments with filters and pagination
 	 */
-	public function getPaymentsWithFilters( array $filters = [] ) {
+	public function index( array $filters = [] ) {
 		$query = Payment::with( [ 'user', 'user.role' ] );
 
 		// Apply date range filter for payment period overlap
@@ -39,8 +40,17 @@ class PaymentService {
 					->orWhereHas( 'user', function ( $userQuery ) use ( $search ) {
 						$userQuery->where( 'name', 'like', '%' . $search . '%' )
 							->orWhere( 'email', 'like', '%' . $search . '%' );
-					} );
+					} )
+					->orWhere( 'amount', $search);
 			} );
+		}
+
+		if ( isset( $filters['user_id'] ) ) {
+			$query->where( 'user_id', $filters['user_id'] );
+		}
+
+		if ( isset( $filters['status'] ) ) {
+			$query->where( 'status', $filters['status'] );
 		}
 
 		$perPage = $filters['per_page'] ?? 20;
@@ -52,7 +62,7 @@ class PaymentService {
 	/**
 	 * Create a new payment
 	 */
-	public function createPayment( array $data ) {
+	public function create( array $data, User $user ): PaymentResource {
 		return DB::transaction( function () use ($data) {
 			// Set deal_date if not provided
 			if ( ! isset( $data['deal_date'] ) ) {
@@ -86,61 +96,66 @@ class PaymentService {
 				$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
 			}
 
+			// Set initial status for student/guest roles
+			if ( $user->hasRole('student') || $user->hasRole('guest') ) {
+				$data['status'] = PaymentStatus::Pending;
+			}
+
 			$payment = Payment::create( $data );
 
 			return new PaymentResource( $payment->load( [ 'user', 'user.role' ] ) );
 		} );
 	}
 
-	public function create( array $data ): Payment {
-		return DB::transaction( function () use ($data) {
-			if ( isset( $data['payment_check'] ) && $data['payment_check'] instanceof \Illuminate\Http\UploadedFile ) {
-				$original = $data['payment_check']->getClientOriginalName();
-				$storagePath = 'payment_checks/' . $original;
-				if ( Storage::disk( 'local' )->exists( $storagePath ) ) {
-					$ext = $data['payment_check']->getClientOriginalExtension();
-					$filename = time() . '_' . \Illuminate\Support\Str::random( 6 ) . '.' . $ext;
-				} else {
-					$filename = $original;
-				}
-				$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
-			}
-			$payment = new Payment( $data );
-			return $payment;
-		} );
-	}
+	// public function create( array $data ): Payment {
+	// 	return DB::transaction( function () use ($data) {
+	// 		if ( isset( $data['payment_check'] ) && $data['payment_check'] instanceof \Illuminate\Http\UploadedFile ) {
+	// 			$original = $data['payment_check']->getClientOriginalName();
+	// 			$storagePath = 'payment_checks/' . $original;
+	// 			if ( Storage::disk( 'local' )->exists( $storagePath ) ) {
+	// 				$ext = $data['payment_check']->getClientOriginalExtension();
+	// 				$filename = time() . '_' . \Illuminate\Support\Str::random( 6 ) . '.' . $ext;
+	// 			} else {
+	// 				$filename = $original;
+	// 			}
+	// 			$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
+	// 		}
+	// 		$payment = new Payment( $data );
+	// 		return $payment;
+	// 	} );
+	// }
 
-	public function update( Payment $payment, array $data ): Payment {
-		return DB::transaction( function () use ($data, $payment) {
-			if ( isset( $data['payment_check'] ) ) {
-				// If a new uploaded file is provided, delete the old file and store the new one.
-				if ( $data['payment_check'] instanceof \Illuminate\Http\UploadedFile ) {
-					if ( $payment->payment_check ) {
-						Storage::disk( 'local' )->delete( $payment->payment_check );
-					}
-					$original = $data['payment_check']->getClientOriginalName();
-					$storagePath = 'payment_checks/' . $original;
-					if ( Storage::disk( 'local' )->exists( $storagePath ) ) {
-						$ext = $data['payment_check']->getClientOriginalExtension();
-						$filename = time() . '_' . \Illuminate\Support\Str::random( 6 ) . '.' . $ext;
-					} else {
-						$filename = $original;
-					}
-					$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
-				}
-				// If an empty string is sent, it's a signal to delete the file.
-				elseif ( $data['payment_check'] === '' ) {
-					if ( $payment->payment_check ) {
-						Storage::disk( 'local' )->delete( $payment->payment_check );
-					}
-					// Set to null to clear the database field.
-					$data['payment_check'] = null;
-				}
-			}
-			$payment->update( $data );
-			return $payment;
-		} );
-	}
+	// public function update( Payment $payment, array $data ): Payment {
+	// 	return DB::transaction( function () use ($data, $payment) {
+	// 		if ( isset( $data['payment_check'] ) ) {
+	// 			// If a new uploaded file is provided, delete the old file and store the new one.
+	// 			if ( $data['payment_check'] instanceof \Illuminate\Http\UploadedFile ) {
+	// 				if ( $payment->payment_check ) {
+	// 					Storage::disk( 'local' )->delete( $payment->payment_check );
+	// 				}
+	// 				$original = $data['payment_check']->getClientOriginalName();
+	// 				$storagePath = 'payment_checks/' . $original;
+	// 				if ( Storage::disk( 'local' )->exists( $storagePath ) ) {
+	// 					$ext = $data['payment_check']->getClientOriginalExtension();
+	// 					$filename = time() . '_' . \Illuminate\Support\Str::random( 6 ) . '.' . $ext;
+	// 				} else {
+	// 					$filename = $original;
+	// 				}
+	// 				$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
+	// 			}
+	// 			// If an empty string is sent, it's a signal to delete the file.
+	// 			elseif ( $data['payment_check'] === '' ) {
+	// 				if ( $payment->payment_check ) {
+	// 					Storage::disk( 'local' )->delete( $payment->payment_check );
+	// 				}
+	// 				// Set to null to clear the database field.
+	// 				$data['payment_check'] = null;
+	// 			}
+	// 		}
+	// 		$payment->update( $data );
+	// 		return $payment;
+	// 	} );
+	// }
 
 	/**
 	 * Get payment details
@@ -153,7 +168,7 @@ class PaymentService {
 	/**
 	 * Update payment
 	 */
-	public function updatePayment( $id, array $data ) {
+	public function update( $id, array $data ) {
 		return DB::transaction( function () use ($id, $data) {
 			$payment = Payment::findOrFail( $id );
 
@@ -195,7 +210,7 @@ class PaymentService {
 	/**
 	 * Delete payment
 	 */
-	public function deletePayment( $id ) {
+	public function delete( $id ) {
 		$payment = Payment::findOrFail( $id );
 
 		// Delete associated payment_check file

@@ -39,7 +39,7 @@ class GuestController extends Controller {
 			'check_out_date' => 'required|date|after:check_in_date',
 			// 'payment_status' => 'sometimes|in:pending,paid,cancelled', // payment disabled
 			'bed_id'         => 'required|integer|exists:beds,id',
-			// 'total_amount'   => 'required|numeric|min:0', // payment amount disabled for now
+			'total_amount'   => 'required|numeric|min:0',
 			'notes'          => 'nullable|string',
 		] );
 
@@ -73,7 +73,7 @@ class GuestController extends Controller {
 			'check_out_date' => 'sometimes|date|after:check_in_date',
 			// 'payment_status' => 'sometimes|in:pending,paid,cancelled', // payment disabled
 			'bed_id'         => 'required|integer|exists:beds,id',
-			// 'total_amount'   => 'sometimes|numeric|min:0', // payment amount disabled for now
+			'total_amount'   => 'required|numeric|min:0', // payment amount disabled for now
 			'notes'          => 'sometimes|string',
 		] );
 

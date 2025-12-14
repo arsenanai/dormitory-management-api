@@ -248,6 +248,7 @@ class DevelopmentSeeder extends Seeder {
 				'date_from'   => Carbon::parse('2025-01-01'),
 				'date_to'     => Carbon::parse('2025-06-01'),
 				'payment_check' => $paymentCheckPath,
+				'status'	  => PaymentStatus::Completed
 			]);
 		}
 
@@ -265,6 +266,7 @@ class DevelopmentSeeder extends Seeder {
 				'date_from'   => Carbon::parse('2025-09-01'),
 				'date_to'     => Carbon::parse('2026-01-01'),
 				'payment_check' => $paymentCheckPath,
+				'status'	  => PaymentStatus::Completed
 			]);
 		}
 
@@ -282,6 +284,7 @@ class DevelopmentSeeder extends Seeder {
 				'date_from' => $guest->visit_start_date,
 				'date_to'   => $guest->visit_end_date,
 				'payment_check' => $paymentCheckPath,
+				'status'	  => PaymentStatus::Completed
 			]);
 		}
 

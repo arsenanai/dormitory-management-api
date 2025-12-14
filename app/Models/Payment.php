@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Enums\PaymentStatus;
 
 class Payment extends Model {
 	use HasFactory;
@@ -19,6 +20,7 @@ class Payment extends Model {
 		'deal_number',
 		'deal_date',
 		'payment_check',
+		'status',
 	];
 
 	protected $casts = [ 
@@ -26,6 +28,7 @@ class Payment extends Model {
 		'date_from'                 => 'date',
 		'date_to'                   => 'date',
 		'deal_date'                 => 'date',
+		'status'					=> PaymentStatus::class
 	];
 
 	/**

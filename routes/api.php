@@ -118,11 +118,6 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		Route::post( '/messages/{id}/send', [ MessageController::class, 'send' ] );
 	} );
 
-	// Student routes
-	Route::middleware( [ 'role:student' ] )->group( function () {
-		// Additional student-specific routes can go here
-	} );
-
 	// General authenticated user routes (no specific role requirement)
 	Route::get( '/users/profile', [ UserController::class, 'profile' ] );
 	Route::put( '/users/profile', [ UserController::class, 'updateProfile' ] );
@@ -130,6 +125,8 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 	Route::middleware( [ 'role:student,guest' ] )->group( function () {
 		Route::get( '/users/personal-data', [ UserController::class, 'personalData' ] );
 		Route::match( [ 'post', 'put' ], '/users/personal-data', [ UserController::class, 'updatePersonalData' ] );
+		Route::get( '/my-payments', [ PaymentController::class, 'myPayments' ] );
+		Route::post( '/payments', [ PaymentController::class, 'store' ] )
 	} );
 	Route::post( '/logout', [ UserController::class, 'logout' ] );
 

@@ -320,7 +320,7 @@ class StudentService {
 			if ( request()->hasFile( 'payment.payment_check' ) ) {
 				$file = request()->file( 'payment.payment_check' );
 
-				$this->paymentService->createPayment( [
+				$this->paymentService->create( [
 					'user_id'       => $student->id,
 					'amount'        => $this->calculateSemesterFee( $room->roomType ),
 					'date_from'     => $this->getSemesterStartDate(),

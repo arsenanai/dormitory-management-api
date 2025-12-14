@@ -146,7 +146,7 @@ class GuestService {
 			if ( array_key_exists( 'bank_paycheck', $data ) 
 				&& $data['bank_paycheck'] instanceof UploadedFile ) {
 				// Create Payment record
-				$this->paymentService->createPayment( [
+				$this->paymentService->create( [
 					'user_id'       => $guest->id,
 					'amount'        => $data['total_amount'] ?? 0,
 					'date_from'     => $data['check_in_date'],
