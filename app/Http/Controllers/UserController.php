@@ -175,6 +175,8 @@ class UserController extends Controller
                 'student_profile.emergency_contact_phone'  => 'nullable|string|max:255',
                 'student_profile.emergency_contact_type'   => 'nullable|in:parent,guardian,other',
                 'student_profile.emergency_contact_email'  => 'nullable|email|max:255',
+                'student_profile.identification_type'       => 'required|string|in:passport,national_id,drivers_license,other',
+                'student_profile.identification_number'     => 'required|string|max:255',
                 'student_profile.enrollment_year'          => 'required|integer|digits:4',
                 'student_profile.faculty'                  => 'required|string|max:255',
                 'student_profile.files.*'                  => 'nullable|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',

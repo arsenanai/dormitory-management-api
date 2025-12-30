@@ -41,6 +41,8 @@ class StudentProfile extends Model
         'gender',
         'allergies',
         'files',
+        'identification_type',
+        'identification_number',
         'country',
         'region',
         'city',

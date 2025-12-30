@@ -100,4 +100,67 @@ class StudentProfileModelTest extends TestCase
         $this->assertNotContains('guardian_name', $fillable);
         $this->assertNotContains('guardian_phone', $fillable);
     }
+
+    public function test_student_profile_can_be_created_with_identification_fields(): void
+    {
+        $user = User::factory()->create();
+
+        $profile = StudentProfile::create([
+            'user_id' => $user->id,
+            'iin' => '123456789012',
+            'student_id' => 'STU001',
+            'faculty' => 'Engineering',
+            'specialist' => 'Computer Science',
+            'enrollment_year' => 2024,
+            'gender' => 'male',
+            'identification_type' => 'passport',
+            'identification_number' => 'A123456789',
+        ]);
+
+        $this->assertDatabaseHas('student_profiles', [
+            'user_id' => $user->id,
+            'identification_type' => 'passport',
+            'identification_number' => 'A123456789',
+        ]);
+
+        $this->assertEquals('passport', $profile->identification_type);
+        $this->assertEquals('A123456789', $profile->identification_number);
+    }
+
+    public function test_student_profile_accepts_all_identification_types(): void
+    {
+        $user = User::factory()->create();
+
+        $types = [
+            ['type' => 'passport', 'number' => 'A123456789'],
+            ['type' => 'national_id', 'number' => '123456789012'],
+            ['type' => 'drivers_license', 'number' => 'DL987654321'],
+            ['type' => 'other', 'number' => 'OTHER123456']
+        ];
+
+        foreach ($types as $identification) {
+            $profile = StudentProfile::create([
+                'user_id' => $user->id,
+                'iin' => fake()->unique()->numerify('############'),
+                'student_id' => fake()->unique()->numerify('STU#####'),
+                'faculty' => 'Engineering',
+                'specialist' => 'Computer Science',
+                'enrollment_year' => 2024,
+                'gender' => 'male',
+                'identification_type' => $identification['type'],
+                'identification_number' => $identification['number'],
+            ]);
+
+            $this->assertEquals($identification['type'], $profile->identification_type);
+            $this->assertEquals($identification['number'], $profile->identification_number);
+        }
+    }
+
+    public function test_identification_fields_are_fillable(): void
+    {
+        $fillable = (new StudentProfile())->getFillable();
+
+        $this->assertContains('identification_type', $fillable);
+        $this->assertContains('identification_number', $fillable);
+    }
 }
