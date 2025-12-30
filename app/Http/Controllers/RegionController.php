@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Region;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class RegionController extends Controller
 {
@@ -14,13 +14,13 @@ class RegionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Region::query();
-        
+
         if ($request->has('country_id')) {
             $query->where('country_id', $request->country_id);
         }
-        
+
         $regions = $query->with('country')->get();
-        
+
         return response()->json([
             'success' => true,
             'data' => $regions
@@ -38,7 +38,7 @@ class RegionController extends Controller
         ]);
 
         $region = Region::create($validated);
-        
+
         return response()->json([
             'success' => true,
             'data' => $region->load('country')
@@ -67,7 +67,7 @@ class RegionController extends Controller
         ]);
 
         $region->update($validated);
-        
+
         return response()->json([
             'success' => true,
             'data' => $region->load('country')
@@ -80,7 +80,7 @@ class RegionController extends Controller
     public function destroy(Region $region): JsonResponse
     {
         $region->delete();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Region deleted successfully'

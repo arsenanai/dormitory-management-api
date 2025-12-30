@@ -51,6 +51,8 @@ namespace App\Models{
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property int $is_occupied
  * @property bool $reserved_for_staff
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\GuestProfile> $guestProfiles
+ * @property-read int|null $guest_profiles_count
  * @property-read \App\Models\Room $room
  * @property-read \App\Models\User|null $user
  * @method static \Database\Factories\BedFactory factory($count = null, $state = [])
@@ -89,6 +91,30 @@ namespace App\Models{
 namespace App\Models{
 /**
  * @property int $id
+ * @property string $name
+ * @property string $language
+ * @property int $region_id
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\Country $country
+ * @property-read \App\Models\Region $region
+ * @method static \Database\Factories\CityFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City whereLanguage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City whereRegionId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|City whereUpdatedAt($value)
+ */
+	class City extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
  * @property string $key
  * @property string|null $value
  * @property string $type
@@ -103,6 +129,30 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Configuration whereValue($value)
  */
 	class Configuration extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $language
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\City> $cities
+ * @property-read int|null $cities_count
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Region> $regions
+ * @property-read int|null $regions_count
+ * @method static \Database\Factories\CountryFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country whereLanguage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Country whereUpdatedAt($value)
+ */
+	class Country extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -238,6 +288,7 @@ namespace App\Models{
  * @property int $id
  * @property int $user_id
  * @property numeric $amount
+ * @property \App\Enums\PaymentStatus $status
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property string|null $payment_check
@@ -258,10 +309,36 @@ namespace App\Models{
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Payment whereDealNumber($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Payment whereId($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Payment wherePaymentCheck($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Payment whereStatus($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Payment whereUpdatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder<static>|Payment whereUserId($value)
  */
 	class Payment extends \Eloquent {}
+}
+
+namespace App\Models{
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $language
+ * @property int $country_id
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\City> $cities
+ * @property-read int|null $cities_count
+ * @property-read \App\Models\Country $country
+ * @method static \Database\Factories\RegionFactory factory($count = null, $state = [])
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region newModelQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region newQuery()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region query()
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region whereCountryId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region whereCreatedAt($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region whereId($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region whereLanguage($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region whereName($value)
+ * @method static \Illuminate\Database\Eloquent\Builder<static>|Region whereUpdatedAt($value)
+ */
+	class Region extends \Eloquent {}
 }
 
 namespace App\Models{
@@ -293,10 +370,10 @@ namespace App\Models{
  * @property int $dormitory_id
  * @property int $room_type_id
  * @property int|null $quota
- * @property string $occupant_type
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property int $is_occupied
+ * @property string|null $occupant_type
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Bed> $beds
  * @property-read int|null $beds_count
  * @property-read \App\Models\Dormitory $dormitory
@@ -485,13 +562,16 @@ namespace App\Models{
  * @property int|null $dormitory_id
  * @property-read \App\Models\Dormitory|null $adminDormitory
  * @property-read \App\Models\AdminProfile|null $adminProfile
+ * @property-read \App\Models\Bed|null $bed
  * @property-read \App\Models\Payment|null $currentSemesterPayment
+ * @property-read \App\Models\Dormitory|null $dormitory
  * @property-read \App\Models\GuestProfile|null $guestProfile
  * @property-read \Illuminate\Notifications\DatabaseNotificationCollection<int, \Illuminate\Notifications\DatabaseNotification> $notifications
  * @property-read int|null $notifications_count
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \App\Models\Payment> $payments
  * @property-read int|null $payments_count
  * @property-read \App\Models\Role|null $role
+ * @property-read \App\Models\Room|null $room
  * @property-read \App\Models\Bed|null $studentBed
  * @property-read \App\Models\StudentProfile|null $studentProfile
  * @property-read \Illuminate\Database\Eloquent\Collection<int, \Laravel\Sanctum\PersonalAccessToken> $tokens

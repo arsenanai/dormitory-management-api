@@ -30,7 +30,7 @@ class RoomTypeFactory extends Factory
                $this->faker->imageUrl(640, 480, 'room', true),
            ]),
        ];
-    }    
+    }
 
     /**
      * Indicate that the room type is standard.

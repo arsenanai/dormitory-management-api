@@ -1,6 +1,5 @@
 <?php
 
-use App\Mail\PasswordResetMail;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {

@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\City;
 use App\Models\Country;
 use App\Models\Region;
-use App\Models\City;
+use Illuminate\Database\Seeder;
 
 class KazakhstanSeeder extends Seeder
 {

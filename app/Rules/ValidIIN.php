@@ -8,7 +8,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
  * Custom validation rule for Kazakhstan IIN
- * 
+ *
  * @package App\Rules
  */
 class ValidIIN implements ValidationRule
@@ -24,7 +24,7 @@ class ValidIIN implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $iinValidationService = new IINValidationService();
-        
+
         if (!$iinValidationService->validate($value)) {
             $fail('The :attribute must be a valid Kazakhstan IIN.');
         }

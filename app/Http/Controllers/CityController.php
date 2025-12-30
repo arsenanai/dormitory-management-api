@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\City;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CityController extends Controller
 {
@@ -14,13 +14,13 @@ class CityController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = City::query();
-        
+
         if ($request->has('region_id')) {
             $query->where('region_id', $request->region_id);
         }
-        
+
         $cities = $query->with(['region', 'region.country'])->get();
-        
+
         return response()->json([
             'success' => true,
             'data' => $cities
@@ -38,7 +38,7 @@ class CityController extends Controller
         ]);
 
         $city = City::create($validated);
-        
+
         return response()->json([
             'success' => true,
             'data' => $city->load(['region', 'region.country'])
@@ -67,7 +67,7 @@ class CityController extends Controller
         ]);
 
         $city->update($validated);
-        
+
         return response()->json([
             'success' => true,
             'data' => $city->load(['region', 'region.country'])
@@ -80,7 +80,7 @@ class CityController extends Controller
     public function destroy(City $city): JsonResponse
     {
         $city->delete();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'City deleted successfully'

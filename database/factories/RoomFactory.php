@@ -4,8 +4,8 @@ namespace Database\Factories;
 
 use App\Models\Bed;
 use App\Models\Dormitory;
-use App\Models\RoomType;
 use App\Models\Room;
+use App\Models\RoomType;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -32,14 +32,15 @@ class RoomFactory extends Factory
     /**
      * Configure the model factory.
      *
-     * @return $this
+     * @return static
      */
-    public function configure()
+    public function configure(): self
     {
         return $this->afterCreating(function (Room $room) {
             // After creating a room, create beds for it based on the room type's capacity.
-            if ($room->roomType) {
-                $capacity = $room->roomType->capacity;
+            $roomType = $room->roomType()->first();
+            if ($roomType && isset($roomType->capacity)) {
+                $capacity = $roomType->capacity;
                 for ($i = 1; $i <= $capacity; $i++) {
                     Bed::factory()->create(['room_id' => $room->id, 'bed_number' => $i]);
                 }
