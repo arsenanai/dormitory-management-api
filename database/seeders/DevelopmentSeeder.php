@@ -103,7 +103,7 @@ class DevelopmentSeeder extends Seeder
                 ];
             }
         }
-        
+
         // Bulk insert beds
         \App\Models\Bed::insert($bedsData);
 
@@ -121,7 +121,7 @@ class DevelopmentSeeder extends Seeder
         $studentsData = [];
         $studentProfilesData = [];
         $bedAssignments = [];
-        
+
         // Pre-generate all file paths to avoid individual file operations
         $allFilePaths = [];
         $base64Images = [
@@ -196,7 +196,7 @@ class DevelopmentSeeder extends Seeder
 
         // Bulk insert students
         User::insert($studentsData);
-        
+
         // Get the inserted students with their IDs (more efficient query)
         $lastStudentId = User::where('role_id', $studentRole->id)->max('id');
         $firstStudentId = $lastStudentId - 499;
@@ -209,7 +209,7 @@ class DevelopmentSeeder extends Seeder
         foreach ($insertedStudents as $index => $student) {
             $studentProfilesData[$index]['user_id'] = $student->id;
         }
-        
+
         // Bulk insert student profiles
         \App\Models\StudentProfile::insert($studentProfilesData);
 

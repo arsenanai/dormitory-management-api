@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\DormitoryService;
+use App\Services\RoomService;
 use Illuminate\Http\Request;
 
 class DormitoryController extends Controller
@@ -17,7 +18,7 @@ class DormitoryController extends Controller
         'phone'       => 'nullable|string|max:20',
     ];
 
-    public function __construct(private DormitoryService $service)
+    public function __construct(private DormitoryService $service, private RoomService $roomService)
     {
     }
 
@@ -142,8 +143,8 @@ class DormitoryController extends Controller
                 return response()->json([ 'error' => 'Dormitory not found' ], 404);
             }
 
-            // Load rooms with beds for this dormitory
-            $rooms = $this->service->getRoomsForDormitory($id);
+            // Load only rooms with available beds for this dormitory
+            $rooms = $this->roomService->available($id, 'student');
 
             $dormitoryData = $dormitory->toArray();
             $dormitoryData['rooms'] = $rooms;
