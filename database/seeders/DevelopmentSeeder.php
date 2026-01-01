@@ -11,31 +11,167 @@ use App\Models\Payment;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
-use Illuminate\Database\Seeder; // Import Carbon
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class DevelopmentSeeder extends Seeder
 {
+    /**
+     * Generate unique email using deterministic algorithm
+     */
+    private function generateUniqueEmail(int $index, string $domain = 'example.com'): string
+    {
+        $names = ['john', 'jane', 'mike', 'sarah', 'alex', 'emma', 'david', 'lisa', 'james', 'mary'];
+        $nameIndex = $index % count($names);
+        $suffix = floor($index / count($names)) + 1;
+        return "{$names[$nameIndex]}{$suffix}@{$domain}";
+    }
+
+    /**
+     * Generate unique IIN using deterministic algorithm
+     */
+    private function generateUniqueIIN(int $index): string
+    {
+        $base = str_pad((string)$index, 8, '0', STR_PAD_LEFT);
+        $checksum = ($index % 10);
+        return $base . $checksum . str_pad((string)($index % 100), 2, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate unique deal number using deterministic algorithm
+     */
+    private function generateUniqueDealNumber(int $index): string
+    {
+        return 'DEAL-' . str_pad((string)(100000 + $index), 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate deterministic phone number
+     */
+    private function generatePhoneNumber(int $index): string
+    {
+        $prefixes = ['+1', '+44', '+91', '+86', '+81', '+49', '+33', '+61'];
+        $prefix = $prefixes[$index % count($prefixes)];
+        $number = str_pad((string)(1000000 + ($index * 12345) % 9000000), 7, '0', STR_PAD_LEFT);
+        return $prefix . ' ' . substr($number, 0, 3) . ' ' . substr($number, 3, 4);
+    }
+
+    /**
+     * Get deterministic name from pre-generated arrays
+     */
+    private function getFirstName(int $index): string
+    {
+        $firstNames = [
+            'James', 'John', 'Robert', 'Michael', 'William', 'David', 'Richard', 'Joseph', 'Thomas', 'Charles',
+            'Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Barbara', 'Susan', 'Jessica', 'Sarah', 'Karen',
+            'Lisa', 'Nancy', 'Betty', 'Helen', 'Sandra', 'Donna', 'Carol', 'Ruth', 'Sharon', 'Michelle'
+        ];
+        return $firstNames[$index % count($firstNames)];
+    }
+
+    private function getLastName(int $index): string
+    {
+        $lastNames = [
+            'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
+            'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin',
+            'Lee', 'Perez', 'Thompson', 'White', 'Harris', 'Sanchez', 'Clark', 'Ramirez', 'Lewis', 'Robinson'
+        ];
+        return $lastNames[($index + 7) % count($lastNames)];
+    }
+
+    /**
+     * Get deterministic random element from array
+     */
+    private function getRandomElement(array $array, int $index): string
+    {
+        return $array[$index % count($array)];
+    }
+
+    /**
+     * Get deterministic random number
+     */
+    private function getRandomNumber(int $min, int $max, int $index): int
+    {
+        return $min + ($index % ($max - $min + 1));
+    }
+
+    /**
+     * Get deterministic boolean
+     */
+    private function getRandomBoolean(int $index): bool
+    {
+        return ($index % 2) === 0;
+    }
+
+    /**
+     * Get deterministic random float
+     */
+    private function getRandomFloat(float $min, float $max, int $index): float
+    {
+        $range = $max - $min;
+        return round($min + ($range * (($index * 7) % 100) / 100), 2);
+    }
+
+    /**
+     * Get deterministic date between range
+     */
+    private function getRandomDate(string $startDate, string $endDate, int $index): string
+    {
+        $start = new \DateTime($startDate);
+        $end = new \DateTime($endDate);
+        $interval = $start->diff($end);
+        $days = $interval->days;
+        $randomDays = $index % ($days + 1);
+        $date = clone $start;
+        $date->add(new \DateInterval("P{$randomDays}D"));
+        return $date->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Batch store base64 images for better performance
+     */
+    private function batchStoreImages(array $base64Images, string $directory, array $filenames): array
+    {
+        $paths = [];
+        foreach ($filenames as $i => $filename) {
+            $imageData = base64_decode($base64Images[$i % count($base64Images)]);
+            $path = $directory . '/' . $filename;
+            Storage::disk('local')->put($path, $imageData);
+            $paths[] = $path;
+        }
+        return $paths;
+    }
     public function run(): void
     {
+        $startTime = microtime(true);
+        $this->command->info('Starting DevelopmentSeeder...');
+        
         // Create roles
+        $stepStart = microtime(true);
         $adminRole = \App\Models\Role::firstOrCreate([ 'name' => 'admin' ]);
         $studentRole = \App\Models\Role::firstOrCreate([ 'name' => 'student' ]);
         $guestRole = \App\Models\Role::firstOrCreate(['name' => 'guest']);
+        $this->command->info('Roles created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Create Room Types
+        $stepStart = microtime(true);
         $standardRoomType = RoomType::firstOrCreate([ 'name' => 'standard' ], [ 'capacity' => 2, 'daily_rate' => 10000.00, 'semester_rate' => 300000.00 ]);
         $luxRoomType = RoomType::firstOrCreate([ 'name' => 'lux' ], [ 'capacity' => 1, 'daily_rate' => 20000.00, 'semester_rate' => 500000.00 ]);
+        $this->command->info('Room types created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Create Blood Types
+        $stepStart = microtime(true);
         $bloodTypes = [ 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-' ];
         foreach ($bloodTypes as $type) {
             \App\Models\BloodType::firstOrCreate([ 'name' => $type ]);
         }
+        $this->command->info('Blood types created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Find or create the main admin user
+        $stepStart = microtime(true);
         $adminUser = User::firstOrCreate(
             [ 'email' => config('app.admin_email', 'admin@email.com') ],
             [
@@ -45,26 +181,31 @@ class DevelopmentSeeder extends Seeder
                 'status' => 'active',
             ]
         );
+        $this->command->info('Admin user created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Create and assign the main dormitory for the admin
+        $stepStart = microtime(true);
         $adminDormitory = Dormitory::firstOrCreate(
             [ 'name' => 'Main Dormitory' ],
             [
                 'address' => '123 Developer Lane',
                 'gender' => 'male',
                 'capacity' => 500,
-                'admin_id' => $adminUser->id, // Assign admin directly to the dormitory
+                'admin_id' => $adminUser->id,
             ]
         );
+        $this->command->info('Admin dormitory created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Assign dormitory to admin via AdminProfile
-        // This is for profile-specific info, while dormitory->admin_id is the main link.
+        $stepStart = microtime(true);
         AdminProfile::updateOrCreate(
             [ 'user_id' => $adminUser->id ],
             [ 'dormitory_id' => $adminDormitory->id ]
         );
+        $this->command->info('Admin profile created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Create 50 rooms in the admin's dormitory using bulk insert
+        $stepStart = microtime(true);
         $roomsData = [];
         $bedsData = [];
         for ($i = 1; $i <= 50; $i++) {
@@ -86,14 +227,22 @@ class DevelopmentSeeder extends Seeder
                 'updated_at' => now(),
             ];
         }
+        $this->command->info('Room data prepared: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Bulk insert rooms
+        // Bulk insert rooms and get inserted IDs in one query
+        $stepStart = microtime(true);
         Room::insert($roomsData);
-        $rooms = Room::where('dormitory_id', $adminDormitory->id)->get();
+        $rooms = Room::where('dormitory_id', $adminDormitory->id)
+            ->orderBy('id')
+            ->get(['id', 'room_type_id']);
+        $roomMap = $rooms->keyBy('id');
+        $this->command->info('Rooms inserted and fetched: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Create beds for all rooms using bulk insert
+        // Create beds for all rooms using bulk insert with pre-calculated data
+        $stepStart = microtime(true);
+        $bedsData = [];
         foreach ($rooms as $room) {
-            $capacity = $room->roomType->capacity;
+            $capacity = $roomMap[$room->id]->roomType->capacity;
             for ($j = 1; $j <= $capacity; $j++) {
                 $bedsData[] = [
                     'bed_number' => $j,
@@ -103,53 +252,85 @@ class DevelopmentSeeder extends Seeder
                 ];
             }
         }
-
-        // Bulk insert beds
         \App\Models\Bed::insert($bedsData);
-
-        // Get all available beds to assign to students
         $availableBeds = \App\Models\Bed::whereHas('room', function ($q) use ($adminDormitory) {
             $q->where('dormitory_id', $adminDormitory->id)
               ->where('occupant_type', 'student');
-        })->whereNull('user_id')->get();
-
-        $bedIterator = 0;
+        })->whereNull('user_id')->pluck('id')->toArray();
+        $this->command->info('Beds created and available beds fetched: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         $faker = \Faker\Factory::create();
 
-        // Create 500 students using bulk operations (optimized)
+        // Create 500 students using optimized bulk operations
         $studentsData = [];
         $studentProfilesData = [];
         $bedAssignments = [];
 
-        // Pre-generate all file paths to avoid individual file operations
-        $allFilePaths = [];
+        // Pre-generate all filenames for batch processing
+        $stepStart = microtime(true);
+        $studentFilenames = [];
+        for ($i = 1; $i <= 500; $i++) {
+            for ($j = 0; $j < 4; $j++) {
+                $studentFilenames[] = 'student_' . $i . '_doc_' . ($j + 1) . '.png';
+            }
+        }
+        $this->command->info('Student filenames generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+
+        // Batch store all student files at once
+        $stepStart = microtime(true);
         $base64Images = [
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/epv2AAAAABJRU5ErkJggg==',
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwAB/epv2AAAAABJRU5ErkJggg==',
         ];
-
-        // Batch generate all files at once
+        $allFilePaths = $this->batchStoreImages($base64Images, 'student_files', $studentFilenames);
+        
+        // Reorganize file paths by student index
+        $studentFiles = [];
+        $fileIndex = 0;
         for ($i = 1; $i <= 500; $i++) {
-            for ($j = 0; $j < 4; $j++) {
-                $filename = 'student_' . $i . '_doc_' . ($j + 1) . '.png';
-                $allFilePaths[$i][$j] = $this->storeBase64Image($base64Images[$j], 'student_files', $filename);
+            $studentFiles[$i] = array_slice($allFilePaths, $fileIndex, 4);
+            $fileIndex += 4;
+        }
+        $this->command->info('Student files stored and organized: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+
+        // Generate student data
+        $stepStart = microtime(true);
+        
+        // Pre-define arrays for deterministic selection
+        $faculties = ['Engineering', 'Business', 'Medicine', 'Law', 'Arts'];
+        $specialists = ['Computer Science', 'Marketing', 'General Medicine'];
+        $bloodTypesArray = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+        $countries = ['USA', 'Canada', 'UK', 'Germany', 'France', 'Japan', 'China', 'India', 'Brazil', 'Australia'];
+        $cities = ['New York', 'London', 'Tokyo', 'Paris', 'Berlin', 'Sydney', 'Toronto', 'Mumbai', 'São Paulo', 'Beijing'];
+        $emergencyTypes = ['parent', 'guardian', 'other'];
+        
+        // Pre-generate the hashed password once to avoid expensive hashing in loop
+        $hashedPassword = Hash::make('password');
+        
+        // Pre-fetch bed room mappings to avoid individual queries
+        $bedRoomMappings = [];
+        if (!empty($availableBeds)) {
+            $bedsWithRooms = \App\Models\Bed::whereIn('id', $availableBeds)
+                ->with('room')
+                ->get(['id', 'room_id']);
+            foreach ($bedsWithRooms as $bed) {
+                $bedRoomMappings[$bed->id] = $bed->room_id;
             }
         }
-
+        
         for ($i = 1; $i <= 500; $i++) {
-            $firstName = $faker->firstName;
-            $lastName = $faker->lastName;
+            $firstName = $this->getFirstName($i);
+            $lastName = $this->getLastName($i);
             $gender = 'male';
-            $email = $faker->unique()->safeEmail;
+            $email = $this->generateUniqueEmail($i);
 
             // Assign a bed if available
-            $bed = $availableBeds[$bedIterator] ?? null;
-            if ($bed) {
-                $bedAssignments[$bed->id] = $i; // Map bed_id to student index
-                $bedIterator++;
+            $bedId = $availableBeds[$i - 1] ?? null;
+            $roomId = $bedId ? ($bedRoomMappings[$bedId] ?? null) : null;
+            if ($bedId) {
+                $bedAssignments[$bedId] = $i;
             }
 
             $studentsData[] = [
@@ -157,118 +338,179 @@ class DevelopmentSeeder extends Seeder
                 'first_name' => $firstName,
                 'last_name' => $lastName,
                 'email' => $email,
-                'phone_numbers' => json_encode([$faker->phoneNumber]),
-                'password' => Hash::make('password'),
+                'phone_numbers' => json_encode([$this->generatePhoneNumber($i)]),
+                'password' => $hashedPassword,
                 'role_id' => $studentRole->id,
                 'status' => 'active',
-                'dormitory_id' => $bed ? optional($bed->room)->dormitory_id : null,
-                'room_id' => $bed ? $bed->room_id : null,
+                'dormitory_id' => $bedId ? $adminDormitory->id : null,
+                'room_id' => $roomId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
 
             $studentProfilesData[] = [
-                'iin' => $faker->unique()->numerify('############'),
+                'iin' => $this->generateUniqueIIN($i),
                 'student_id' => 'STU' . str_pad((string)$i, 6, '0', STR_PAD_LEFT),
-                'faculty' => $faker->randomElement(['Engineering', 'Business', 'Medicine', 'Law', 'Arts']),
-                'specialist' => $faker->randomElement(['Computer Science', 'Marketing', 'General Medicine']),
-                'enrollment_year' => $faker->numberBetween(2020, 2024),
+                'faculty' => $this->getRandomElement($faculties, $i),
+                'specialist' => $this->getRandomElement($specialists, $i + 3),
+                'enrollment_year' => $this->getRandomNumber(2020, 2024, $i),
                 'gender' => $gender,
-                'blood_type' => $faker->randomElement($bloodTypes),
-                'country' => $faker->country,
-                'region' => $faker->city,
-                'city' => $faker->city,
-                'emergency_contact_name' => $faker->name,
-                'emergency_contact_phone' => $faker->phoneNumber,
-                'emergency_contact_type' => $faker->randomElement(['parent', 'guardian', 'other']),
-                'emergency_contact_email' => $faker->safeEmail,
-                'deal_number' => 'DEAL-' . $faker->numerify('######'),
+                'blood_type' => $this->getRandomElement($bloodTypesArray, $i + 7),
+                'country' => $this->getRandomElement($countries, $i + 11),
+                'region' => $this->getRandomElement($cities, $i + 13),
+                'city' => $this->getRandomElement($cities, $i + 17),
+                'emergency_contact_name' => $this->getFirstName($i + 19) . ' ' . $this->getLastName($i + 19),
+                'emergency_contact_phone' => $this->generatePhoneNumber($i + 23),
+                'emergency_contact_type' => $this->getRandomElement($emergencyTypes, $i),
+                'emergency_contact_email' => $this->generateUniqueEmail(2000 + $i, 'emergency.com'),
+                'deal_number' => $this->generateUniqueDealNumber($i),
                 'agree_to_dormitory_rules' => true,
-                'has_meal_plan' => $faker->boolean,
-                'date_of_birth' => $faker->dateTimeBetween('-25 years', '-18 years'),
-                'allergies' => $faker->optional(0.2)->sentence,
-                'violations' => $faker->optional(0.1)->sentence,
-                'files' => json_encode($allFilePaths[$i] ?? []),
+                'has_meal_plan' => $this->getRandomBoolean($i),
+                'date_of_birth' => $this->getRandomDate('-25 years', '-18 years', $i),
+                'allergies' => ($i % 5 === 0) ? 'Mild pollen allergies' : null,
+                'violations' => ($i % 10 === 0) ? 'Late arrival once' : null,
+                'files' => json_encode($studentFiles[$i] ?? []),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
+        $this->command->info('Student data generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Bulk insert students
+        // Bulk insert students and get IDs efficiently
+        $stepStart = microtime(true);
         User::insert($studentsData);
-
-        // Get the inserted students with their IDs (more efficient query)
-        $lastStudentId = User::where('role_id', $studentRole->id)->max('id');
-        $firstStudentId = $lastStudentId - 499;
         $insertedStudents = User::where('role_id', $studentRole->id)
-            ->whereBetween('id', [$firstStudentId, $lastStudentId])
-            ->orderBy('id')
-            ->get();
+            ->orderBy('id', 'desc')
+            ->limit(500)
+            ->get(['id'])
+            ->reverse();
+        $this->command->info('Students inserted and IDs fetched: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Prepare student profiles with user_ids
+        $stepStart = microtime(true);
         foreach ($insertedStudents as $index => $student) {
             $studentProfilesData[$index]['user_id'] = $student->id;
         }
-
-        // Bulk insert student profiles
         \App\Models\StudentProfile::insert($studentProfilesData);
+        $this->command->info('Student profiles inserted: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Bulk update beds with user assignments
-        $bedUpdateCases = [];
-        $bedIds = [];
-        foreach ($bedAssignments as $bedId => $studentIndex) {
-            $studentId = $insertedStudents[$studentIndex - 1]->id;
-            $bedUpdateCases[] = "WHEN {$bedId} THEN {$studentId}";
-            $bedIds[] = $bedId;
-        }
-
-        if (!empty($bedIds)) {
+        // Bulk update beds with user assignments using single query
+        $stepStart = microtime(true);
+        if (!empty($bedAssignments)) {
+            $bedUpdateCases = [];
+            $bedIds = array_keys($bedAssignments);
+            foreach ($bedAssignments as $bedId => $studentIndex) {
+                $studentId = $insertedStudents[$studentIndex - 1]->id;
+                $bedUpdateCases[] = "WHEN {$bedId} THEN {$studentId}";
+            }
+            
             \App\Models\Bed::whereIn('id', $bedIds)->update([
-                'user_id' => \DB::raw("CASE id " . implode(' ', $bedUpdateCases) . " END"),
+                'user_id' => DB::raw("CASE id " . implode(' ', $bedUpdateCases) . " END"),
                 'is_occupied' => true,
                 'updated_at' => now(),
             ]);
         }
+        $this->command->info('Bed assignments updated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Create 5 Guests, leaving some rooms available
+        // Create 5 Guests with optimized operations
+        $stepStart = microtime(true);
         $guestRooms = Room::where('dormitory_id', $adminDormitory->id)
             ->where('occupant_type', 'guest')
             ->with('beds')
             ->inRandomOrder()->take(5)->get();
-        foreach ($guestRooms as $guestRoom) {
+            
+        $guestsData = [];
+        $guestProfilesData = [];
+        $bedUpdates = [];
+        
+        // Pre-generate hashed password for guests
+        $guestHashedPassword = Hash::make('password');
+        
+        foreach ($guestRooms as $index => $guestRoom) {
             $availableBed = $guestRoom->beds()->where('is_occupied', false)->first();
-            /** @var \App\Models\Bed $availableBed */
-
             if ($availableBed) {
-                $firstName = $faker->firstName;
-                $lastName = $faker->lastName;
-                $guestUser = User::create([
-                    'name'          => $firstName . ' ' . $lastName,
-                    'first_name'    => $firstName,
-                    'last_name'     => $lastName,
-                    'email'         => $faker->unique()->safeEmail,
-                    'phone_numbers' => json_encode([ $faker->phoneNumber ]),
-                    'password'      => Hash::make('password'),
-                    'role_id'       => $guestRole->id,
-                    'status'        => 'active',
-                    'dormitory_id'  => $adminDormitory->id,
-                    'room_id'       => $guestRoom->id,
-                ]);
-
-                \App\Models\GuestProfile::create([
-                    'user_id'          => $guestUser->id,
-                    'purpose_of_visit' => $faker->sentence,
-                    'visit_start_date' => now()->subDays(rand(1, 5)),
-                    'visit_end_date'   => now()->addDays(rand(2, 10)),
-                    'is_approved'      => true,
-                    'bed_id'           => $availableBed->id,
-                ]);
-
-                $availableBed->update(['is_occupied' => true, 'user_id' => $guestUser->id]);
+                $firstName = $this->getFirstName(1000 + $index);
+                $lastName = $this->getLastName(1000 + $index);
+                
+                $guestsData[] = [
+                    'name' => $firstName . ' ' . $lastName,
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'email' => $this->generateUniqueEmail(1000 + $index, 'guest.com'),
+                    'phone_numbers' => json_encode([$this->generatePhoneNumber(1000 + $index)]),
+                    'password' => $guestHashedPassword,
+                    'role_id' => $guestRole->id,
+                    'status' => 'active',
+                    'dormitory_id' => $adminDormitory->id,
+                    'room_id' => $guestRoom->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                
+                $guestProfilesData[] = [
+                    'purpose_of_visit' => 'Business trip for conference',
+                    'visit_start_date' => $this->getRandomDate('-5 days', '-1 day', $index),
+                    'visit_end_date' => $this->getRandomDate('+2 days', '+10 days', $index + 5),
+                    'is_approved' => true,
+                    'bed_id' => $availableBed->id,
+                ];
+                
+                $bedUpdates[] = $availableBed->id;
             }
         }
+        
+        // Bulk insert guests and profiles
+        if (!empty($guestsData)) {
+            User::insert($guestsData);
+            $insertedGuests = User::where('role_id', $guestRole->id)
+                ->orderBy('id', 'desc')
+                ->limit(count($guestsData))
+                ->get(['id'])
+                ->reverse();
+                
+            foreach ($insertedGuests as $index => $guest) {
+                $guestProfilesData[$index]['user_id'] = $guest->id;
+            }
+            
+            GuestProfile::insert($guestProfilesData);
+            
+            // Update guest beds
+            \App\Models\Bed::whereIn('id', $bedUpdates)->update([
+                'is_occupied' => true,
+                'user_id' => DB::raw("(SELECT user_id FROM guest_profiles WHERE bed_id = beds.id LIMIT 1)"),
+                'updated_at' => now(),
+            ]);
+        }
+        $this->command->info('Guests created and assigned: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Create 10 Messages from Admin using bulk insert
+        $stepStart = microtime(true);
+        $messageTitles = [
+            'Welcome to the dormitory',
+            'Important notice about maintenance',
+            'Community event this weekend',
+            'New facilities available',
+            'Safety reminder',
+            'Payment deadline approaching',
+            'Room cleaning schedule',
+            'Guest policy update',
+            'Emergency contact information',
+            'Study room hours'
+        ];
+        
+        $messageContents = [
+            'We are excited to have you join our community. Please review the dormitory rules and regulations.',
+            'Scheduled maintenance will occur this weekend. Please plan accordingly.',
+            'Join us for a community building event this Saturday at 3 PM in the common room.',
+            'New gym and study facilities are now available for all residents.',
+            'Remember to keep your doors locked and report any suspicious activity immediately.',
+            'Monthly rent payments are due by the 5th of each month. Late fees will apply.',
+            'Room cleaning schedule has been updated. Please check your assigned times.',
+            'Guest policy has been updated. Please review the new guidelines.',
+            'In case of emergency, please contact the front desk immediately.',
+            'Study rooms are available 24/7. Please sign in at the front desk.'
+        ];
+        
         $messagesData = [];
         for ($i = 0; $i < 10; $i++) {
             $messagesData[] = [
@@ -276,8 +518,8 @@ class DevelopmentSeeder extends Seeder
                 'receiver_id' => null,
                 'recipient_type' => 'dormitory',
                 'dormitory_id' => $adminDormitory->id,
-                'title' => $faker->sentence(3),
-                'content' => $faker->realText(200),
+                'title' => $messageTitles[$i],
+                'content' => $messageContents[$i],
                 'type' => 'announcement',
                 'status' => 'sent',
                 'sent_at' => now(),
@@ -286,100 +528,95 @@ class DevelopmentSeeder extends Seeder
             ];
         }
         Message::insert($messagesData);
+        $this->command->info('Messages created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Define base64 images for payment checks
-        $base64PaymentCheckImages = [
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/epv2AAAAABJRU5ErkJggg==', // Small transparent PNG
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', // Another small transparent PNG
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', // Another small transparent PNG
-        ];
-        $paymentImageIndex = 0;
-
-        // Create all payments using a single bulk insert (optimized)
-        $studentsForPayment = User::where('role_id', $studentRole->id)->get();
-        $guestsForPayment = GuestProfile::all();
+        // Create all payments using optimized bulk operations
+        $stepStart = microtime(true);
+        $studentsForPayment = User::where('role_id', $studentRole->id)->pluck('id')->toArray();
+        $guestsForPayment = GuestProfile::with('user')->get();
         $paymentsData = [];
-        $paymentImageIndex = 0;
-
+        
+        // Pre-generate all payment filenames for batch processing
+        $paymentFilenames = [];
+        foreach ($studentsForPayment as $studentId) {
+            $paymentFilenames[] = 'payment_check_student_' . $studentId . '_' . uniqid() . '.png';
+            $paymentFilenames[] = 'payment_check_student_' . $studentId . '_' . uniqid() . '.png';
+        }
+        foreach ($guestsForPayment as $guest) {
+            $paymentFilenames[] = 'payment_check_guest_' . $guest->user_id . '_' . uniqid() . '.png';
+        }
+        $this->command->info('Payment filenames generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+        
+        // Batch store all payment check images
+        $stepStart = microtime(true);
+        $base64PaymentImages = [
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/epv2AAAAABJRU5ErkJggg==',
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        ];
+        $paymentFilePaths = $this->batchStoreImages($base64PaymentImages, 'payment_checks', $paymentFilenames);
+        $this->command->info('Payment check images stored: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+        
+        // Generate payment data
+        $stepStart = microtime(true);
+        $fileIndex = 0;
+        
         // First semester payments for students
-        foreach ($studentsForPayment as $student) {
-            $filename = 'payment_check_student_' . $student->id . '_' . uniqid() . '.png';
-            $paymentCheckPath = $this->storeBase64Image($base64PaymentCheckImages[$paymentImageIndex % 3], 'payment_checks', $filename);
-            $paymentImageIndex++;
-
+        foreach ($studentsForPayment as $index => $studentId) {
             $paymentsData[] = [
-                'user_id' => $student->id,
-                'amount' => $faker->randomFloat(2, 50000, 150000),
-                'deal_number' => 'DEAL-' . $faker->unique()->numerify('######'),
-                'deal_date' => now()->subDays(rand(1, 30)),
+                'user_id' => $studentId,
+                'amount' => $this->getRandomFloat(50000, 150000, $index),
+                'deal_number' => $this->generateUniqueDealNumber(2000 + $index),
+                'deal_date' => $this->getRandomDate('-30 days', '-1 day', $index),
                 'date_from' => Carbon::parse('2025-01-01'),
                 'date_to' => Carbon::parse('2025-06-01'),
-                'payment_check' => $paymentCheckPath,
+                'payment_check' => $paymentFilePaths[$fileIndex++],
                 'status' => PaymentStatus::Completed,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
-
+        
         // Second semester payments for students
-        foreach ($studentsForPayment as $student) {
-            $filename = 'payment_check_student_' . $student->id . '_' . uniqid() . '.png';
-            $paymentCheckPath = $this->storeBase64Image($base64PaymentCheckImages[$paymentImageIndex % 3], 'payment_checks', $filename);
-            $paymentImageIndex++;
-
+        foreach ($studentsForPayment as $index => $studentId) {
             $paymentsData[] = [
-                'user_id' => $student->id,
-                'amount' => $faker->randomFloat(2, 50000, 150000),
-                'deal_number' => 'DEAL-' . $faker->unique()->numerify('######'),
-                'deal_date' => now()->subDays(rand(1, 30)),
+                'user_id' => $studentId,
+                'amount' => $this->getRandomFloat(50000, 150000, $index + 500),
+                'deal_number' => $this->generateUniqueDealNumber(3000 + $index),
+                'deal_date' => $this->getRandomDate('-30 days', '-1 day', $index + 500),
                 'date_from' => Carbon::parse('2025-09-01'),
                 'date_to' => Carbon::parse('2026-01-01'),
-                'payment_check' => $paymentCheckPath,
+                'payment_check' => $paymentFilePaths[$fileIndex++],
                 'status' => PaymentStatus::Completed,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
-
+        
         // Guest payments
-        foreach ($guestsForPayment as $guest) {
-            $filename = 'payment_check_guest_' . $guest->user_id . '_' . uniqid() . '.png';
-            $paymentCheckPath = $this->storeBase64Image($base64PaymentCheckImages[$paymentImageIndex % 3], 'payment_checks', $filename);
-            $paymentImageIndex++;
-
+        foreach ($guestsForPayment as $index => $guest) {
             $paymentsData[] = [
                 'user_id' => $guest->user_id,
-                'amount' => $faker->randomFloat(2, 10000, 30000),
-                'deal_date' => now()->subDays(rand(1, 30)),
-                'deal_number' => 'DEAL-' . $faker->unique()->numerify('######'),
+                'amount' => $this->getRandomFloat(10000, 30000, $index + 1000),
+                'deal_number' => $this->generateUniqueDealNumber(4000 + $index),
+                'deal_date' => $this->getRandomDate('-30 days', '-1 day', $index + 1000),
                 'date_from' => $guest->visit_start_date,
                 'date_to' => $guest->visit_end_date,
-                'payment_check' => $paymentCheckPath,
+                'payment_check' => $paymentFilePaths[$fileIndex++],
                 'status' => PaymentStatus::Completed,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
-
+        $this->command->info('Payment data generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+        
         // Single bulk insert for all payments
+        $stepStart = microtime(true);
         Payment::insert($paymentsData);
+        $this->command->info('Payments inserted: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        $this->command->info('Development data seeded successfully!');
+        $totalTime = round((microtime(true) - $startTime) * 1000, 2);
+        $this->command->info("Development data seeded successfully in {$totalTime}ms!");
     }
 
-    /**
-     * Decodes a base64 string and stores it as a file in the local disk.
-     *
-     * @param string $base64String The base64 encoded image data.
-     * @param string $directory The directory within storage/app/local to save the file.
-     * @param string $filename The desired filename.
-     * @return string The path to the stored file.
-     */
-    private function storeBase64Image(string $base64String, string $directory, string $filename): string
-    {
-        $imageData = base64_decode($base64String);
-        $path = $directory . '/' . $filename;
-        Storage::disk('local')->put($path, $imageData);
-        return $path;
-    }
 }
