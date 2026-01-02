@@ -64,7 +64,7 @@ class StudentController extends Controller
             'fields'       => 'sometimes|string', // Comma-separated list of fields to select
         ]);
 
-        return response()->json($this->studentService->getStudentsWithFilters($filters, Auth::user()->load('adminDormitory')));
+        return response()->json($this->studentService->getStudentsWithFilters(Auth::user()->load('adminDormitory'), $filters));
     }
 
     /**
@@ -99,25 +99,21 @@ class StudentController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Log file information using service
         if (isset($request->student_profile)
             && isset($request->student_profile['files'])
             && is_array($request->student_profile['files'])) {
             foreach ($request->student_profile['files'] as $index => $file) {
-                if (isset($file) /* && $file instanceof UploadedFile*/) {
-                    Log::info('Debugging student file ' . $index, [
-                        'original_name' => $file->getClientOriginalName(),
-                        'extension' => $file->getClientOriginalExtension(),
-                        'mime_type' => $file->getMimeType(),
-                        'size' => $file->getSize(),
-                        'is_valid' => $file->isValid(),
-                    ]);
+                if (isset($file) && $file instanceof \Illuminate\Http\UploadedFile) {
+                    $this->studentService->logFileInfo($index, $file);
                 }
             }
         }
 
-        // Manually construct the 'name' field from first_name and last_name before validation.
+        // Construct full name using service
         if ($request->has('first_name') && $request->has('last_name')) {
-            $request->merge(['name' => trim($request->input('first_name') . ' ' . $request->input('last_name'))]);
+            $fullName = $this->studentService->constructFullName($request->all());
+            $request->merge(['name' => $fullName]);
         }
 
         $validated = $request->validate([
@@ -145,7 +141,33 @@ class StudentController extends Controller
             'student_profile.emergency_contact_relationship' => 'nullable|string|max:255',
             'student_profile.enrollment_year'                => 'required|integer|digits:4',
             'student_profile.faculty'                        => 'required|string|max:255',
-            'student_profile.files.*'                        => 'nullable|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
+            'student_profile.files.0'                        => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    $result = $this->studentService->validateStudentFile($value, 0);
+                    if (!$result['valid']) {
+                        $fail($result['message']);
+                    }
+                },
+            ],
+            'student_profile.files.1'                        => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    $result = $this->studentService->validateStudentFile($value, 1);
+                    if (!$result['valid']) {
+                        $fail($result['message']);
+                    }
+                },
+            ],
+            'student_profile.files.2'                        => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    $result = $this->studentService->validateStudentFile($value, 2);
+                    if (!$result['valid']) {
+                        $fail($result['message']);
+                    }
+                },
+            ],
             'student_profile.files'                          => 'nullable|array|max:3',
             'student_profile.gender'                         => 'required|in:male,female',
             'student_profile.has_meal_plan'                  => 'required|boolean',
@@ -214,20 +236,21 @@ class StudentController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
+        // Log file information using service
         if (isset($request->student_profile)
             && isset($request->student_profile['files'])
             && is_array($request->student_profile['files'])) {
             foreach ($request->student_profile['files'] as $index => $file) {
-                if (isset($file) && method_exists('getClientOriginalName', $file)) {
-                    Log::info('Debugging student file ' . $index, [
-                        'original_name' => $file->getClientOriginalName(),
-                        'extension' => $file->getClientOriginalExtension(),
-                        'mime_type' => $file->getMimeType(),
-                        'size' => $file->getSize(),
-                        'is_valid' => $file->isValid(),
-                    ]);
+                if (isset($file) && $file instanceof \Illuminate\Http\UploadedFile) {
+                    $this->studentService->logFileInfo($index, $file);
                 }
             }
+        }
+
+        // Construct full name using service
+        if ($request->has('first_name') && $request->has('last_name')) {
+            $fullName = $this->studentService->constructFullName($request->all());
+            $request->merge(['name' => $fullName]);
         }
 
         $validated = $request->validate([
@@ -256,11 +279,49 @@ class StudentController extends Controller
             'student_profile.emergency_contact_relationship' => 'nullable|string|max:255',
             'student_profile.enrollment_year'                => 'nullable|integer|digits:4',
             'student_profile.faculty'                        => 'nullable|string|max:255',
-            'student_profile.files.*'                        => [
+            'student_profile.files.0'                        => [
                 'nullable',
-                $this->validateUploadedFile(...),
+                function ($attribute, $value, $fail) {
+                    if ($value instanceof UploadedFile) {
+                        $validator = \Illuminate\Support\Facades\Validator::make(
+                            [$attribute => $value],
+                            [$attribute => 'mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048']
+                        );
+                        if ($validator->fails()) {
+                            $fail($validator->errors()->first($attribute));
+                        }
+                    }
+                },
             ],
-            'student_profile.files'                          => 'nullable|array|max:4',
+            'student_profile.files.1'                        => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if ($value instanceof UploadedFile) {
+                        $validator = \Illuminate\Support\Facades\Validator::make(
+                            [$attribute => $value],
+                            [$attribute => 'mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048']
+                        );
+                        if ($validator->fails()) {
+                            $fail($validator->errors()->first($attribute));
+                        }
+                    }
+                },
+            ],
+            'student_profile.files.2'                        => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if ($value instanceof UploadedFile) {
+                        $validator = \Illuminate\Support\Facades\Validator::make(
+                            [$attribute => $value],
+                            [$attribute => 'mimetypes:image/jpg,image/jpeg,image/png|max:1024|dimensions:min_width=150,min_height=200,max_width=600,max_height=800']
+                        );
+                        if ($validator->fails()) {
+                            $fail($validator->errors()->first($attribute));
+                        }
+                    }
+                },
+            ],
+            'student_profile.files'                          => 'nullable|array|max:3',
             'student_profile.gender'                         => 'nullable|in:male,female',
             'student_profile.has_meal_plan'                  => 'nullable|boolean',
             'student_profile.iin'                            => 'sometimes|digits:12',
@@ -278,18 +339,6 @@ class StudentController extends Controller
         return response()->json($student);
     }
 
-    private function validateUploadedFile($attribute, $value, $fail): void
-    {
-        if ($value instanceof UploadedFile) {
-            $validator = \Illuminate\Support\Facades\Validator::make(
-                [ 'file' => $value ],
-                [ 'file' => 'mimes:jpeg,jpg,png,pdf|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048' ]
-            );
-            if ($validator->fails()) {
-                $fail($validator->errors()->first('file'));
-            }
-        }
-    }
 
     /**
      * Export students to a CSV file based on filters.
@@ -302,7 +351,7 @@ class StudentController extends Controller
         $filters = $request->all();
         $user = Auth::user()->load('adminDormitory');
 
-        return $this->studentService->exportStudents($filters, $user);
+        return $this->studentService->exportStudents($user, $filters);
     }
 
     /**

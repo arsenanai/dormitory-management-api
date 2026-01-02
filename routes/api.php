@@ -8,6 +8,7 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PaymentController;
@@ -31,6 +32,10 @@ Route::get('/dormitories/public', [ DormitoryController::class, 'getAllForPublic
 Route::get('/dormitories/{dormitory}/rooms', [ DormitoryController::class, 'rooms' ]);
 Route::get('/dormitories/{dormitory}/registration', [ DormitoryController::class, 'getForRegistration' ]);
 Route::get('/blood-types', [ BloodTypeController::class, 'index' ]);
+
+// Public avatar downloads (for student list display)
+Route::get('/avatars/{filename}', [ FileController::class, 'downloadAvatar' ])->where('filename', '.*');
+
 // Public room type access (for forms)
 Route::get('/room-types', [ RoomTypeController::class, 'index' ]);
 Route::get('/room-types/{roomType}', [ RoomTypeController::class, 'show' ]);

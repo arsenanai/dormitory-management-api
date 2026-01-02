@@ -92,11 +92,11 @@ class DormitoryRegistrationTest extends TestCase
                 ]);
 
         $data = $response->json('data');
-        
+
         // Should only return rooms with available beds and correct occupant type
         $this->assertCount(1, $data['rooms']);
         $this->assertEquals('101', $data['rooms'][0]['number']);
-        
+
         // Verify beds are filtered correctly
         $beds = $data['rooms'][0]['beds'];
         $this->assertCount(1, $beds);

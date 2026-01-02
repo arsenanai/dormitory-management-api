@@ -13,9 +13,10 @@ use App\Models\RoomType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class DevelopmentSeeder extends Seeder
 {
@@ -144,11 +145,31 @@ class DevelopmentSeeder extends Seeder
         }
         return $paths;
     }
+
+    /**
+     * Generate predefined student avatar images
+     */
+    private function generateAvatarImages(): array
+    {
+        return [
+            // Blue 1x1 pixel
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/epv2AAAAABJRU5ErkJggg==',
+            // Green 1x1 pixel
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PgAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTUvMTT4S9oAAABPSURBVHja7cExAQAAAMKg9U9tCF+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIGSDAAB5qP1OAAAAAElFTkSuQmCC',
+            // Red 1x1 pixel
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PgAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTUvMTT4S9oAAABPSURBVHja7cExAQAAAMKg9U9tCF+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIEsPAABpQGK8AAAAAElFTkSuQmCC',
+            // Purple 1x1 pixel
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PgAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTUvMTT4S9oAAABPSURBVHja7cExAQAAAMKg9U9tCF+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALFfUbgAAW8BjhgAAAABJRU5ErkJggg==',
+            // Orange 1x1 pixel
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PgAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDcvMTUvMTT4S9oAAABPSURBVHja7cExAQAAAMKg9U9tCF+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALR9A7AAWgJX9gAAAABJRU5ErkJggg==',
+        ];
+    }
+
     public function run(): void
     {
         $startTime = microtime(true);
         $this->command->info('Starting DevelopmentSeeder...');
-        
+
         // Create roles
         $stepStart = microtime(true);
         $adminRole = \App\Models\Role::firstOrCreate([ 'name' => 'admin' ]);
@@ -233,6 +254,7 @@ class DevelopmentSeeder extends Seeder
         $stepStart = microtime(true);
         Room::insert($roomsData);
         $rooms = Room::where('dormitory_id', $adminDormitory->id)
+            ->with('roomType:id,capacity')
             ->orderBy('id')
             ->get(['id', 'room_type_id']);
         $roomMap = $rooms->keyBy('id');
@@ -242,7 +264,14 @@ class DevelopmentSeeder extends Seeder
         $stepStart = microtime(true);
         $bedsData = [];
         foreach ($rooms as $room) {
-            $capacity = $roomMap[$room->id]->roomType->capacity;
+            $roomType = $roomMap[$room->id]->roomType;
+            if (!$roomType) {
+                continue;
+            }
+            /** @var \App\Models\RoomType $roomType */
+            $roomType = $roomMap[$room->id]->roomType;
+            /** @var int $capacity */
+            $capacity = $roomType->capacity;
             for ($j = 1; $j <= $capacity; $j++) {
                 $bedsData[] = [
                     'bed_number' => $j,
@@ -270,34 +299,44 @@ class DevelopmentSeeder extends Seeder
         $stepStart = microtime(true);
         $studentFilenames = [];
         for ($i = 1; $i <= 500; $i++) {
-            for ($j = 0; $j < 4; $j++) {
+            // 2 document files + 1 avatar file (index 2)
+            for ($j = 0; $j < 2; $j++) {
                 $studentFilenames[] = 'student_' . $i . '_doc_' . ($j + 1) . '.png';
             }
+            $studentFilenames[] = 'avatar_' . $i . '.png';
         }
         $this->command->info('Student filenames generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
-        // Batch store all student files at once
+        // Batch store all student files at once (2 documents + 1 avatar)
         $stepStart = microtime(true);
         $base64Images = [
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/epv2AAAAABJRU5ErkJggg==',
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwAB/epv2AAAAABJRU5ErkJggg==',
         ];
-        $allFilePaths = $this->batchStoreImages($base64Images, 'student_files', $studentFilenames);
-        
-        // Reorganize file paths by student index
+        $avatarImages = $this->generateAvatarImages();
+
+        // Combine document images (2) and avatar images (1)
+        $allImages = array_merge($base64Images, $avatarImages);
+        $allFilePaths = $this->batchStoreImages($allImages, 'student_files', $studentFilenames);
+
+        // Reorganize file paths by student index (2 docs + 1 avatar per student)
         $studentFiles = [];
         $fileIndex = 0;
         for ($i = 1; $i <= 500; $i++) {
-            $studentFiles[$i] = array_slice($allFilePaths, $fileIndex, 4);
-            $fileIndex += 4;
+            // Create array with 4 elements: [doc1, doc2, avatar, null]
+            $studentFiles[$i] = [
+                $allFilePaths[$fileIndex] ?? null,     // Document 1
+                $allFilePaths[$fileIndex + 1] ?? null, // Document 2
+                $allFilePaths[$fileIndex + 2] ?? null, // Index 2: Avatar
+                null                                     // Index 3: empty
+            ];
+            $fileIndex += 3;
         }
-        $this->command->info('Student files stored and organized: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+        $this->command->info('Student files and avatars stored and organized: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Generate student data
         $stepStart = microtime(true);
-        
+
         // Pre-define arrays for deterministic selection
         $faculties = ['Engineering', 'Business', 'Medicine', 'Law', 'Arts'];
         $specialists = ['Computer Science', 'Marketing', 'General Medicine'];
@@ -305,10 +344,10 @@ class DevelopmentSeeder extends Seeder
         $countries = ['USA', 'Canada', 'UK', 'Germany', 'France', 'Japan', 'China', 'India', 'Brazil', 'Australia'];
         $cities = ['New York', 'London', 'Tokyo', 'Paris', 'Berlin', 'Sydney', 'Toronto', 'Mumbai', 'São Paulo', 'Beijing'];
         $emergencyTypes = ['parent', 'guardian', 'other'];
-        
+
         // Pre-generate the hashed password once to avoid expensive hashing in loop
         $hashedPassword = Hash::make('password');
-        
+
         // Pre-fetch bed room mappings to avoid individual queries
         $bedRoomMappings = [];
         if (!empty($availableBeds)) {
@@ -319,7 +358,7 @@ class DevelopmentSeeder extends Seeder
                 $bedRoomMappings[$bed->id] = $bed->room_id;
             }
         }
-        
+
         for ($i = 1; $i <= 500; $i++) {
             $firstName = $this->getFirstName($i);
             $lastName = $this->getLastName($i);
@@ -342,8 +381,10 @@ class DevelopmentSeeder extends Seeder
                 'password' => $hashedPassword,
                 'role_id' => $studentRole->id,
                 'status' => 'active',
-                'dormitory_id' => $bedId ? $adminDormitory->id : null,
+                'email_verified_at' => now(),
+                'remember_token' => Str::random(10),
                 'room_id' => $roomId,
+                'dormitory_id' => $roomId ? ($adminDormitory->id) : null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -403,7 +444,7 @@ class DevelopmentSeeder extends Seeder
                 $studentId = $insertedStudents[$studentIndex - 1]->id;
                 $bedUpdateCases[] = "WHEN {$bedId} THEN {$studentId}";
             }
-            
+
             \App\Models\Bed::whereIn('id', $bedIds)->update([
                 'user_id' => DB::raw("CASE id " . implode(' ', $bedUpdateCases) . " END"),
                 'is_occupied' => true,
@@ -418,20 +459,21 @@ class DevelopmentSeeder extends Seeder
             ->where('occupant_type', 'guest')
             ->with('beds')
             ->inRandomOrder()->take(5)->get();
-            
+
         $guestsData = [];
         $guestProfilesData = [];
         $bedUpdates = [];
-        
+
         // Pre-generate hashed password for guests
         $guestHashedPassword = Hash::make('password');
-        
+
         foreach ($guestRooms as $index => $guestRoom) {
-            $availableBed = $guestRoom->beds()->where('is_occupied', false)->first();
+            $availableBed = $guestRoom->beds()->whereNull('user_id')->first();
             if ($availableBed) {
+                assert($availableBed instanceof \App\Models\Bed);
                 $firstName = $this->getFirstName(1000 + $index);
                 $lastName = $this->getLastName(1000 + $index);
-                
+
                 $guestsData[] = [
                     'name' => $firstName . ' ' . $lastName,
                     'first_name' => $firstName,
@@ -446,7 +488,7 @@ class DevelopmentSeeder extends Seeder
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
-                
+
                 $guestProfilesData[] = [
                     'purpose_of_visit' => 'Business trip for conference',
                     'visit_start_date' => $this->getRandomDate('-5 days', '-1 day', $index),
@@ -454,11 +496,11 @@ class DevelopmentSeeder extends Seeder
                     'is_approved' => true,
                     'bed_id' => $availableBed->id,
                 ];
-                
+
                 $bedUpdates[] = $availableBed->id;
             }
         }
-        
+
         // Bulk insert guests and profiles
         if (!empty($guestsData)) {
             User::insert($guestsData);
@@ -467,13 +509,13 @@ class DevelopmentSeeder extends Seeder
                 ->limit(count($guestsData))
                 ->get(['id'])
                 ->reverse();
-                
+
             foreach ($insertedGuests as $index => $guest) {
                 $guestProfilesData[$index]['user_id'] = $guest->id;
             }
-            
+
             GuestProfile::insert($guestProfilesData);
-            
+
             // Update guest beds
             \App\Models\Bed::whereIn('id', $bedUpdates)->update([
                 'is_occupied' => true,
@@ -497,7 +539,7 @@ class DevelopmentSeeder extends Seeder
             'Emergency contact information',
             'Study room hours'
         ];
-        
+
         $messageContents = [
             'We are excited to have you join our community. Please review the dormitory rules and regulations.',
             'Scheduled maintenance will occur this weekend. Please plan accordingly.',
@@ -510,7 +552,7 @@ class DevelopmentSeeder extends Seeder
             'In case of emergency, please contact the front desk immediately.',
             'Study rooms are available 24/7. Please sign in at the front desk.'
         ];
-        
+
         $messagesData = [];
         for ($i = 0; $i < 10; $i++) {
             $messagesData[] = [
@@ -535,7 +577,7 @@ class DevelopmentSeeder extends Seeder
         $studentsForPayment = User::where('role_id', $studentRole->id)->pluck('id')->toArray();
         $guestsForPayment = GuestProfile::with('user')->get();
         $paymentsData = [];
-        
+
         // Pre-generate all payment filenames for batch processing
         $paymentFilenames = [];
         foreach ($studentsForPayment as $studentId) {
@@ -546,7 +588,7 @@ class DevelopmentSeeder extends Seeder
             $paymentFilenames[] = 'payment_check_guest_' . $guest->user_id . '_' . uniqid() . '.png';
         }
         $this->command->info('Payment filenames generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
-        
+
         // Batch store all payment check images
         $stepStart = microtime(true);
         $base64PaymentImages = [
@@ -556,11 +598,11 @@ class DevelopmentSeeder extends Seeder
         ];
         $paymentFilePaths = $this->batchStoreImages($base64PaymentImages, 'payment_checks', $paymentFilenames);
         $this->command->info('Payment check images stored: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
-        
+
         // Generate payment data
         $stepStart = microtime(true);
         $fileIndex = 0;
-        
+
         // First semester payments for students
         foreach ($studentsForPayment as $index => $studentId) {
             $paymentsData[] = [
@@ -576,7 +618,7 @@ class DevelopmentSeeder extends Seeder
                 'updated_at' => now(),
             ];
         }
-        
+
         // Second semester payments for students
         foreach ($studentsForPayment as $index => $studentId) {
             $paymentsData[] = [
@@ -592,7 +634,7 @@ class DevelopmentSeeder extends Seeder
                 'updated_at' => now(),
             ];
         }
-        
+
         // Guest payments
         foreach ($guestsForPayment as $index => $guest) {
             $paymentsData[] = [
@@ -609,7 +651,7 @@ class DevelopmentSeeder extends Seeder
             ];
         }
         $this->command->info('Payment data generated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
-        
+
         // Single bulk insert for all payments
         $stepStart = microtime(true);
         Payment::insert($paymentsData);

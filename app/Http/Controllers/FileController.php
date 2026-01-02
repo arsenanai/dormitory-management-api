@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\FileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -9,6 +11,13 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
 {
+    private $fileService;
+
+    public function __construct(FileService $fileService)
+    {
+        $this->fileService = $fileService;
+    }
+
     /**
      * Handle a request to download a protected file.
      *
@@ -36,5 +45,16 @@ class FileController extends Controller
         // If authorized, stream the file download.
         // This is memory-efficient for large files.
         return Storage::disk('local')->download($path);
+    }
+
+    /**
+     * Handle a request to download an avatar file (public access).
+     *
+     * @param string $filename The avatar filename.
+     * @return StreamedResponse|\Illuminate\Http\JsonResponse
+     */
+    public function downloadAvatar(string $filename)
+    {
+        return $this->fileService->downloadStudentFile($filename);
     }
 }

@@ -11,10 +11,12 @@ use App\Models\StudentProfile;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class StudentService
@@ -25,12 +27,102 @@ class StudentService
     {
         $this->paymentService = new PaymentService();
     }
+
+    /**
+     * Validate a student file at specific index
+     *
+     * @param mixed $file The file to validate
+     * @param int $index The file index (0, 1, or 2)
+     * @return array Validation result with 'valid' boolean and 'message' string
+     */
+    public function validateStudentFile($file, int $index): array
+    {
+        // Skip validation for string values (existing file paths)
+        if (is_string($file)) {
+            return ['valid' => true, 'message' => null];
+        }
+
+        if (!$file instanceof UploadedFile) {
+            return ['valid' => true, 'message' => null];
+        }
+
+        // Different validation rules for different file indices
+        $rules = $this->getFileValidationRules($index);
+
+        $validator = Validator::make(
+            ['file' => $file],
+            ['file' => $rules]
+        );
+
+        return [
+            'valid' => $validator->passes(),
+            'message' => $validator->fails() ? $validator->errors()->first('file') : null
+        ];
+    }
+
+    /**
+     * Get validation rules for file at specific index
+     *
+     * @param int $index The file index
+     * @return array Validation rules
+     */
+    private function getFileValidationRules(int $index): array
+    {
+        switch ($index) {
+            case 0: // Document 1
+            case 1: // Document 2
+                return [
+                    'mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream',
+                    'max:2048'
+                ];
+            case 2: // Avatar photo
+                return [
+                    'mimetypes:image/jpg,image/jpeg,image/png',
+                    'max:1024',
+                    'dimensions:min_width=150,min_height=200,max_width=600,max_height=800'
+                ];
+            default:
+                return ['mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048'];
+        }
+    }
+
+    /**
+     * Construct full name from first and last name
+     *
+     * @param array $data Data containing first_name and last_name
+     * @return string The constructed full name
+     */
+    public function constructFullName(array $data): string
+    {
+        $firstName = trim($data['first_name'] ?? '');
+        $lastName = trim($data['last_name'] ?? '');
+
+        return trim($firstName . ' ' . $lastName);
+    }
+
+    /**
+     * Log file information for debugging
+     *
+     * @param int $index File index
+     * @param UploadedFile $file The uploaded file
+     * @return void
+     */
+    public function logFileInfo(int $index, UploadedFile $file): void
+    {
+        Log::info('Debugging student file ' . $index, [
+            'original_name' => $file->getClientOriginalName(),
+            'extension' => $file->getClientOriginalExtension(),
+            'mime_type' => $file->getMimeType(),
+            'size' => $file->getSize(),
+            'is_valid' => $file->isValid(),
+        ]);
+    }
     /**
      * Get students with filters and pagination
      */
-    public function getStudentsWithFilters(array $filters = [], User $authUser)
+    public function getStudentsWithFilters(User $authUser, array $filters = [])
     {
-        return $this->buildStudentQuery($filters, $authUser, true);
+        return $this->buildStudentQuery($authUser, $filters, true);
     }
 
     /**
@@ -46,12 +138,15 @@ class StudentService
             // If a new bed/room is being assigned, validate gender compatibility with the new dormitory.
             if (! empty($data['bed_id'])) {
                 $newBed = Bed::with('room.dormitory')->find($data['bed_id']);
-                if ($newBed && $newBed->room) {
+                if ($newBed && $newBed->room && $newBed->room->dormitory) {
+                    /** @var \App\Models\Dormitory $newDormitory */
                     $newDormitory = $newBed->room->dormitory;
-                    $studentGender = $data['gender'] ?? $student->studentProfile->gender;
+                    /** @var string $dormitoryGender */
+                    $dormitoryGender = $newDormitory->gender;
+                    $studentGender = $data['gender'] ?? ($student->studentProfile?->gender ?? 'male');
                     if (
-                        ($newDormitory->gender === 'male' && $studentGender === 'female') ||
-                        ($newDormitory->gender === 'female' && $studentGender === 'male')
+                        ($dormitoryGender === 'male' && $studentGender === 'female') ||
+                        ($dormitoryGender === 'female' && $studentGender === 'male')
                     ) {
                         throw ValidationException::withMessages([ 'bed_id' => 'The selected dormitory does not accept students of this gender.' ]);
                     }
@@ -90,8 +185,12 @@ class StudentService
             // Update the StudentProfile model with profile-specific data.
             if (! empty($profileData) && $student->studentProfile) {
                 // Ensure student_id is not accidentally nulled out on update
-                if (! isset($profileData['student_id'])) {
-                    $profileData['student_id'] = $student->studentProfile->student_id;
+                if ($student->studentProfile && ! isset($profileData['student_id']) && $student->studentProfile->student_id) {
+                    /** @var \App\Models\StudentProfile $profile */
+                    $profile = $student->studentProfile;
+                    /** @var string $studentId */
+                    $studentId = $profile->student_id;
+                    $profileData['student_id'] = $studentId;
                 }
                 $student->studentProfile->update($profileData);
             }
@@ -144,9 +243,7 @@ class StudentService
 
         // Free up the bed if assigned
         if ($student->studentBed) {
-            $student->studentBed->user_id = null;
-            $student->studentBed->is_occupied = false;
-            $student->studentBed->save();
+            $student->studentBed->update(['user_id' => null]);
         }
 
         $student->studentProfile->delete();
@@ -171,10 +268,10 @@ class StudentService
     /**
      * Export students to CSV
      */
-    public function exportStudents(array $filters = [], User $authUser)
+    public function exportStudents(User $authUser, array $filters = [])
     {
         // Use the same query logic as getStudentsWithFilters for consistency, but don't paginate
-        $query = $this->buildStudentQuery($filters, $authUser, false);
+        $query = $this->buildStudentQuery($authUser, $filters, false);
 
         $students = $query->get();
 
@@ -226,7 +323,7 @@ class StudentService
             ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
-    private function buildStudentQuery(array $filters = [], User $authUser, bool $paginate = true)
+    private function buildStudentQuery(User $authUser, array $filters = [], bool $paginate = true)
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'))->with([ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ]);
 
@@ -235,7 +332,13 @@ class StudentService
             ($filters['my_dormitory_only'] ?? false) ||
             ($authUser->hasRole('admin') && ! $authUser->hasRole('sudo') && $authUser->adminDormitory)
         ) {
-            $query->where('dormitory_id', $authUser->adminDormitory->id);
+            if ($authUser->adminDormitory) {
+                /** @var \App\Models\Dormitory $adminDorm */
+                $adminDorm = $authUser->adminDormitory;
+                /** @var int $dormitoryId */
+                $dormitoryId = $adminDorm->id;
+                $query->where('dormitory_id', $dormitoryId);
+            }
         }
 
         // Apply other filters
@@ -331,8 +434,7 @@ class StudentService
                 if (request()->hasFile('payment.payment_check')) {
                     $file = request()->file('payment.payment_check');
 
-                    $roomType = $room->roomType()->first();
-                    /** @var \App\Models\RoomType $roomType */
+                    $roomType = $room->roomType;
                     if (! $roomType) {
                         throw new \Exception('Room type not found for room: ' . $room->id);
                     }
@@ -386,7 +488,7 @@ class StudentService
     /**
      * Get students by dormitory
      */
-    public function getStudentsByDormitory(array $filters = [], User $authUser)
+    public function getStudentsByDormitory(User $authUser, array $filters = [])
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->with([ 'role', 'studentProfile', 'room', 'room.dormitory' ]);
@@ -463,7 +565,7 @@ class StudentService
     /**
      * Get student statistics
      */
-    public function getStudentStatistics(array $filters = [], User $authUser)
+    public function getStudentStatistics(User $authUser, array $filters = [])
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'));
 
@@ -471,7 +573,11 @@ class StudentService
         if (isset($filters['dormitory_id'])) {
             $query->where('dormitory_id', $filters['dormitory_id']);
         } elseif ($authUser->hasRole('admin') && $authUser->adminDormitory) {
-            $query->where('dormitory_id', $authUser->adminDormitory->id);
+            /** @var \App\Models\Dormitory $adminDorm */
+            $adminDorm = $authUser->adminDormitory;
+            /** @var int $dormitoryId */
+            $dormitoryId = $adminDorm->id;
+            $query->where('dormitory_id', $dormitoryId);
         }
 
         if (isset($filters['faculty'])) {
@@ -495,7 +601,7 @@ class StudentService
      */
     private function deleteFiles(array $files)
     {
-        // Delete up to 3 files (the last one is for payments)
+        // Delete up to 3 files
         foreach ($files as $file) {
             // Ensure the file path is a valid, non-empty string and exists before attempting to delete.
             if (is_string($file) && ! empty($file) && Storage::disk('local')->exists($file)) {
@@ -578,7 +684,7 @@ class StudentService
             $userData['status'] = 'pending';
             $userData['role_id'] = Role::where('name', 'student')->first()->id ?? 3;
             if (isset($data['first_name']) && isset($data['last_name'])) {
-                $userData['name'] = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
+                $userData['name'] = $this->constructFullName($data);
             } elseif (isset($data['name'])) {
                 // Split the name into first and last names if not provided separately
                 $nameParts = explode(' ', trim($data['name']), 2);

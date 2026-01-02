@@ -179,8 +179,21 @@ class UserController extends Controller
                 'student_profile.identification_number'     => 'required|string|max:255',
                 'student_profile.enrollment_year'          => 'required|integer|digits:4',
                 'student_profile.faculty'                  => 'required|string|max:255',
-                'student_profile.files.*'                  => 'nullable|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
                 'student_profile.files'                    => 'sometimes|nullable|array|max:4',
+                'student_profile.files.*'                  => [
+                    'nullable',
+                    function ($attribute, $value, $fail) {
+                        if ($value instanceof UploadedFile) {
+                            $validator = \Illuminate\Support\Facades\Validator::make(
+                                [$attribute => $value],
+                                [$attribute => 'mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048']
+                            );
+                            if ($validator->fails()) {
+                                $fail($validator->errors()->first($attribute));
+                            }
+                        }
+                    },
+                ],
                 'student_profile.gender'                   => 'required|in:male,female',
                 'student_profile.has_meal_plan'            => 'nullable|boolean',
                 'student_profile.iin'                      => 'required|digits:12|unique:student_profiles,iin',
@@ -617,8 +630,21 @@ class UserController extends Controller
                 'student_profile.emergency_contact_relationship' => 'nullable|string|max:255',
                 'student_profile.enrollment_year'                => 'nullable|integer|digits:4',
                 'student_profile.faculty'                        => 'nullable|string|max:255',
-                'student_profile.files.*'                        => 'nullable|mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048',
                 'student_profile.files'                          => 'nullable|array|max:4',
+                'student_profile.files.*'                        => [
+                    'nullable',
+                    function ($attribute, $value, $fail) {
+                        if ($value instanceof UploadedFile) {
+                            $validator = \Illuminate\Support\Facades\Validator::make(
+                                [$attribute => $value],
+                                [$attribute => 'mimetypes:image/jpg,image/jpeg,image/png,application/pdf,application/octet-stream|max:2048']
+                            );
+                            if ($validator->fails()) {
+                                $fail($validator->errors()->first($attribute));
+                            }
+                        }
+                    },
+                ],
                 'student_profile.gender'                         => 'nullable|in:male,female',
                 'student_profile.has_meal_plan'                  => 'nullable|boolean',
                 'student_profile.iin'                            => [
