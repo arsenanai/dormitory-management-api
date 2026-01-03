@@ -143,7 +143,7 @@ class StudentService
                     $newDormitory = $newBed->room->dormitory;
                     /** @var string $dormitoryGender */
                     $dormitoryGender = $newDormitory->gender;
-                    $studentGender = $data['gender'] ?? ($student->studentProfile?->gender ?? 'male');
+                    $studentGender = $data['gender'] ?? ($student->studentProfile->gender ?? 'male');
                     if (
                         ($dormitoryGender === 'male' && $studentGender === 'female') ||
                         ($dormitoryGender === 'female' && $studentGender === 'male')
@@ -172,7 +172,7 @@ class StudentService
                 Log::info('StudentService: Processing file uploads.', $data['student_profile']['files']);
                 // Process files and get the final array of paths. This must be done
                 // before the main profile update to ensure the correct paths are saved.
-                $processedFilePaths = $this->processFileUploads($data['student_profile'], $student->studentProfile);
+                $processedFilePaths = $this->processFileUploads($data['student_profile'], $student->studentProfile ?? null);
                 // Explicitly set the processed files array on the profile data.
                 $profileData['files'] = $processedFilePaths;
             }
@@ -185,7 +185,7 @@ class StudentService
             // Update the StudentProfile model with profile-specific data.
             if (! empty($profileData) && $student->studentProfile) {
                 // Ensure student_id is not accidentally nulled out on update
-                if ($student->studentProfile && ! isset($profileData['student_id']) && $student->studentProfile->student_id) {
+                if ($student->studentProfile->student_id) {
                     /** @var \App\Models\StudentProfile $profile */
                     $profile = $student->studentProfile;
                     /** @var string $studentId */
@@ -425,19 +425,22 @@ class StudentService
             StudentProfile::create($profileData);
 
             // Assign bed if provided
-            $this->processBedAssignment($student, $data['bed_id'] ?? null, false);
+            $newRoomId = $this->processBedAssignment($student, $data['bed_id'] ?? null, false);
+            if ($newRoomId) {
+                $student->room_id = $newRoomId;
+                $student->save();
+            }
 
             // Only process room-related data if room_id is available
-            if (isset($userData['room_id'])) {
-                $room = Room::with('roomType')->findOrFail($userData['room_id']);
+            if (isset($data['room_id'])) {
+                $room = Room::with('roomType')->findOrFail($data['room_id']);
+                $roomType = $room->roomType;
+                if (! $roomType instanceof \App\Models\RoomType) {
+                    throw new \Exception('Room type not found for room: ' . $room->id);
+                }
 
                 if (request()->hasFile('payment.payment_check')) {
                     $file = request()->file('payment.payment_check');
-
-                    $roomType = $room->roomType;
-                    if (! $roomType) {
-                        throw new \Exception('Room type not found for room: ' . $room->id);
-                    }
 
                     $this->paymentService->create([
                         'user_id'       => $student->id,
@@ -492,7 +495,7 @@ class StudentService
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->with([ 'role', 'studentProfile', 'room', 'room.dormitory' ]);
-        if ($authUser && optional($authUser->role)->name === 'admin' && ! isset($filters['dormitory_id'])) {
+        if (optional($authUser->role)->name === 'admin' && ! isset($filters['dormitory_id'])) {
             // Get dormitory_id from AdminProfile relationship
             $adminDormitoryId = $authUser->adminProfile?->dormitory_id;
             if ($adminDormitoryId) {

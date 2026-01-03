@@ -64,7 +64,7 @@ class PaymentService
     /**
      * Create a new payment
      */
-    public function create(array $data, User $user): PaymentResource
+    public function create(array $data): PaymentResource
     {
         return DB::transaction(function () use ($data) {
             // Set deal_date if not provided
@@ -100,7 +100,8 @@ class PaymentService
             }
 
             // Set initial status for student/guest roles
-            if ($user->hasRole('student') || $user->hasRole('guest')) {
+            $user = User::with('role')->find($data['user_id']);
+            if ($user && ($user->hasRole('student') || $user->hasRole('guest'))) {
                 $data['status'] = PaymentStatus::Pending;
             }
 
@@ -203,7 +204,8 @@ class PaymentService
                 }
             } else {
                 // 3. If payment_check is not in the request, leave it untouched.
-                unset($data['payment_check']);
+                // Remove it from data array to prevent updating
+                $data = array_diff_key($data, ['payment_check' => null]);
             }
 
             $payment->update($data);

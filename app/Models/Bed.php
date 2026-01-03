@@ -19,11 +19,13 @@ class Bed extends Model
         'user_id',
         'room_id',
         'reserved_for_staff',
+        'is_occupied',
     ];
 
     protected $casts = [
         'status'             => 'string',
         'reserved_for_staff' => 'boolean',
+        'is_occupied'        => 'boolean',
     ];
 
     public function user(): BelongsTo

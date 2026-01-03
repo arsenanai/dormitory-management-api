@@ -2,9 +2,24 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Payment;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @property-read int $id
+ * @property-read int $user_id
+ * @property-read float $amount
+ * @property-read string $date_from
+ * @property-read string $date_to
+ * @property-read string|null $deal_number
+ * @property-read string|null $deal_date
+ * @property-read string|null $payment_check
+ * @property-read string $created_at
+ * @property-read string $updated_at
+ * @property-read User|null $user
+ */
 class PaymentResource extends JsonResource
 {
     /**

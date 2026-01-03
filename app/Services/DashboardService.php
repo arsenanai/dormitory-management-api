@@ -381,8 +381,8 @@ class DashboardService
 
             $dailyRevenue[] = [
                 'date'          => $date,
-                'total_amount'  => (float) ($dayData->total_amount ?: 0),
-                'payment_count' => $dayData->payment_count ?: 0,
+                'total_amount'  => (float) ($dayData?->total_amount ?? 0),
+                'payment_count' => $dayData->payment_count ?? 0,
             ];
         }
 
