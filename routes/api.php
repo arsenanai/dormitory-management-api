@@ -8,7 +8,6 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
-use App\Http\Controllers\FileController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PaymentController;
@@ -33,19 +32,16 @@ Route::get('/dormitories/{dormitory}/rooms', [ DormitoryController::class, 'room
 Route::get('/dormitories/{dormitory}/registration', [ DormitoryController::class, 'getForRegistration' ]);
 Route::get('/blood-types', [ BloodTypeController::class, 'index' ]);
 
-// Public avatar downloads (for student list display)
-Route::get('/avatars/{filename}', [ FileController::class, 'downloadAvatar' ])->where('filename', '.*');
-
 // Public room type access (for forms)
 Route::get('/room-types', [ RoomTypeController::class, 'index' ]);
 Route::get('/room-types/{roomType}', [ RoomTypeController::class, 'show' ]);
 Route::get('/configurations/public', [ConfigurationController::class, 'getPublicSettings']);
 
+// Public file downloads (for photos, avatars, etc.)
+Route::get('/files/download/{path}', [App\Http\Controllers\FileController::class, 'download'])->where('path', '.*')->name('file.download');
+
 // Protected routes
 Route::middleware([ 'auth:sanctum' ])->group(function () {
-
-    // Secure file downloads
-    Route::get('/files/download/{path}', [App\Http\Controllers\FileController::class, 'download'])->where('path', '.*')->name('file.download');
 
     // Dashboard routes - role-specific access
     Route::middleware([ 'role:admin,sudo' ])->group(function () {

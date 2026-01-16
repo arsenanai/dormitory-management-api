@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 class ConfigurationSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
         $configs = [
             // Common configs

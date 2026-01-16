@@ -61,14 +61,50 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:coverage": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --coverage --min=80"
+        ],
+        "test:unit": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --testsuite=Unit"
+        ],
+        "test:feature": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test --testsuite=Feature"
+        ],
         "lint": [
             "vendor/bin/pint --test"
+        ],
+        "lint:fix": [
+            "vendor/bin/pint"
         ],
         "format": [
             "vendor/bin/pint"
         ],
+        "format:check": [
+            "vendor/bin/pint --test"
+        ],
         "type-check": [
             "vendor/bin/phpstan analyse --memory-limit=512M"
+        ],
+        "type-check:baseline": [
+            "vendor/bin/phpstan analyse --memory-limit=512M --generate-baseline"
+        ],
+        "quality": [
+            "@lint",
+            "@type-check"
+        ],
+        "quality:fix": [
+            "@lint:fix"
+        ],
+        "pre-commit": [
+            "@quality",
+            "@test:unit"
+        ],
+        "ci": [
+            "@quality",
+            "@test:coverage"
         ]
     },
     "extra": {

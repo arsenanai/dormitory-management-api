@@ -607,8 +607,8 @@ class StudentService
         // Delete up to 3 files
         foreach ($files as $file) {
             // Ensure the file path is a valid, non-empty string and exists before attempting to delete.
-            if (is_string($file) && ! empty($file) && Storage::disk('local')->exists($file)) {
-                Storage::disk('local')->delete($file);
+            if (is_string($file) && ! empty($file) && Storage::disk('public')->exists($file)) {
+                Storage::disk('public')->delete($file);
             }
         }
     }
@@ -749,8 +749,8 @@ class StudentService
 
             if ($file instanceof \Illuminate\Http\UploadedFile) {
                 // New file uploaded: delete the old one and store the new one.
-                if ($oldFile && Storage::disk('local')->exists($oldFile)) {
-                    Storage::disk('local')->delete($oldFile);
+                if ($oldFile && Storage::disk('public')->exists($oldFile)) {
+                    Storage::disk('public')->delete($oldFile);
                 }
                 $filePaths[ $index ] = $this->storeStudentFile($file);
             } elseif (is_string($file) && ! empty($file)) {
@@ -758,8 +758,8 @@ class StudentService
                 $filePaths[ $index ] = $file;
             } elseif ($file === null || $file === '') {
                 // File marked for removal: delete the old file and set path to null.
-                if ($oldFile && Storage::disk('local')->exists($oldFile)) {
-                    Storage::disk('local')->delete($oldFile);
+                if ($oldFile && Storage::disk('public')->exists($oldFile)) {
+                    Storage::disk('public')->delete($oldFile);
                 }
                 $filePaths[ $index ] = null;
             }
@@ -812,25 +812,25 @@ class StudentService
     }
 
     /**
-     * Stores a student file, preserving the original name if possible.
-     * If a file with the original name exists, it generates a short random name.
+     * Stores a student file, preserving original name if possible.
+     * If a file with the original name exists, it generates a short unique name.
      *
      * @param \Illuminate\Http\UploadedFile $file The file to store.
-     * @return string The path to the stored file.
+     * @return string The path to stored file.
      */
     private function storeStudentFile(\Illuminate\Http\UploadedFile $file): string
     {
         $originalFilename = $file->getClientOriginalName();
-        $storagePath = 'student_files/' . $originalFilename;
+        $storagePath = 'avatars/' . $originalFilename;
 
-        if (Storage::disk('local')->exists($storagePath)) {
-            // File exists, generate a shorter random name.
-            $extension = $file->getClientOriginalExtension();
-            $filename = \Illuminate\Support\Str::random(8) . '.' . $extension;
+        if (Storage::disk('public')->exists($storagePath)) {
+            // File exists, generate a short unique name
+            $ext = $file->getClientOriginalExtension();
+            $filename = time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $ext;
         } else {
-            // File does not exist, use the original name.
+            // File does not exist, use original name.
             $filename = $originalFilename;
         }
-        return $file->storeAs('student_files', $filename, 'local');
+        return $file->storeAs('avatars', $filename, 'public');
     }
 }

@@ -18,7 +18,7 @@ class AdminSeeder extends Seeder
         ], [
             'name'              => config('app.sudo_name', 'System Administrator'),
             'email'             => config('app.sudo_email', 'sudo@email.com'),
-            'password'          => Hash::make(config('app.sudo_password', 'supersecret')),
+            'password'          => Hash::make(config('app.sudo_password', 'supersecret') . ''),
             'role_id'           => $sudoRole ? $sudoRole->id : 1,
             'status'            => 'active',
             'email_verified_at' => now(),
@@ -32,7 +32,7 @@ class AdminSeeder extends Seeder
         ], [
             'name'              => config('app.admin_name', 'Admin'),
             'email'             => config('app.admin_email', 'admin@email.com'),
-            'password'          => Hash::make(config('app.admin_password', 'supersecret')),
+            'password'          => Hash::make(config('app.admin_password', 'supersecret') . ''),
             'role_id'           => $adminRole ? $adminRole->id : 2,
             'status'            => 'active',
             'email_verified_at' => now(),

@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
             'email'         => config('app.admin_email', 'admin_' . uniqid() . '@email.com'),
             'phone_numbers' => json_encode([ config('app.admin_phone', '+77001234567') ]),
             'room_id'       => null,
-            'password'      => bcrypt(config('app.admin_password', 'supersecret')),
+            'password'      => bcrypt(config('app.admin_password', 'supersecret') . ''),
             'status'        => 'active',
             'role_id'       => $role->id,
         ]);

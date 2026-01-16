@@ -90,13 +90,13 @@ class PaymentService
                 // same name already exists, generate a short unique filename.
                 $original = $data['payment_check']->getClientOriginalName();
                 $storagePath = 'payment_checks/' . $original;
-                if (Storage::disk('local')->exists($storagePath)) {
+                if (Storage::disk('public')->exists($storagePath)) {
                     $ext = $data['payment_check']->getClientOriginalExtension();
                     $filename = time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $ext;
                 } else {
                     $filename = $original;
                 }
-                $data['payment_check'] = $data['payment_check']->storeAs('payment_checks', $filename, 'local');
+                $data['payment_check'] = $data['payment_check']->storeAs('payment_checks', $filename, 'public');
             }
 
             // Set initial status for student/guest roles

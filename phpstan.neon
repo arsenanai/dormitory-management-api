@@ -2,22 +2,23 @@ includes:
     - vendor/larastan/larastan/extension.neon
 
 parameters:
-
     paths:
         - app/
         - database/factories/
         - database/seeders/
 
-    # Rule level
-    level: 5
+    level: 9
 
-    # Less strict about magic properties and relationship access
-    treatPhpDocTypesAsCertain: false
+    treatPhpDocTypesAsCertain: true
+    checkMissingCallableSignature: true
+    checkMissingVarTagTypehint: true
 
-    ignoreErrors:
-        - '#PHPDoc tag @var#'
-        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$#'
+    ignoreErrors: []
 
     excludePaths:
         - ./*/*/FileToIgnore.php
-
+        - app/Console/Commands/*
+        - app/Providers/*
+        - app/Exceptions/Handler.php (?)
+        - app/Http/Kernel.php (?)
+        - app/Http/Middleware/TrustProxies.php (?)

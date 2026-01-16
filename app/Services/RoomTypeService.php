@@ -3,10 +3,15 @@
 namespace App\Services;
 
 use App\Models\RoomType;
-use Illuminate\Support\Facades\Storage;
 
 class RoomTypeService
 {
+    private FileService $fileService;
+
+    public function __construct(FileService $fileService)
+    {
+        $this->fileService = $fileService;
+    }
     public function listRoomTypes()
     {
         return RoomType::all();
@@ -14,6 +19,7 @@ class RoomTypeService
 
     public function createRoomType(array $data)
     {
+        $data['photos'] = $this->handlePhotoUploads($data);
         return RoomType::create($data);
     }
 
@@ -24,12 +30,7 @@ class RoomTypeService
 
     public function updateRoomType(RoomType $roomType, array $data)
     {
-        // Handle photo cleanup if new photos are provided
-        if (isset($data['photos']) && $roomType->photos) {
-            $photos = is_string($roomType->photos) ? json_decode($roomType->photos, true) : $roomType->photos;
-            $this->deletePhotos($photos ?? []);
-        }
-
+        $data['photos'] = $this->handlePhotoUploads($data, $roomType);
         $roomType->update($data);
         return $roomType;
     }
@@ -39,22 +40,37 @@ class RoomTypeService
         $roomType = RoomType::findOrFail($id);
 
         // Clean up associated files
-        if ($roomType->minimap) {
-            Storage::disk('public')->delete($roomType->minimap);
-        }
-
-        if ($roomType->photos) {
-            $photos = is_string($roomType->photos) ? json_decode($roomType->photos, true) : $roomType->photos;
-            $this->deletePhotos($photos ?? []);
-        }
+        $this->deletePhotos($roomType->photos ?? []);
 
         $roomType->delete();
     }
 
+    private function handlePhotoUploads(array $data, ?RoomType $existingRoomType = null): array
+    {
+        $newPhotoPaths = [];
+        // 1. Upload new photos if any are present in the request
+        if (isset($data['photos']) && is_array($data['photos'])) {
+            $newPhotoPaths = $this->fileService->uploadMultipleFiles($data['photos'], 'room-type', 10);
+        }
+
+        // 2. Get the list of existing photos from the request (for updates)
+        $existingPhotos = isset($data['existing_photos']) ? json_decode($data['existing_photos'], true) : [];
+
+        // 3. If it's an update, determine which old photos to delete
+        if ($existingRoomType) {
+            $originalPhotos = $existingRoomType->photos ?? [];
+            $photosToDelete = array_diff($originalPhotos, $existingPhotos);
+            $this->deletePhotos($photosToDelete);
+        }
+
+        // 4. Merge existing and new photos to create the final list
+        return array_merge($existingPhotos, $newPhotoPaths);
+    }
+
     private function deletePhotos(array $photos)
     {
-        foreach ($photos as $photo) {
-            Storage::disk('public')->delete($photo);
+        if (!empty($photos)) {
+            $this->fileService->deleteMultipleFiles($photos);
         }
     }
 }

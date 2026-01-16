@@ -21,7 +21,7 @@ class RoomFactory extends Factory
     public function definition(): array
     {
         return [
-           'number'       => $this->faker->randomElement(['A', 'B', 'C']) . $this->faker->numberBetween(100, 999),
+           'number'       => ($this->faker->randomElement(['A', 'B', 'C']) . $this->faker->numberBetween(100, 999)),
            'floor'        => $this->faker->numberBetween(1, 10),
            'notes'        => $this->faker->optional()->sentence(),
            'dormitory_id' => Dormitory::factory(),

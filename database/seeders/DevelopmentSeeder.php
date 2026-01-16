@@ -197,7 +197,7 @@ class DevelopmentSeeder extends Seeder
             [ 'email' => config('app.admin_email', 'admin@email.com') ],
             [
                 'name' => 'Main Admin',
-                'password' => Hash::make(config('app.admin_password', 'supersecret')),
+                'password' => Hash::make(config('app.admin_password', 'supersecret') . ''),
                 'role_id' => $adminRole->id,
                 'status' => 'active',
             ]
@@ -264,14 +264,13 @@ class DevelopmentSeeder extends Seeder
         $stepStart = microtime(true);
         $bedsData = [];
         foreach ($rooms as $room) {
-            $roomType = $roomMap[$room->id]->roomType;
-            if (!$roomType) {
+            $roomWithRoomType = $roomMap[$room->id] ?? null;
+            if (!$roomWithRoomType) {
                 continue;
             }
-            /** @var \App\Models\RoomType $roomType */
-            $roomType = $roomMap[$room->id]->roomType;
+            $roomType = $roomWithRoomType->roomType;
             /** @var int $capacity */
-            $capacity = $roomType->capacity;
+            $capacity = $roomType?->capacity ?? 0;
             for ($j = 1; $j <= $capacity; $j++) {
                 $bedsData[] = [
                     'bed_number' => $j,
@@ -441,7 +440,11 @@ class DevelopmentSeeder extends Seeder
             $bedUpdateCases = [];
             $bedIds = array_keys($bedAssignments);
             foreach ($bedAssignments as $bedId => $studentIndex) {
-                $studentId = $insertedStudents[$studentIndex - 1]->id;
+                $student = $insertedStudents[$studentIndex - 1] ?? null;
+                if (!$student) {
+                    continue;
+                }
+                $studentId = $student->id;
                 $bedUpdateCases[] = "WHEN {$bedId} THEN {$studentId}";
             }
 
@@ -581,7 +584,6 @@ class DevelopmentSeeder extends Seeder
         // Pre-generate all payment filenames for batch processing
         $paymentFilenames = [];
         foreach ($studentsForPayment as $studentId) {
-            $paymentFilenames[] = 'payment_check_student_' . $studentId . '_' . uniqid() . '.png';
             $paymentFilenames[] = 'payment_check_student_' . $studentId . '_' . uniqid() . '.png';
         }
         foreach ($guestsForPayment as $guest) {

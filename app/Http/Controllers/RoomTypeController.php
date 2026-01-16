@@ -7,15 +7,14 @@ use Illuminate\Http\Request;
 
 class RoomTypeController extends Controller
 {
-    private $rules = [
-        'name'          => 'sometimes|string|max:255',
-        'capacity'      => 'sometimes|integer|min:1',
-        'daily_rate'    => 'sometimes|numeric|min:0',
-        'semester_rate' => 'sometimes|numeric|min:0',
-        'minimap'       => 'sometimes|image',
-        'beds'          => 'sometimes|json',
-        'photos'        => 'sometimes|array',
-        'photos.*'      => 'image',
+    private array $rules = [
+        'name'            => 'sometimes|string|max:255',
+        'capacity'        => 'sometimes|integer|min:1',
+        'daily_rate'      => 'sometimes|numeric|min:0',
+        'semester_rate'   => 'sometimes|numeric|min:0',
+        'photos'          => 'sometimes|array|max:10',
+        'photos.*'        => 'sometimes|image|mimes:jpg,jpeg,png,webp|max:5120',
+        'existing_photos' => 'sometimes|json',
     ];
 
     public function __construct(private RoomTypeService $service)
@@ -32,8 +31,8 @@ class RoomTypeController extends Controller
     {
         $roomType = $this->service->findRoomType($id);
 
-        if (! $roomType) {
-            return response()->json([ 'message' => 'Room type not found' ], 404);
+        if (!$roomType) {
+            return response()->json(['message' => 'Room type not found'], 404);
         }
 
         return response()->json($roomType, 200);
@@ -43,28 +42,13 @@ class RoomTypeController extends Controller
     {
         // For creation, name, capacity, and price are required
         $rules = $this->rules;
-        $rules['name']          = 'required|string|max:255';
-        $rules['capacity']      = 'required|integer|min:1';
-        $rules['daily_rate']    = 'required|numeric|min:0';
+        $rules['name'] = 'required|string|max:255';
+        $rules['capacity'] = 'required|integer|min:1';
+        $rules['daily_rate'] = 'required|numeric|min:0';
         $rules['semester_rate'] = 'required|numeric|min:0';
+        $rules['photos'] = 'required|array|min:1|max:10';
 
         $validated = $request->validate($rules);
-
-        if ($request->hasFile('minimap')) {
-            $validated['minimap'] = $request->file('minimap')->store('minimaps', 'public');
-        }
-
-        if (isset($validated['beds'])) {
-            $validated['beds'] = json_decode($validated['beds'], true);
-        }
-
-        if ($request->hasFile('photos')) {
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $photoPaths[] = $photo->store('photos', 'public');
-            }
-            $validated['photos'] = $photoPaths;
-        }
 
         $roomType = $this->service->createRoomType($validated);
         return response()->json($roomType, 201);
@@ -73,26 +57,7 @@ class RoomTypeController extends Controller
     public function update(Request $request, $id)
     {
         $roomType = $this->service->findRoomType($id);
-
-        // Use global rules for update - all fields are optional with 'sometimes'
         $validated = $request->validate($this->rules);
-
-        if ($request->hasFile('minimap')) {
-            $validated['minimap'] = $request->file('minimap')->store('minimaps', 'public');
-        }
-
-        if (isset($validated['beds'])) {
-            $validated['beds'] = json_decode($validated['beds'], true);
-        }
-
-        if ($request->hasFile('photos')) {
-            $photoPaths = [];
-            foreach ($request->file('photos') as $photo) {
-                $photoPaths[] = $photo->store('photos', 'public');
-            }
-            $validated['photos'] = $photoPaths;
-        }
-
         $roomType = $this->service->updateRoomType($roomType, $validated);
         return response()->json($roomType, 200);
     }
@@ -100,6 +65,6 @@ class RoomTypeController extends Controller
     public function destroy($id)
     {
         $this->service->deleteRoomType($id);
-        return response()->json([ 'message' => 'Room type deleted successfully' ], 200);
+        return response()->json(['message' => 'Room type deleted successfully'], 200);
     }
 }

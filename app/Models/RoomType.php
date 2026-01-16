@@ -11,8 +11,6 @@ class RoomType extends Model
 
     protected $fillable = [
         'name',
-        'minimap',
-        'beds',
         'photos',
         'capacity',
         'daily_rate',
@@ -20,7 +18,6 @@ class RoomType extends Model
     ];
 
     protected $casts = [
-        'beds'          => 'array',
         'photos'        => 'array',
         'daily_rate'    => 'decimal:2',
         'semester_rate' => 'decimal:2',
