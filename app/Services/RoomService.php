@@ -54,6 +54,25 @@ class RoomService
         if (isset($filters['occupant_type'])) {
             $query->where('occupant_type', $filters['occupant_type']);
         }
+        if (isset($filters['status'])) {
+            if ($filters['status'] === 'available') {
+                $query->where('is_occupied', false)
+                    ->whereHas('beds', function ($q) {
+                        $q->where('is_occupied', false)
+                            ->whereNull('user_id')
+                            ->where('reserved_for_staff', false);
+                    });
+            } elseif ($filters['status'] === 'occupied') {
+                $query->where(function ($q) {
+                    $q->where('is_occupied', true)
+                        ->orWhereDoesntHave('beds', function ($sq) {
+                            $sq->where('is_occupied', false)
+                                ->whereNull('user_id')
+                                ->where('reserved_for_staff', false);
+                        });
+                });
+            }
+        }
 
         // Pagination
         return $query->with([ 'beds', 'dormitory', 'roomType' ])->paginate($perPage);

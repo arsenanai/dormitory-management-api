@@ -17,7 +17,7 @@ class RoomController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only([ 'dormitory_id', 'room_type_id', 'floor', 'number', 'occupant_type' ]);
+        $filters = $request->only([ 'dormitory_id', 'room_type_id', 'floor', 'number', 'occupant_type', 'status' ]);
         $perPage = $request->input('per_page', 15);
 
         // Get authenticated user for role-based filtering
