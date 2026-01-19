@@ -31,7 +31,7 @@ class AdminController extends Controller
             'password'        => 'required|string|min:6|confirmed',
             'phone_numbers'   => 'required|array|min:1',
             'phone_numbers.*' => 'string|max:20',
-            'dormitory_id'    => 'required|integer|exists:dormitories,id',
+            'dormitory_id'    => 'nullable|integer|exists:dormitories,id',
         ];
     }
 
@@ -87,7 +87,7 @@ class AdminController extends Controller
             'password'        => 'sometimes|nullable|string|min:6|confirmed',
             'phone_numbers'   => 'required|array|min:1',
             'phone_numbers.*' => 'string|max:20',
-            'dormitory_id'    => 'required|integer|exists:dormitories,id',
+            'dormitory_id'    => 'nullable|integer|exists:dormitories,id',
         ];
 
         // $profileRules = [
