@@ -40,6 +40,11 @@ Route::get('/configurations/public', [ConfigurationController::class, 'getPublic
 // Public file downloads (for photos, avatars, etc.)
 Route::get('/files/download/{path}', [App\Http\Controllers\FileController::class, 'download'])->where('path', '.*')->name('file.download');
 
+// Email availability check
+Route::get('/email/check-availability', [UserController::class, 'checkEmailAvailability']);
+Route::get('/iin/check-availability', [UserController::class,
+'checkIinAvailability']);
+
 // Protected routes
 Route::middleware([ 'auth:sanctum' ])->group(function () {
 

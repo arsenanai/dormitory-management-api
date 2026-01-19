@@ -968,6 +968,41 @@ class UserController extends Controller
         ]);
     }
 
+    public function checkEmailAvailability(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+            'ignore_user_id' => 'sometimes|integer|exists:users,id', // Optional: for editing profile
+        ]);
+
+        $query = User::where('email', $request->email);
+
+        if ($request->has('ignore_user_id')) {
+            $query->where('id', '!=', $request->ignore_user_id);
+        }
+
+        $isAvailable = !$query->exists();
+
+        return response()->json(['is_available' => $isAvailable]);
+    }
+
+    public function checkIinAvailability(Request $request)
+    {
+        $request->validate([
+            'iin' => 'required|digits:12',
+            'ignore_user_id' => 'sometimes|integer|exists:users,id',
+        ]);
+        $query = \App\Models\StudentProfile::where('iin', $request->iin);
+        
+        if ($request->has('ignore_user_id')) {
+            $query->whereHas('user', function($q) use ($request) {
+                $q->where('id', '!=', $request->ignore_user_id);
+            });
+        }
+        $isAvailable = !$query->exists();
+        return response()->json(['is_available' => $isAvailable]);
+    }
+
     /**
      * API endpoint: GET /users/{id}/can-access-dormitory or /me/can-access-dormitory
      * Returns: { can_access: boolean, reason: string }
