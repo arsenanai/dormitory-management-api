@@ -17,6 +17,8 @@ class Dormitory extends Model
         'address',
         'description',
         'phone',
+        'reception_phone',
+        'medical_phone',
     ];
 
     protected $casts = [

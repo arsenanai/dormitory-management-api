@@ -16,6 +16,8 @@ class DormitoryController extends Controller
         'address'     => 'nullable|string|max:500',
         'description' => 'nullable|string|max:1000',
         'phone'       => 'nullable|string|max:20',
+        'reception_phone' => 'nullable|string|max:20',
+        'medical_phone' => 'nullable|string|max:20',
     ];
 
     public function __construct(private DormitoryService $service, private RoomService $roomService)
