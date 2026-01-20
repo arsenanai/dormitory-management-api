@@ -170,7 +170,6 @@ class UserController extends Controller
                 'student_profile.blood_type'               => 'nullable|string',
                 'student_profile.city'                     => 'nullable|string|max:255',
                 'student_profile.country'                  => 'nullable|string|max:255',
-                'student_profile.deal_number'              => 'required|string|max:255',
                 'student_profile.emergency_contact_name'   => 'nullable|string|max:255',
                 'student_profile.emergency_contact_phone'  => 'nullable|string|max:255',
                 'student_profile.emergency_contact_type'   => 'nullable|in:parent,guardian,other',
@@ -975,13 +974,7 @@ class UserController extends Controller
             'ignore_user_id' => 'sometimes|integer|exists:users,id', // Optional: for editing profile
         ]);
 
-        $query = User::where('email', $request->email);
-
-        if ($request->has('ignore_user_id')) {
-            $query->where('id', '!=', $request->ignore_user_id);
-        }
-
-        $isAvailable = !$query->exists();
+        $isAvailable = $this->studentService->checkEmailAvailability($request->email, $request->ignore_user_id);
 
         return response()->json(['is_available' => $isAvailable]);
     }
@@ -992,14 +985,9 @@ class UserController extends Controller
             'iin' => 'required|digits:12',
             'ignore_user_id' => 'sometimes|integer|exists:users,id',
         ]);
-        $query = \App\Models\StudentProfile::where('iin', $request->iin);
-        
-        if ($request->has('ignore_user_id')) {
-            $query->whereHas('user', function($q) use ($request) {
-                $q->where('id', '!=', $request->ignore_user_id);
-            });
-        }
-        $isAvailable = !$query->exists();
+
+        $isAvailable = $this->studentService->checkIinAvailability($request->iin, $request->ignore_user_id);
+
         return response()->json(['is_available' => $isAvailable]);
     }
 

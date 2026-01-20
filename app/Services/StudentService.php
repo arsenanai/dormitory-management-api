@@ -279,7 +279,20 @@ class StudentService
         $defaultCols = [ 'name', 'status', 'enrollment_year', 'faculty', 'dormitory', 'bed', 'phone' ];
         $exportCols = isset($filters['columns']) ? explode(',', $filters['columns']) : $defaultCols;
 
-        $headers = array_map('ucfirst', $exportCols);
+        $headers = array_map(function($col) {
+            $map = [
+                'name' => 'Name',
+                'status' => 'Status',
+                'enrollment_year' => 'Enrollment year',
+                'faculty' => 'Faculty',
+                'dormitory' => 'Dormitory',
+                'bed' => 'Bed',
+                'phone' => 'Telephone',
+                'deal_number' => 'Deal number',
+                'created_at' => 'Registered date'
+            ];
+            return $map[$col] ?? ucfirst(str_replace('_', ' ', $col));
+        }, $exportCols);
         $csvContent = implode(',', $headers) . "\n";
 
         foreach ($students as $student) {
@@ -307,6 +320,12 @@ class StudentService
                         break;
                     case 'phone':
                         $value = is_array($student->phone_numbers) ? implode(';', $student->phone_numbers) : ($student->phone ?? '');
+                        break;
+                    case 'deal_number':
+                        $value = $student->studentProfile->deal_number ?? '';
+                        break;
+                    case 'created_at':
+                        $value = $student->created_at ? $student->created_at->format('Y-m-d H:i:s') : '';
                         break;
                         // Add other cases for any other potential columns
                 }
@@ -422,6 +441,7 @@ class StudentService
 
             // Create the StudentProfile
             $profileData['user_id'] = $student->id;
+            $profileData['deal_number'] = date('Y') . '-' . strtoupper(\Illuminate\Support\Str::random(8));
             StudentProfile::create($profileData);
 
             // Assign bed if provided
@@ -832,5 +852,33 @@ class StudentService
             $filename = $originalFilename;
         }
         return $file->storeAs('avatars', $filename, 'public');
+    }
+
+    /**
+     * Check if email is available for registration.
+     *
+     * @param string $email
+     * @param int|null $ignoreUserId
+     * @return bool
+     */
+    public function checkEmailAvailability(string $email, ?int $ignoreUserId = null): bool
+    {
+        $query = User::withTrashed()->where('email', $email);
+
+        if ($ignoreUserId) {
+            $query->where('id', '!=', $ignoreUserId);
+        }
+
+        return ! $query->exists();
+    }
+
+    public function checkIinAvailability(string $iin, ?int $ignoreUserId = null): bool
+    {
+        $query = StudentProfile::where('iin', $iin);
+
+        if ($ignoreUserId) {
+            $query->whereHas('user', fn ($q) => $q->where('id', '!=', $ignoreUserId));
+        }
+        return ! $query->exists();
     }
 }
