@@ -20,10 +20,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class StudentService {
-	private $paymentService;
 
-	public function __construct() {
-		$this->paymentService = new PaymentService();
+	public function __construct( private PaymentService $paymentService ) {
 	}
 
 	/**

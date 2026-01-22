@@ -322,4 +322,21 @@ class ConfigurationService
 
         return $this->getAllConfigurations();
     }
+
+    public function getCurrencySymbol(): string
+    {
+        $currencyCode = $this->getConfiguration('currency_symbol') ?? 'KZT';
+        $currencyMap = [
+            'KZT' => '₸',
+            'USD' => '$',
+            'EUR' => '€',
+            'RUB' => '₽',
+            'GBP' => '£',
+            'TRY' => '₺',
+            'UZS' => 'soʻm',
+            'KGS' => 'сом',
+        ];
+
+        return $currencyMap[$currencyCode] ?? $currencyCode;
+    }
 }

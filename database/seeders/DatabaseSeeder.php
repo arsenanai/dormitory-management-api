@@ -20,7 +20,8 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class, // Only this seeder creates admin/sudo users
             RoomTypeSeeder::class, // Add room types (standard and lux)
             ConfigurationSeeder::class,
-            BloodTypeSeeder::class // Add blood types
+            BloodTypeSeeder::class, // Add blood types
+            PaymentTypeSeeder::class // Add payment types
         ]);
 
         // Environment-specific seeders

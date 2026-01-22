@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PaymentService {
+    public function __construct() {}
 	/**
 	 * Get payments with filters and pagination
 	 */
@@ -51,6 +52,10 @@ class PaymentService {
 
 		if ( isset( $filters['status'] ) ) {
 			$query->where( 'status', $filters['status'] );
+		}
+
+		if ( ! empty( $filters['payment_type'] ) ) {
+			$query->where( 'payment_type', $filters['payment_type'] );
 		}
 
 		$perPage = $filters['per_page'] ?? 20;
@@ -244,10 +249,17 @@ class PaymentService {
 			$query->whereDate( 'deal_date', '<=', $filters['date_to'] );
 		}
 
+		if ( ! empty( $filters['payment_type'] ) ) {
+			$query->where( 'payment_type', $filters['payment_type'] );
+		}
+
 		$payments = $query->orderBy( 'deal_date', 'desc' )->get();
 
+		$configrationService = new ConfigrationService();
+        $currencySymbol = $configurationService->getCurrencySymbol();
+
 		// Create CSV content
-		$csvContent = "Payment ID,Student Name,Student Email,Deal Number,Deal Date,Amount,Date From,Date To\n";
+		$csvContent = "Payment ID,Student Name,Student Email,Payment Type,Deal Number,Deal Date,Amount ({$currencySymbol}),Date From,Date To\n";
 
 		foreach ( $payments as $payment ) {
 			$dealDate = $payment->deal_date ? ( new \DateTime( $payment->deal_date ) )->format( 'Y-m-d' ) : '';
@@ -255,10 +267,11 @@ class PaymentService {
 			$dateTo = $payment->date_to ? ( new \DateTime( $payment->date_to ) )->format( 'Y-m-d' ) : ''; // Assuming date_to is a string or Carbon instance
 
 			$csvContent .= sprintf(
-				"%s,%s,%s,%s,%s,%s,%s,%s\n",
+				"%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
 				$payment->id,
 				'"' . str_replace( '"', '""', $payment->user->name ?? '' ) . '"',
 				( $payment->user->email ?? '' ), // Null-safe for user->email
+				'"' . str_replace( '"', '""', $payment->payment_type ?? '' ) . '"',
 				'"' . str_replace( '"', '""', $payment->deal_number ?? '' ) . '"',
 				$dealDate,
 				$payment->amount,

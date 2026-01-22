@@ -26,7 +26,8 @@ class PaymentController extends Controller
             'search'    => 'sometimes|nullable|string|max:255', // Searches deal_number or user name
             'role'      => 'sometimes|nullable|string|max:50', // Add role filter
             'per_page'  => 'sometimes|integer|min:1|max:1000',
-            'status'	=> ['sometimes', new Enum(PaymentStatus::class)],
+            'status'    => ['sometimes', new Enum(PaymentStatus::class)],
+            'payment_type' => 'sometimes|nullable|string|max:255',
         ]);
 
         $payments = $this->paymentService->index($filters);
@@ -43,6 +44,7 @@ class PaymentController extends Controller
             'date_from'     => 'required|date',
             'date_to'       => 'required|date|after_or_equal:date_from',
             'amount'        => 'required|numeric|min:0',
+            'payment_type'  => 'nullable|string|max:255',
             'deal_number'   => 'nullable|string|max:255',
             'deal_date'     => 'nullable|date',
             'payment_check' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
@@ -59,8 +61,9 @@ class PaymentController extends Controller
             'date_to'       => 'required|date|after_or_equal:date_from',
             'deal_number'   => 'nullable|string|max:255',
             'deal_date'     => 'nullable|date',
-            'payment_check' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'payment_check' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'amount'		=> 'required|numeric|min:0',
+            'payment_type'  => 'nullable|string|max:255',
         ]);
         $user = auth()->user();
         $validated['user_id'] = $user->id;
@@ -85,6 +88,7 @@ class PaymentController extends Controller
             'date_from'     => 'sometimes|date',
             'date_to'       => 'sometimes|date|after_or_equal:date_from',
             'amount'        => 'sometimes|numeric|min:0',
+            'payment_type'  => 'sometimes|nullable|string|max:255',
             'deal_number'   => 'sometimes|nullable|string|max:255',
             'deal_date'     => 'sometimes|nullable|date',
             // Allow string for deletion signal ('') or file for upload.
@@ -116,7 +120,8 @@ class PaymentController extends Controller
             'user_id'   => 'sometimes|integer|exists:users,id',
             'date_from' => 'sometimes|date',
             'date_to'   => 'sometimes|date',
-            'status'	=> ['sometimes', new Enum(PaymentStatus::class)],
+            'status'    => ['sometimes', new Enum(PaymentStatus::class)],
+            'payment_type' => 'sometimes|nullable|string|max:255',
         ]);
 
         return $this->paymentService->exportPayments($filters);
@@ -129,7 +134,8 @@ class PaymentController extends Controller
             'date_to'   => 'sometimes|date',
             'search'    => 'sometimes|nullable|numeric|min:0', // Searches amount or deal_number
             'per_page'  => 'sometimes|integer|min:1|max:1000',
-            'status'	=> ['sometimes', new Enum(PaymentStatus::class)],
+            'status'    => ['sometimes', new Enum(PaymentStatus::class)],
+            'payment_type' => 'sometimes|nullable|string|max:255',
         ]);
         $filters['user_id'] = auth()->user()->id;
 

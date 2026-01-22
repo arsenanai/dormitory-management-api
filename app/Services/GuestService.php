@@ -14,10 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class GuestService {
-	protected PaymentService $paymentService;
-
 	public function __construct() {
-		$this->paymentService = new PaymentService();
+		
 	}
 	/**
 	 * Get guests with filters and pagination

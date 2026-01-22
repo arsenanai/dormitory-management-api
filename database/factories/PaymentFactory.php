@@ -15,6 +15,7 @@ class PaymentFactory extends Factory
         return [
             'user_id' => User::factory(),
             'amount' => $this->faker->randomFloat(2, 10000, 150000),
+            'payment_type' => $this->faker->randomElement(['renting', 'catering', 'all-inclusive']),
             'date_from' => $this->faker->date(),
             'date_to' => $this->faker->date(),
             'deal_number' => $this->faker->unique()->numerify('DEAL-####'),

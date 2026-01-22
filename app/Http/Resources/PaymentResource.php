@@ -33,6 +33,7 @@ class PaymentResource extends JsonResource
             'id'            => $this->id,
             'userId'        => $this->user_id,
             'amount'        => $this->amount,
+            'paymentType'   => $this->payment_type,
             'dateFrom'      => $this->date_from,
             'dateTo'        => $this->date_to,
             'dealNumber'    => $this->deal_number,

@@ -53,9 +53,9 @@ class UserController extends Controller {
 		'emergency_contact_phone'  => 'nullable|string|max:255',
 	];
 
-	public function __construct( UserAuthService $authService ) {
+	public function __construct( UserAuthService $authService, StudentService $studentService ) {
 		$this->authService = $authService;
-		$this->studentService = new StudentService();
+		$this->studentService = $studentService;
 		$this->guestService = new GuestService();
 	}
 

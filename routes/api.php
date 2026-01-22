@@ -11,6 +11,7 @@ use App\Http\Controllers\DormitoryController;
 use App\Http\Controllers\GuestController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PaymentTypeController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomTypeController;
@@ -132,7 +133,10 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
         Route::get('/users/personal-data', [ UserController::class, 'personalData' ]);
         Route::match([ 'post', 'put' ], '/users/personal-data', [ UserController::class, 'updatePersonalData' ]);
         Route::get('/my-payments', [ PaymentController::class, 'myPayments' ]);
-        Route::post('/payments', [ PaymentController::class, 'store' ]);
+        Route::post('/my-payments', [ PaymentController::class, 'myStore' ]);
+    });
+    Route::middleware([ 'role:sudo,admin,student,guest' ])->group(function () {
+        Route::get('payment-types', [PaymentTypeController::class, 'index']);
     });
     Route::post('/logout', [ UserController::class, 'logout' ]);
 
@@ -165,6 +169,7 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
         // Payment management
         Route::get('/payments/export', [ PaymentController::class, 'export' ]);
         Route::apiResource('payments', PaymentController::class);
+        Route::apiResource('payment-types', PaymentTypeController::class)->except(['index']);
 
         // Student management (admins and sudo can manage students)
         Route::get('/students/export', [ StudentController::class, 'export' ]);
