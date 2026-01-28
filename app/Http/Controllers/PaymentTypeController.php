@@ -1,45 +1,46 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\PaymentTypeRequest;
+use App\Http\Resources\PaymentTypeResource;
 use App\Models\PaymentType;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class PaymentTypeController extends Controller
 {
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
-        return response()->json(PaymentType::all());
+        return PaymentTypeResource::collection(PaymentType::all());
     }
 
-    public function store(Request $request)
+    public function store(PaymentTypeRequest $request): PaymentTypeResource
     {
-        $validated = $request->validate([
-            'name' => 'required|string|unique:payment_types,name|max:255',
-        ]);
+        $paymentType = PaymentType::create($request->validated());
 
-        $paymentType = PaymentType::create($validated);
-        return response()->json($paymentType, 201);
+        return new PaymentTypeResource($paymentType);
     }
 
-    public function show(PaymentType $paymentType)
+    public function show(PaymentType $paymentType): PaymentTypeResource
     {
-        return response()->json($paymentType);
+        return new PaymentTypeResource($paymentType);
     }
 
-    public function update(Request $request, PaymentType $paymentType)
+    public function update(PaymentTypeRequest $request, PaymentType $paymentType): PaymentTypeResource
     {
-        $validated = $request->validate([
-            'name' => 'required|string|unique:payment_types,name,' . $paymentType->id . '|max:255',
-        ]);
+        $paymentType->update($request->validated());
 
-        $paymentType->update($validated);
-        return response()->json($paymentType);
+        return new PaymentTypeResource($paymentType);
     }
 
-    public function destroy(PaymentType $paymentType)
+    public function destroy(PaymentType $paymentType): Response
     {
         $paymentType->delete();
-        return response()->json(['message' => 'Payment type deleted successfully']);
+
+        return response()->noContent();
     }
 }

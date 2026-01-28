@@ -30,13 +30,18 @@ class RoleMiddleware
         $hasRole = false;
 
         foreach ($allowedRoles as $role) {
-            if ($user->hasRole(trim($role))) {
+            $trimmedRole = trim($role);
+            if ($user->hasRole($trimmedRole)) {
                 $hasRole = true;
                 break;
             }
         }
 
         if (! $hasRole) {
+            // Log for debugging (only in debug mode)
+            if (config('app.debug')) {
+                \Log::debug('RoleMiddleware: User ' . $user->id . ' with role ' . ($user->role?->name ?? 'none') . ' denied access. Allowed roles: ' . implode(', ', $allowedRoles));
+            }
             return response()->json([ 'message' => 'Forbidden' ], 403);
         }
 

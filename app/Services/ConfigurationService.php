@@ -339,4 +339,56 @@ class ConfigurationService
 
         return $currencyMap[$currencyCode] ?? $currencyCode;
     }
+
+    /**
+     * Get payment settings (semester config only; payment types in Configuration → Payment Types).
+     *
+     * @return array<string, mixed>
+     */
+    public function getPaymentSettings(): array
+    {
+        $semesterConfig = $this->getConfiguration('semester_config') ?? [
+            'fall' => [
+                'start_month' => 9,
+                'start_day' => 1,
+                'end_month' => 12,
+                'end_day' => 31,
+                'payment_deadline_month' => 8,
+                'payment_deadline_day' => 22,
+            ],
+            'spring' => [
+                'start_month' => 1,
+                'start_day' => 1,
+                'end_month' => 5,
+                'end_day' => 31,
+                'payment_deadline_month' => 12,
+                'payment_deadline_day' => 22,
+            ],
+            'summer' => [
+                'start_month' => 6,
+                'start_day' => 1,
+                'end_month' => 8,
+                'end_day' => 31,
+                'payment_deadline_month' => 5,
+                'payment_deadline_day' => 22,
+            ],
+        ];
+
+        return [
+            'semester_config' => is_array($semesterConfig) ? $semesterConfig : [],
+        ];
+    }
+
+    /**
+     * Update payment settings (semester config only).
+     *
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    public function updatePaymentSettings(array $settings): array
+    {
+        $this->setConfiguration('semester_config', $settings['semester_config'], 'json', 'Semester Configuration');
+
+        return $this->getPaymentSettings();
+    }
 }

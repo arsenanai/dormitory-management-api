@@ -246,7 +246,8 @@ class GuestServiceTest extends TestCase
             'phone' => '+9988776655'
         ];
 
-        $updatedGuest = $this->guestService->updateGuest($this->guestUser->id, $updateData);
+        $result = $this->guestService->updateGuest($this->guestUser->id, $updateData);
+        $updatedGuest = $result['user'];
 
         $this->assertEquals('Updated Name', $updatedGuest->name);
         $this->assertEquals('updated.email@example.com', $updatedGuest->email);

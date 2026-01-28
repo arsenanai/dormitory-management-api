@@ -10,392 +10,404 @@ use App\Models\Room;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-class DashboardService {
-	/**
-	 * Get overall dashboard statistics
-	 */
-	public function getDashboardStats() {
-		$user = Auth::user();
+class DashboardService
+{
+    /**
+     * Get overall dashboard statistics
+     */
+    public function getDashboardStats()
+    {
+        $user = Auth::user();
 
-		// Check if user is admin and has a specific dormitory
-		$dormitoryFilter = null;
-		if ( $user->hasRole( 'admin' ) && $user->adminDormitory ) {
-			$dormitoryFilter = $user->adminDormitory->id;
-		}
+        // Check if user is admin and has a specific dormitory
+        $dormitoryFilter = null;
+        if ($user->hasRole('admin') && $user->adminDormitory) {
+            $dormitoryFilter = $user->adminDormitory->id;
+        }
 
-		$studentStats = $this->getStudentStats( $dormitoryFilter );
-		$roomStats = $this->getRoomStats( $dormitoryFilter );
-		$paymentStats = $this->getPaymentStats( $dormitoryFilter );
-		$messageStats = $this->getMessageStats( $dormitoryFilter );
+        $studentStats = $this->getStudentStats($dormitoryFilter);
+        $roomStats = $this->getRoomStats($dormitoryFilter);
+        $paymentStats = $this->getPaymentStats($dormitoryFilter);
+        $messageStats = $this->getMessageStats($dormitoryFilter);
 
-		// Get unread messages for current user
-		$unreadMessages = Message::where( 'receiver_id', $user->id )
-			->whereNull( 'read_at' )
-			->count();
+        // Get unread messages for current user
+        $unreadMessages = Message::where('receiver_id', $user->id)
+            ->whereNull('read_at')
+            ->count();
 
-		$stats = [
-			'total_dormitories'      => $user->hasRole( 'sudo' ) ? Dormitory::count() : null,
-			'total_rooms'            => $roomStats['total_rooms'],
-			'total_beds'             => $roomStats['total_beds'],
-			'available_rooms'        => $roomStats['available_rooms'],
-			'occupied_rooms'         => $roomStats['occupied_rooms'],
-			'available_beds'         => $roomStats['available_beds'],
-			'occupied_beds'          => $roomStats['occupied_beds'],
-			'total_students'         => $studentStats['total'],
-			'students_with_meals'    => $studentStats['with_meals'],
-			'students_without_meals' => $studentStats['without_meals'],
-			'current_presence'       => $roomStats['occupied_beds'],
-			'total_payments'         => $paymentStats['total_payments'],
-			'pending_payments'       => $paymentStats['pending_payments'],
-			'recent_payments'        => $paymentStats['this_month_amount'],
-			'unread_messages'        => $unreadMessages,
-			'recent_messages'        => $messageStats['recent_messages'],
-			'occupancy_rate'         => $roomStats['occupancy_rate'],
-			'quota_students'         => 0,
-		];
+        $stats = [
+            'total_dormitories'      => $user->hasRole('sudo') ? Dormitory::count() : null,
+            'total_rooms'            => $roomStats['total_rooms'],
+            'total_beds'             => $roomStats['total_beds'],
+            'available_rooms'        => $roomStats['available_rooms'],
+            'occupied_rooms'         => $roomStats['occupied_rooms'],
+            'available_beds'         => $roomStats['available_beds'],
+            'occupied_beds'          => $roomStats['occupied_beds'],
+            'total_students'         => $studentStats['total'],
+            'students_with_meals'    => $studentStats['with_meals'],
+            'students_without_meals' => $studentStats['without_meals'],
+            'current_presence'       => $roomStats['occupied_beds'],
+            'total_payments'         => $paymentStats['total_payments'],
+            'pending_payments'       => $paymentStats['pending_payments'],
+            'recent_payments'        => $paymentStats['this_month_amount'],
+            'unread_messages'        => $unreadMessages,
+            'recent_messages'        => $messageStats['recent_messages'],
+            'occupancy_rate'         => $roomStats['occupancy_rate'],
+            'quota_students'         => 0,
+        ];
 
-		return response()->json( $stats );
-	}
+        return response()->json($stats);
+    }
 
-	/**
-	 * Get student statistics
-	 */
-	private function getStudentStats( $dormitoryId = null ) {
-		$query = User::with( 'studentProfile' )->whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) );
+    /**
+     * Get student statistics
+     */
+    private function getStudentStats($dormitoryId = null)
+    {
+        $query = User::with('studentProfile')->whereHas('role', fn ($q) => $q->where('name', 'student'));
 
-		if ( $dormitoryId ) {
-			$query->whereHas( 'room', fn( $q ) => $q->where( 'dormitory_id', $dormitoryId ) );
-		}
+        if ($dormitoryId) {
+            $query->whereHas('room', fn ($q) => $q->where('dormitory_id', $dormitoryId));
+        }
 
-		$totalStudents = $query->count();
-		$activeStudents = ( clone $query )->where( 'status', 'active' )->count();
-		$pendingStudents = ( clone $query )->where( 'status', 'pending' )->count();
+        $totalStudents = $query->count();
+        $activeStudents = (clone $query)->where('status', 'active')->count();
+        $pendingStudents = (clone $query)->where('status', 'pending')->count();
 
-		// TODO: meal calculation will change
-		$studentsWithMeals = 0;
+        // TODO: meal calculation will change
+        $studentsWithMeals = 0;
 
-		return [
-			'total'         => $totalStudents,
-			'active'        => $activeStudents,
-			'pending'       => $pendingStudents,
-			'with_meals'    => $studentsWithMeals,
-			'without_meals' => $totalStudents - $studentsWithMeals,
-		];
-	}
+        return [
+            'total'         => $totalStudents,
+            'active'        => $activeStudents,
+            'pending'       => $pendingStudents,
+            'with_meals'    => $studentsWithMeals,
+            'without_meals' => $totalStudents - $studentsWithMeals,
+        ];
+    }
 
-	/**
-	 * Get room statistics
-	 */
-	private function getRoomStats( $dormitoryId = null ) {
-		$query = Room::query();
+    /**
+     * Get room statistics
+     */
+    private function getRoomStats($dormitoryId = null)
+    {
+        $query = Room::query();
 
-		if ( $dormitoryId ) {
-			$query->where( 'dormitory_id', $dormitoryId );
-		}
+        if ($dormitoryId) {
+            $query->where('dormitory_id', $dormitoryId);
+        }
 
-		$totalRooms = $query->count();
+        $totalRooms = $query->count();
 
-		// Get bed statistics based on user_id (since tests use this)
-		$bedQuery = Bed::whereHas( 'room', function ( $q ) use ( $dormitoryId ) {
-			if ( $dormitoryId ) {
-				$q->where( 'dormitory_id', $dormitoryId );
-			}
-		} );
+        // Get bed statistics based on user_id (since tests use this)
+        $bedQuery = Bed::whereHas('room', function ($q) use ($dormitoryId) {
+            if ($dormitoryId) {
+                $q->where('dormitory_id', $dormitoryId);
+            }
+        });
 
-		$totalBeds = $bedQuery->count();
-		$occupiedBeds = ( clone $bedQuery )->where( function ( $q ) {
-			$q->whereNotNull( 'user_id' )->orWhere( 'is_occupied', true );
-		} )->count();
-		$availableBeds = $totalBeds - $occupiedBeds;
+        $totalBeds = $bedQuery->count();
+        $occupiedBeds = (clone $bedQuery)->where(function ($q) {
+            $q->whereNotNull('user_id')->orWhere('is_occupied', true);
+        })->count();
+        $availableBeds = $totalBeds - $occupiedBeds;
 
-		// Room occupancy: use is_occupied flag, or fall back to bed availability
-		$occupiedRooms = Room::where( 'is_occupied', true );
-		if ( $dormitoryId ) {
-			$occupiedRooms->where( 'dormitory_id', $dormitoryId );
-		}
-		$occupiedRoomsCount = $occupiedRooms->count();
+        // Room occupancy: use is_occupied flag, or fall back to bed availability
+        $occupiedRooms = Room::where('is_occupied', true);
+        if ($dormitoryId) {
+            $occupiedRooms->where('dormitory_id', $dormitoryId);
+        }
+        $occupiedRoomsCount = $occupiedRooms->count();
 
-		$availableRoomsCount = $totalRooms - $occupiedRoomsCount;
+        $availableRoomsCount = $totalRooms - $occupiedRoomsCount;
 
-		return [
-			'total_rooms'     => $totalRooms,
-			'available_rooms' => $availableRoomsCount,
-			'occupied_rooms'  => $occupiedRoomsCount,
-			'total_beds'      => $totalBeds,
-			'occupied_beds'   => $occupiedBeds,
-			'available_beds'  => $availableBeds,
-			'occupancy_rate'  => $totalBeds > 0 ? round( ( $occupiedBeds / $totalBeds ) * 100, 2 ) : 0.0,
-		];
-	}
+        return [
+            'total_rooms'     => $totalRooms,
+            'available_rooms' => $availableRoomsCount,
+            'occupied_rooms'  => $occupiedRoomsCount,
+            'total_beds'      => $totalBeds,
+            'occupied_beds'   => $occupiedBeds,
+            'available_beds'  => $availableBeds,
+            'occupancy_rate'  => $totalBeds > 0 ? round(($occupiedBeds / $totalBeds) * 100, 2) : 0.0,
+        ];
+    }
 
-	/**
-	 * Get payment statistics
-	 */
-	private function getPaymentStats( $dormitoryId = null ) {
-		$query = Payment::query();
+    /**
+     * Get payment statistics
+     */
+    private function getPaymentStats($dormitoryId = null)
+    {
+        $query = Payment::query();
 
-		if ( $dormitoryId ) {
-			$query->whereHas( 'user.room', fn( $q ) => $q->where( 'dormitory_id', $dormitoryId ) );
-		}
+        if ($dormitoryId) {
+            $query->whereHas('user.room', fn ($q) => $q->where('dormitory_id', $dormitoryId));
+        }
 
-		$totalPayments = $query->count();
-		$totalAmount = $query->sum( 'amount' );
-		// NOTE: The new 'payments' table does not have a status.
-		// We'll count all as "completed" for now.
-		$pendingPayments = 0; // Placeholder
+        $totalPayments = $query->count();
+        $totalAmount = $query->sum('amount');
+        // NOTE: The new 'payments' table does not have a status.
+        // We'll count all as "completed" for now.
+        $pendingPayments = 0; // Placeholder
 
-		// This month's payments
-		$thisMonthAmount = ( clone $query )
-			->whereMonth( 'created_at', now()->month )
-			->whereYear( 'created_at', now()->year )
-			->sum( 'amount' );
+        // This month's payments
+        $thisMonthAmount = (clone $query)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->sum('amount');
 
-		return [
-			'total_payments'     => $totalPayments,
-			'total_amount'       => $totalAmount,
-			'approved_payments'  => $totalPayments, // All are considered approved
-			'completed_payments' => $totalPayments,
-			'pending_payments'   => $pendingPayments,
-			'this_month_amount'  => $thisMonthAmount,
-		];
-	}
+        return [
+            'total_payments'     => $totalPayments,
+            'total_amount'       => $totalAmount,
+            'approved_payments'  => $totalPayments, // All are considered approved
+            'completed_payments' => $totalPayments,
+            'pending_payments'   => $pendingPayments,
+            'this_month_amount'  => $thisMonthAmount,
+        ];
+    }
 
-	/**
-	 * Get message statistics
-	 */
-	private function getMessageStats( $dormitoryId = null ) {
-		$query = Message::query();
+    /**
+     * Get message statistics
+     */
+    private function getMessageStats($dormitoryId = null)
+    {
+        $query = Message::query();
 
-		if ( $dormitoryId ) {
-			$query->where( function ( $q ) use ( $dormitoryId ) {
-				$q->where( 'recipient_type', 'all' )
-					->orWhere( function ( $subQ ) use ( $dormitoryId ) {
-						$subQ->where( 'recipient_type', 'dormitory' )
-							->where( 'dormitory_id', $dormitoryId );
-					} );
-			} );
-		}
+        if ($dormitoryId) {
+            $query->where(function ($q) use ($dormitoryId) {
+                $q->where('recipient_type', 'all')
+                    ->orWhere(function ($subQ) use ($dormitoryId) {
+                        $subQ->where('recipient_type', 'dormitory')
+                            ->where('dormitory_id', $dormitoryId);
+                    });
+            });
+        }
 
-		$totalMessages = $query->count();
-		$sentMessages = ( clone $query )->where( 'status', 'sent' )->count();
-		$draftMessages = ( clone $query )->where( 'status', 'draft' )->count();
+        $totalMessages = $query->count();
+        $sentMessages = (clone $query)->where('status', 'sent')->count();
+        $draftMessages = (clone $query)->where('status', 'draft')->count();
 
-		// Recent messages (last 7 days)
-		$recentMessages = ( clone $query )
-			->where( 'created_at', '>=', now()->subDays( 7 ) )
-			->count();
+        // Recent messages (last 7 days)
+        $recentMessages = (clone $query)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
 
-		return [
-			'total_messages'  => $totalMessages,
-			'sent_messages'   => $sentMessages,
-			'draft_messages'  => $draftMessages,
-			'recent_messages' => $recentMessages,
-		];
-	}
+        return [
+            'total_messages'  => $totalMessages,
+            'sent_messages'   => $sentMessages,
+            'draft_messages'  => $draftMessages,
+            'recent_messages' => $recentMessages,
+        ];
+    }
 
-	/**
-	 * Get guard dashboard stats
-	 */
-	public function getGuardStats() {
-		$totalRooms = Room::count();
-		$occupiedRooms = Room::where( 'is_occupied', true )->count();
+    /**
+     * Get guard dashboard stats
+     */
+    public function getGuardStats()
+    {
+        $totalRooms = Room::count();
+        $occupiedRooms = Room::where('is_occupied', true)->count();
 
-		$stats = [
-			'total_rooms'       => $totalRooms,
-			'occupied_rooms'    => $occupiedRooms,
-			'my_reports'        => Message::where( 'type', 'violation' )->count(),
-			'recent_violations' => Message::where( 'type', 'violation' )
-				->where( 'created_at', '>=', now()->subDays( 7 ) )
-				->count(),
-			'room_occupancy'    => $totalRooms > 0 ? round( ( $occupiedRooms / $totalRooms ) * 100, 2 ) : 0,
-		];
+        $stats = [
+            'total_rooms'       => $totalRooms,
+            'occupied_rooms'    => $occupiedRooms,
+            'my_reports'        => Message::where('type', 'violation')->count(),
+            'recent_violations' => Message::where('type', 'violation')
+                ->where('created_at', '>=', now()->subDays(7))
+                ->count(),
+            'room_occupancy'    => $totalRooms > 0 ? round(($occupiedRooms / $totalRooms) * 100, 2) : 0,
+        ];
 
-		return response()->json( $stats );
-	}
+        return response()->json($stats);
+    }
 
-	/**
-	 * Get student dashboard statistics
-	 */
-	public function getStudentDashboardStats() {
-		$user = Auth::user();
+    /**
+     * Get student dashboard statistics
+     */
+    public function getStudentDashboardStats()
+    {
+        $user = Auth::user();
 
-		// Get user's room information
-		$roomInfo = null;
-		if ( $user->room ) {
-			$roomInfo = [
-				'room_number'    => $user->room->number,
-				'floor'          => $user->room->floor,
-				'dormitory_name' => $user->room->dormitory->name ?? 'Unknown',
-				'room_type'      => $user->room->roomType->name ?? 'standard',
-			];
-		}
+        // Get user's room information
+        $roomInfo = null;
+        if ($user->room) {
+            $roomInfo = [
+                'room_number'    => $user->room->number,
+                'floor'          => $user->room->floor,
+                'dormitory_name' => $user->room->dormitory->name ?? 'Unknown',
+                'room_type'      => $user->room->roomType->name ?? 'standard',
+            ];
+        }
 
-		// Get user's messages
-		$messages = Message::where( 'receiver_id', $user->id )
-			->with( 'sender' )
-			->orderBy( 'created_at', 'desc' )
-			->limit( 10 )
-			->get();
+        // Get user's messages
+        $messages = Message::where('receiver_id', $user->id)
+            ->with('sender')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
 
-		// Get user's payments
-		$payments = Payment::where( 'user_id', $user->id )
-			->orderBy( 'created_at', 'desc' )
-			->get();
+        // Get user's payments
+        $payments = Payment::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-		$stats = [
-			'my_messages'           => $messages->count(),
-			'unread_messages_count' => $messages->whereNull( 'read_at' )->count(),
-			'my_payments'           => $payments->count(),
-			'upcoming_payments'     => 0, // No status in new model
-			'payment_history'       => $payments->count(), // All payments are history
-			'room_info'             => $roomInfo,
-		];
+        $stats = [
+            'my_messages'           => $messages->count(),
+            'unread_messages_count' => $messages->whereNull('read_at')->count(),
+            'my_payments'           => $payments->count(),
+            'upcoming_payments'     => 0, // No status in new model
+            'payment_history'       => $payments->count(), // All payments are history
+            'room_info'             => $roomInfo,
+        ];
 
-		return response()->json( $stats );
-	}
+        return response()->json($stats);
+    }
 
-	/**
-	 * Get guest dashboard statistics
-	 */
-	public function getGuestDashboardStats() {
-		$user = Auth::user();
+    /**
+     * Get guest dashboard statistics
+     */
+    public function getGuestDashboardStats()
+    {
+        $user = Auth::user();
 
-		// Get user's room information
-		$roomInfo = null;
-		if ( $user->room ) {
-			$roomInfo = [
-				'room_number'    => $user->room->number,
-				'floor'          => $user->room->floor,
-				'dormitory_name' => $user->room->dormitory->name ?? 'Unknown',
-				'room_type'      => $user->room->roomType->name ?? 'standard',
-			];
-		}
+        // Get user's room information
+        $roomInfo = null;
+        if ($user->room) {
+            $roomInfo = [
+                'room_number'    => $user->room->number,
+                'floor'          => $user->room->floor,
+                'dormitory_name' => $user->room->dormitory->name ?? 'Unknown',
+                'room_type'      => $user->room->roomType->name ?? 'standard',
+            ];
+        }
 
-		// Get user's messages
-		$messages = Message::where( 'receiver_id', $user->id )
-			->with( 'sender' )
-			->orderBy( 'created_at', 'desc' )
-			->limit( 10 )
-			->get();
+        // Get user's messages
+        $messages = Message::where('receiver_id', $user->id)
+            ->with('sender')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
 
-		// Mock guest-specific data (since guest payments might be handled differently)
-		$stats = [
-			'my_messages'           => $messages->count(),
-			'unread_messages_count' => $messages->whereNull( 'read_at' )->count(),
-			'room_info'             => $roomInfo,
-			'daily_rate'            => 5000, // Mock daily rate in tenge
-			'check_in_date'         => now()->format( 'Y-m-d' ),
-			'check_out_date'        => now()->addDays( 5 )->format( 'Y-m-d' ),
-			'total_days'            => 5,
-			'total_amount'          => 25000, // Mock total amount
-		];
+        // Mock guest-specific data (since guest payments might be handled differently)
+        $stats = [
+            'my_messages'           => $messages->count(),
+            'unread_messages_count' => $messages->whereNull('read_at')->count(),
+            'room_info'             => $roomInfo,
+            'daily_rate'            => 5000, // Mock daily rate in tenge
+            'check_in_date'         => now()->format('Y-m-d'),
+            'check_out_date'        => now()->addDays(5)->format('Y-m-d'),
+            'total_days'            => 5,
+            'total_amount'          => 25000, // Mock total amount
+        ];
 
-		return response()->json( $stats );
-	}
+        return response()->json($stats);
+    }
 
-	/**
-	 * Get monthly statistics
-	 */
-	public function getMonthlyStats() {
-		$currentMonth = [
-			'total_payments'    => Payment::whereMonth( 'created_at', now()->month )
-				->whereYear( 'created_at', now()->year )->count(),
-			'total_amount'      => Payment::whereMonth( 'created_at', now()->month )
-				->whereYear( 'created_at', now()->year )->sum( 'amount' ),
-			'approved_payments' => Payment::whereMonth( 'created_at', now()->month )
-				->whereYear( 'created_at', now()->year )->count(),
-			'new_students'      => User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
-				->whereMonth( 'created_at', now()->month )
-				->whereYear( 'created_at', now()->year )->count(),
-			'messages_sent'     => Message::whereMonth( 'created_at', now()->month )
-				->whereYear( 'created_at', now()->year )->count(),
-		];
+    /**
+     * Get monthly statistics
+     */
+    public function getMonthlyStats()
+    {
+        $currentMonth = [
+            'total_payments'    => Payment::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)->count(),
+            'total_amount'      => Payment::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)->sum('amount'),
+            'approved_payments' => Payment::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)->count(),
+            'new_students'      => User::whereHas('role', fn ($q) => $q->where('name', 'student'))
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)->count(),
+            'messages_sent'     => Message::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)->count(),
+        ];
 
-		$lastMonth = [
-			'total_payments'    => Payment::whereMonth( 'created_at', now()->subMonth()->month )
-				->whereYear( 'created_at', now()->subMonth()->year )->count(),
-			'total_amount'      => Payment::whereMonth( 'created_at', now()->subMonth()->month )
-				->whereYear( 'created_at', now()->subMonth()->year )->sum( 'amount' ),
-			'approved_payments' => Payment::whereMonth( 'created_at', now()->subMonth()->month )
-				->whereYear( 'created_at', now()->subMonth()->year )->count(),
-			'new_students'      => User::whereHas( 'role', fn( $q ) => $q->where( 'name', 'student' ) )
-				->whereMonth( 'created_at', now()->subMonth()->month )
-				->whereYear( 'created_at', now()->subMonth()->year )->count(),
-			'messages_sent'     => Message::whereMonth( 'created_at', now()->subMonth()->month )
-				->whereYear( 'created_at', now()->subMonth()->year )->count(),
-		];
+        $lastMonth = [
+            'total_payments'    => Payment::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)->count(),
+            'total_amount'      => Payment::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)->sum('amount'),
+            'approved_payments' => Payment::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)->count(),
+            'new_students'      => User::whereHas('role', fn ($q) => $q->where('name', 'student'))
+                ->whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)->count(),
+            'messages_sent'     => Message::whereMonth('created_at', now()->subMonth()->month)
+                ->whereYear('created_at', now()->subMonth()->year)->count(),
+        ];
 
-		// Get monthly revenue for the last 12 months
-		$monthlyRevenue = [];
-		for ( $i = 11; $i >= 0; $i-- ) {
-			$date = now()->subMonths( $i );
-			$monthlyRevenue[] = [
-				'month'         => $date->format( 'M' ),
-				'year'          => $date->year,
-				'total_amount'  => Payment::whereMonth( 'created_at', $date->month )
-					->whereYear( 'created_at', $date->year )->sum( 'amount' ) ?: 0,
-				'payment_count' => Payment::whereMonth( 'created_at', $date->month )
-					->whereYear( 'created_at', $date->year )->count(),
-			];
-		}
+        // Get monthly revenue for the last 12 months
+        $monthlyRevenue = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $monthlyRevenue[] = [
+                'month'         => $date->format('M'),
+                'year'          => $date->year,
+                'total_amount'  => Payment::whereMonth('created_at', $date->month)
+                    ->whereYear('created_at', $date->year)->sum('amount') ?: 0,
+                'payment_count' => Payment::whereMonth('created_at', $date->month)
+                    ->whereYear('created_at', $date->year)->count(),
+            ];
+        }
 
-		return response()->json( [
-			'current_month'   => $currentMonth,
-			'previous_month'  => $lastMonth,
-			'monthly_revenue' => $monthlyRevenue,
-		] );
-	}
+        return response()->json([
+            'current_month'   => $currentMonth,
+            'previous_month'  => $lastMonth,
+            'monthly_revenue' => $monthlyRevenue,
+        ]);
+    }
 
-	/**
-	 * Get payment analytics
-	 */
-	public function getPaymentAnalytics() {
-		// The new 'payments' table does not have 'payment_method' or 'payment_status'
-		// Returning empty arrays or mock data for these.
-		$paymentMethods = [];
-		$paymentStatuses = [];
+    /**
+     * Get payment analytics
+     */
+    public function getPaymentAnalytics()
+    {
+        // The new 'payments' table does not have 'payment_method' or 'payment_status'
+        // Returning empty arrays or mock data for these.
+        $paymentMethods = [];
+        $paymentStatuses = [];
 
-		// Get daily revenue for the last 30 days
-		$dailyRevenue = [];
-		for ( $i = 29; $i >= 0; $i-- ) {
-			$date = now()->subDays( $i )->format( 'Y-m-d' );
-			$dayData = Payment::whereDate( 'created_at', $date )
-				->selectRaw( 'SUM(amount) as total_amount, COUNT(*) as payment_count' )
-				->first();
+        // Get daily revenue for the last 30 days
+        $dailyRevenue = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->format('Y-m-d');
+            $dayData = Payment::whereDate('created_at', $date)
+                ->selectRaw('SUM(amount) as total_amount, COUNT(*) as payment_count')
+                ->first();
 
-			$dailyRevenue[] = [
-				'date'          => $date,
-				'total_amount'  => (float) ( $dayData?->total_amount ?? 0 ),
-				'payment_count' => $dayData->payment_count ?? 0,
-			];
-		}
+            $dailyRevenue[] = [
+                'date'          => $date,
+                'total_amount'  => (float) ($dayData?->total_amount ?? 0),
+                'payment_count' => $dayData->payment_count ?? 0,
+            ];
+        }
 
-		return response()->json( [
-			'payment_methods'  => $paymentMethods,
-			'payment_statuses' => $paymentStatuses,
-			'daily_revenue'    => $dailyRevenue,
-		] );
-	}
+        return response()->json([
+            'payment_methods'  => $paymentMethods,
+            'payment_statuses' => $paymentStatuses,
+            'daily_revenue'    => $dailyRevenue,
+        ]);
+    }
 
-	/**
-	 * Get detailed dashboard statistics (nested structure)
-	 */
-	public function getDetailedDashboardStats() {
-		$user = Auth::user();
+    /**
+     * Get detailed dashboard statistics (nested structure)
+     */
+    public function getDetailedDashboardStats()
+    {
+        $user = Auth::user();
 
-		// Check if user is admin and has a specific dormitory
-		$dormitoryFilter = null;
-		if ( $user->hasRole( 'admin' ) && $user->adminDormitory ) {
-			$dormitoryFilter = $user->adminDormitory->id;
-		}
+        // Check if user is admin and has a specific dormitory
+        $dormitoryFilter = null;
+        if ($user->hasRole('admin') && $user->adminDormitory) {
+            $dormitoryFilter = $user->adminDormitory->id;
+        }
 
-		$stats = [
-			'students' => $this->getStudentStats( $dormitoryFilter ),
-			'rooms'    => $this->getRoomStats( $dormitoryFilter ),
-			'payments' => $this->getPaymentStats( $dormitoryFilter ),
-			'messages' => $this->getMessageStats( $dormitoryFilter ),
-		];
+        $stats = [
+            'students' => $this->getStudentStats($dormitoryFilter),
+            'rooms'    => $this->getRoomStats($dormitoryFilter),
+            'payments' => $this->getPaymentStats($dormitoryFilter),
+            'messages' => $this->getMessageStats($dormitoryFilter),
+        ];
 
-		return response()->json( $stats );
-	}
+        return response()->json($stats);
+    }
 }

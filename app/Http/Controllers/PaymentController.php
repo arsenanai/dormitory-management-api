@@ -23,7 +23,7 @@ class PaymentController extends Controller
             'user_id'   => 'sometimes|integer|exists:users,id',
             'date_from' => 'sometimes|date',
             'date_to'   => 'sometimes|date',
-            'search'    => 'sometimes|nullable|string|max:255', // Searches deal_number or user name
+            'search'    => 'sometimes|nullable|string|max:255', // Searches IIN, user name, email, or amount
             'role'      => 'sometimes|nullable|string|max:50', // Add role filter
             'per_page'  => 'sometimes|integer|min:1|max:1000',
             'status'    => ['sometimes', new Enum(PaymentStatus::class)],
@@ -81,9 +81,18 @@ class PaymentController extends Controller
 
     /**
      * Update the specified payment
+     * Only admins and sudo can update payments (students use updateMyPayment instead)
      */
     public function update(Request $request, $id)
     {
+        $user = auth()->user();
+        $userRole = $user->role->name ?? null;
+
+        // Only admins and sudo can update payments
+        if (!in_array($userRole, ['admin', 'sudo'])) {
+            return response()->json(['message' => 'Unauthorized. Only admins can edit payments.'], 403);
+        }
+
         $validated = $request->validate([
             'date_from'     => 'sometimes|date',
             'date_to'       => 'sometimes|date|after_or_equal:date_from',
@@ -104,9 +113,18 @@ class PaymentController extends Controller
 
     /**
      * Remove the specified payment
+     * Only admins and sudo can delete payments
      */
     public function destroy($id)
     {
+        $user = auth()->user();
+        $userRole = $user->role->name ?? null;
+
+        // Only admins and sudo can delete payments
+        if (!in_array($userRole, ['admin', 'sudo'])) {
+            return response()->json(['message' => 'Unauthorized. Only admins can delete payments.'], 403);
+        }
+
         $this->paymentService->delete($id);
         return response()->json([ 'message' => 'Payment deleted successfully' ], 200);
     }
@@ -132,7 +150,7 @@ class PaymentController extends Controller
         $filters = $request->validate([
             'date_from' => 'sometimes|date',
             'date_to'   => 'sometimes|date',
-            'search'    => 'sometimes|nullable|numeric|min:0', // Searches amount or deal_number
+            'search'    => 'sometimes|nullable|string|max:255', // Searches IIN, user name, email, or amount
             'per_page'  => 'sometimes|integer|min:1|max:1000',
             'status'    => ['sometimes', new Enum(PaymentStatus::class)],
             'payment_type' => 'sometimes|nullable|string|max:255',
@@ -141,5 +159,63 @@ class PaymentController extends Controller
 
         $payments = $this->paymentService->index($filters);
         return $payments;
+    }
+
+    /**
+     * Update payment for students/guests (self-service)
+     * Only allows updating payment_check for pending payments
+     * Students cannot edit or delete payments - only upload bank checks
+     */
+    public function updateMyPayment(Request $request, $id)
+    {
+        $payment = \App\Models\Payment::findOrFail($id);
+        $user = auth()->user();
+        $userRole = $user->role->name ?? null;
+
+        // Only students and guests can use this endpoint
+        if (!in_array($userRole, ['student', 'guest'])) {
+            return response()->json(['message' => 'Unauthorized. This endpoint is for students and guests only.'], 403);
+        }
+
+        // Ensure the payment belongs to the authenticated user
+        if ($payment->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized. You can only update your own payments.'], 403);
+        }
+
+        // Only allow bank check upload for pending payments
+        if ($payment->status !== \App\Enums\PaymentStatus::Pending) {
+            return response()->json([
+                'message' => 'You can only upload bank checks for pending payments.'
+            ], 422);
+        }
+
+        // Security: Check for any unexpected fields before validation
+        // Only payment_check is allowed - reject any other fields to prevent hacking attempts
+        $allowedFields = ['payment_check'];
+        $requestInput = $request->except(['_token', '_method']); // Exclude Laravel internal fields
+        $requestKeys = array_keys($requestInput);
+        $unexpectedFields = array_diff($requestKeys, $allowedFields);
+        
+        if (!empty($unexpectedFields)) {
+            return response()->json([
+                'message' => 'Invalid request. Only payment_check field is allowed.',
+                'errors' => ['payment_check' => ['Only payment_check field can be updated. Unexpected fields: ' . implode(', ', $unexpectedFields)]]
+            ], 422);
+        }
+
+        // Strictly validate only payment_check field
+        $validated = $request->validate([
+            'payment_check' => [
+                'required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'
+            ],
+        ]);
+
+        // Update payment with only the payment_check field
+        $updated = $this->paymentService->update($id, $validated);
+
+        return response()->json([
+            'data' => $updated,
+            'message' => 'Payment check uploaded successfully. Payment will be validated soon.',
+        ]);
     }
 }

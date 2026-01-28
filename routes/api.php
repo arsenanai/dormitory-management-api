@@ -134,9 +134,11 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
         Route::match([ 'post', 'put' ], '/users/personal-data', [ UserController::class, 'updatePersonalData' ]);
         Route::get('/my-payments', [ PaymentController::class, 'myPayments' ]);
         Route::post('/my-payments', [ PaymentController::class, 'myStore' ]);
+        Route::put('/my-payments/{id}', [ PaymentController::class, 'updateMyPayment' ]);
     });
+    // Payment types - accessible to all authenticated users (students need this to see payment type in forms)
     Route::middleware([ 'role:sudo,admin,student,guest' ])->group(function () {
-        Route::get('payment-types', [PaymentTypeController::class, 'index']);
+        Route::get('/payment-types', [PaymentTypeController::class, 'index']);
     });
     Route::post('/logout', [ UserController::class, 'logout' ]);
 
@@ -237,8 +239,12 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
         Route::put('/configurations/dormitory-rules', [ ConfigurationController::class, 'updateDormitoryRules' ]);
         Route::put('/configurations/bank-requisites', [ ConfigurationController::class, 'updateBankRequisites' ]);
 
+        // Payment settings (sudo only)
+        Route::get('/configurations/payment-settings', [ ConfigurationController::class, 'getPaymentSettings' ]);
+        Route::put('/configurations/payment-settings', [ ConfigurationController::class, 'updatePaymentSettings' ]);
+        // Payment types CRUD (sudo only) - index is already defined above for all roles
+        Route::apiResource('payment-types', PaymentTypeController::class)->except(['index']);
     });
-
     Route::middleware([ 'role:admin' ])->group(function () {
         Route::get('/rooms-list', [ RoomController::class, 'listAll' ]);
     });

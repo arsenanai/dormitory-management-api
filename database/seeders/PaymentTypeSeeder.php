@@ -2,24 +2,40 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\PaymentType;
 use Illuminate\Database\Seeder;
 
 class PaymentTypeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $types = [
-            'renting',
-            'catering',
-            'all-inclusive'
+            [
+                'name' => 'renting',
+                'frequency' => 'semesterly',
+                'calculation_method' => 'room_semester_rate',
+                'target_role' => 'student',
+                'trigger_event' => null, // Handles both registration and new_semester
+            ],
+            [
+                'name' => 'catering',
+                'frequency' => 'monthly',
+                'calculation_method' => 'fixed',
+                'fixed_amount' => 150.00,
+                'target_role' => 'student',
+                'trigger_event' => null, // Handles both registration and new_month
+            ],
+            [
+                'name' => 'guest_stay',
+                'frequency' => 'once',
+                'calculation_method' => 'room_daily_rate',
+                'target_role' => 'guest',
+                'trigger_event' => 'registration',
+            ],
         ];
 
         foreach ($types as $type) {
-            \App\Models\PaymentType::updateOrCreate(['name' => $type]);
+            PaymentType::updateOrCreate(['name' => $type['name']], $type);
         }
     }
 }

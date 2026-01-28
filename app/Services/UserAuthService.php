@@ -48,9 +48,8 @@ class UserAuthService
         if ($user && Hash::check($password, $user->password)) {
             /** @var \App\Models\Role|null $role */
             $role = $user->role()->first();
-            if ($role && $role->name === 'student' && $user->status !== 'active') {
-                return 'not_approved';
-            }
+            // Allow students with any status (pending, active, etc.) to log in
+            // They can view their pending payments and account status
             if ($role && $role->name === 'admin') {
                 $user->load('adminDormitory');
                 /** @var \App\Models\Dormitory|null $adminDormitory */
@@ -82,7 +81,7 @@ class UserAuthService
 
         // Separate user fields from profile fields
         $userFields = [ 'name', 'first_name', 'last_name', 'email', 'phone_numbers', 'room_id', 'password', 'status', 'role_id' ];
-        $profileFields = [ 'faculty', 'specialist', 'enrollment_year', 'gender', 'deal_number', 'country', 'region', 'city', 'files', 'agree_to_dormitory_rules' ];
+        $profileFields = [ 'faculty', 'specialist', 'enrollment_year', 'gender', 'deal_number', 'country', 'region', 'city', 'files', 'agree_to_dormitory_rules', 'iin', 'student_id' ];
 
         // Create user record
         $userData = array_intersect_key($data, array_flip($userFields));
@@ -93,7 +92,15 @@ class UserAuthService
         $profileData['user_id'] = $user->id;
         StudentProfile::create($profileData);
 
-        return $user->load([ 'role', 'studentProfile' ]);
+        // Reload user with relationships
+        $user->load([ 'role', 'studentProfile', 'room.roomType' ]);
+
+        // Create pending payments for registration if user has a room assigned
+        if ($user->room_id) {
+            $user->createPaymentsForTriggerEvent('registration');
+        }
+
+        return $user;
     }
 
     /**
@@ -129,7 +136,15 @@ class UserAuthService
         $profileData['user_id'] = $user->id;
         GuestProfile::create($profileData);
 
-        return $user->load([ 'role', 'guestProfile' ]);
+        // Reload user with relationships
+        $user->load([ 'role', 'guestProfile', 'room.roomType' ]);
+
+        // Create pending payments for registration if user has a room assigned
+        if ($user->room_id) {
+            $user->createPaymentsForTriggerEvent('registration');
+        }
+
+        return $user;
     }
 
     /**

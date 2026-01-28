@@ -1,10 +1,10 @@
 
 
-[1;37;40mCode Coverage Report:     [0m
-[1;37;40m  2026-01-20 04:41:18     [0m
-[1;37;40m                          [0m
-[1;37;40m Summary:                 [0m
-[37;41m  Classes:  0.00% (0/52)  [0m
-[37;41m  Methods:  0.00% (0/342) [0m
-[37;41m  Lines:    0.00% (0/3571)[0m
+Code Coverage Report:
+  2026-01-24 04:07:02
+
+ Summary:
+  Classes:  0.00% (0/59)
+  Methods:  0.00% (0/390)
+  Lines:    0.00% (0/4002)
 

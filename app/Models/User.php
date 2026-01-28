@@ -99,4 +99,133 @@ class User extends Authenticatable
     {
         return $this->hasOne(Payment::class, 'user_id')->latestOfMany();
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment Helpers
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Create pending payments for this user based on configured PaymentTypes for a specific trigger event.
+     * This method finds all PaymentTypes that match the user's role and the trigger event,
+     * then creates pending payments for each.
+     *
+     * @param string $triggerEvent The trigger event (registration, new_semester, new_month, new_booking, room_type_change)
+     * @return array<Payment> Array of created Payment models
+     */
+    public function createPaymentsForTriggerEvent(string $triggerEvent): array
+    {
+        if (!$this->room_id) {
+            return [];
+        }
+
+        $roleName = $this->role?->name;
+        if (!$roleName) {
+            return [];
+        }
+
+        // Get payment types that match the trigger event OR have no trigger_event (applies to all)
+        $paymentTypes = PaymentType::forRole($roleName)
+            ->where(function ($query) use ($triggerEvent) {
+                $query->where('trigger_event', $triggerEvent)
+                      ->orWhereNull('trigger_event');
+            })
+            ->get();
+
+        $createdPayments = [];
+
+        foreach ($paymentTypes as $paymentType) {
+            // Check if payment already exists for this type and period
+            if ($this->hasExistingPaymentForType($paymentType, $triggerEvent)) {
+                continue;
+            }
+
+            $payment = Payment::createForUser($this, $paymentType);
+            $createdPayments[] = $payment;
+        }
+
+        return $createdPayments;
+    }
+
+    /**
+     * Check if user already has a payment for the given PaymentType and trigger event.
+     */
+    private function hasExistingPaymentForType(PaymentType $paymentType, string $triggerEvent): bool
+    {
+        $query = $this->payments()
+            ->where('payment_type_id', $paymentType->id)
+            ->where('status', \App\Enums\PaymentStatus::Pending);
+
+        // For monthly payments, check current month
+        if ($paymentType->isMonthly()) {
+            $query->whereMonth('created_at', now()->month)
+                  ->whereYear('created_at', now()->year);
+        }
+        // For semesterly payments, check if exists in current semester period
+        elseif ($paymentType->frequency === 'semesterly') {
+            // Check if payment exists in the last 6 months (semester period)
+            $query->where('created_at', '>=', now()->subMonths(6));
+        }
+        // For one-time payments, check if any exists
+        else {
+            // For registration/booking, only create once per user
+            if (in_array($triggerEvent, ['registration', 'new_booking'])) {
+                return $query->exists();
+            }
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Whether this student has any completed (paid) semester-rent payment that overlaps
+     * the current period. Used to warn when changing room type (e.g. standard ↔ lux).
+     */
+    public function hasPaidSemesterRentPayment(): bool
+    {
+        $today = now()->copy()->startOfDay();
+
+        return $this->payments()
+            ->where('status', \App\Enums\PaymentStatus::Completed)
+            ->whereHas('type', function ($q) {
+                $q->where('target_role', 'student')
+                  ->where('frequency', 'semesterly');
+            })
+            ->where(function ($q) use ($today) {
+                $q->whereNull('date_to')
+                  ->orWhere('date_to', '>=', $today);
+            })
+            ->exists();
+    }
+
+    /**
+     * Whether this guest has any completed (paid) stay payment overlapping their
+     * visit period. Used to warn when changing room type (e.g. standard ↔ lux).
+     */
+    public function hasPaidStayPayment(): bool
+    {
+        $profile = $this->guestProfile;
+        if (!$profile || !$profile->visit_start_date || !$profile->visit_end_date) {
+            return false;
+        }
+
+        $start = \Carbon\Carbon::parse($profile->visit_start_date)->copy()->startOfDay();
+        $end = \Carbon\Carbon::parse($profile->visit_end_date)->copy()->endOfDay();
+
+        return $this->payments()
+            ->where('status', \App\Enums\PaymentStatus::Completed)
+            ->whereHas('type', function ($q) {
+                $q->where('target_role', 'guest');
+            })
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('date_from', [ $start, $end ])
+                  ->orWhereBetween('date_to', [ $start, $end ])
+                  ->orWhere(function ($q2) use ($start, $end) {
+                      $q2->where('date_from', '<=', $start)
+                         ->where('date_to', '>=', $end);
+                  });
+            })
+            ->exists();
+    }
 }

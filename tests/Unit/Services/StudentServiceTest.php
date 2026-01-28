@@ -26,7 +26,7 @@ class StudentServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->studentService = new StudentService();
+        $this->studentService = app(StudentService::class);
 
         // Setup test data
         $this->seedTestData();
@@ -305,7 +305,8 @@ class StudentServiceTest extends TestCase
             ]
         ];
 
-        $updatedStudent = $this->studentService->updateStudent($student->id, $updateData, $this->adminUser);
+        $result = $this->studentService->updateStudent($student->id, $updateData, $this->adminUser);
+        $updatedStudent = $result['user'];
 
         $this->assertEquals('Jane Smith', $updatedStudent->name);
         $this->assertEquals('jane.smith@test.com', $updatedStudent->email);
@@ -326,7 +327,8 @@ class StudentServiceTest extends TestCase
 
         $updateData = ['bed_id' => $newBed->id];
 
-        $updatedStudent = $this->studentService->updateStudent($student->id, $updateData, $this->sudoUser);
+        $result = $this->studentService->updateStudent($student->id, $updateData, $this->sudoUser);
+        $updatedStudent = $result['user'];
 
         $this->assertEquals($newRoom->id, $updatedStudent->room_id);
         $newBed->refresh();

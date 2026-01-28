@@ -286,4 +286,48 @@ class ConfigurationController extends Controller
 
         return response()->json([ 'message' => 'Bank requisites updated successfully.' ]);
     }
+
+    /**
+     * Get payment settings
+     */
+    public function getPaymentSettings(): \Illuminate\Http\JsonResponse
+    {
+        $settings = $this->configurationService->getPaymentSettings();
+        return response()->json($settings);
+    }
+
+    /**
+     * Update payment settings
+     */
+    public function updatePaymentSettings(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'semester_config' => 'required|array',
+            'semester_config.fall' => 'required|array',
+            'semester_config.fall.start_month' => 'required|integer|min:1|max:12',
+            'semester_config.fall.start_day' => 'required|integer|min:1|max:31',
+            'semester_config.fall.end_month' => 'required|integer|min:1|max:12',
+            'semester_config.fall.end_day' => 'required|integer|min:1|max:31',
+            'semester_config.fall.payment_deadline_month' => 'required|integer|min:1|max:12',
+            'semester_config.fall.payment_deadline_day' => 'required|integer|min:1|max:31',
+            'semester_config.spring' => 'required|array',
+            'semester_config.spring.start_month' => 'required|integer|min:1|max:12',
+            'semester_config.spring.start_day' => 'required|integer|min:1|max:31',
+            'semester_config.spring.end_month' => 'required|integer|min:1|max:12',
+            'semester_config.spring.end_day' => 'required|integer|min:1|max:31',
+            'semester_config.spring.payment_deadline_month' => 'required|integer|min:1|max:12',
+            'semester_config.spring.payment_deadline_day' => 'required|integer|min:1|max:31',
+            'semester_config.summer' => 'required|array',
+            'semester_config.summer.start_month' => 'required|integer|min:1|max:12',
+            'semester_config.summer.start_day' => 'required|integer|min:1|max:31',
+            'semester_config.summer.end_month' => 'required|integer|min:1|max:12',
+            'semester_config.summer.end_day' => 'required|integer|min:1|max:31',
+            'semester_config.summer.payment_deadline_month' => 'required|integer|min:1|max:12',
+            'semester_config.summer.payment_deadline_day' => 'required|integer|min:1|max:31',
+        ]);
+
+        $settings = $this->configurationService->updatePaymentSettings($validated);
+
+        return response()->json($settings);
+    }
 }
