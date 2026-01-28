@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('payments:generate')->monthlyOn(1, '00:00');
 Schedule::command('students:check-payment-status')->daily();
+Schedule::command('guests:check-payment-status')->daily();
