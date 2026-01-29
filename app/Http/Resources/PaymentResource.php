@@ -103,7 +103,7 @@ class PaymentResource extends JsonResource
                         $this->user->relationLoaded('room') && $this->user->room !== null,
                         function () {
                             if (!$this->user->room) {
-                                return null;
+                                return;
                             }
                             return [
                                 'number' => $this->user->room->number ?? null,

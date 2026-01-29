@@ -64,15 +64,18 @@ class GuestService
 
     /**
      * Create a new guest
+     *
+     * @param  array<string, mixed>  $data
+     * @return \App\Models\User
      */
-    public function createGuest(array $data)
+    public function createGuest(array $data): \App\Models\User
     {
         DB::beginTransaction();
         try {
             $guestRole = Role::where('name', 'guest')->first();
             $guestRoleId = $guestRole->id;
             $auth = auth()->user();
-            if (! isset($data['dormitory_id']) && $auth && $auth->hasRole('admin')) {
+            if (! isset($data['dormitory_id']) && $auth && $auth->hasRole('admin') && $auth->adminDormitory !== null) {
                 $data['dormitory_id'] = $auth->adminDormitory->id;
             }
             if (! isset($data['password'])) {
@@ -95,7 +98,7 @@ class GuestService
                 'phone_numbers' => isset($data['phone']) ? [ $data['phone'] ] : [],
                 'room_id'       => $data['room_id'] ?? null,
                 'role_id'       => $guestRoleId,
-                'status'        => $data['status'] ?? 'active',
+                'status'        => $data['status'] ?? 'pending',
                 'password'      => Hash::make($data['password']),
                 'dormitory_id'  => $data['dormitory_id'] ?? null,
             ];
@@ -168,6 +171,8 @@ class GuestService
                 $guest->createPaymentsForTriggerEvent('registration');
             }
 
+            $locale = $this->normalizeMailLocale($data['locale'] ?? null);
+            event(new \App\Events\MailEventOccurred('user.registered', [ 'user' => $guest, 'locale' => $locale ]));
 
             DB::commit();
             return $guest->load([ 'guestProfile', 'room', 'room.dormitory' ]);
@@ -242,7 +247,7 @@ class GuestService
 
             // Only check for room type change if room_id or bed_id is actually being changed
             $isRoomRelatedChange = isset($data['bed_id']) || isset($data['room_id']);
-            
+
             if ($isRoomRelatedChange) {
                 $newRoomTypeId = null;
                 if (isset($data['bed_id'])) {
@@ -252,7 +257,7 @@ class GuestService
                     $newRoom = Room::find($data['room_id']);
                     $newRoomTypeId = $newRoom?->room_type_id ?? null;
                 }
-                
+
                 // Only show warning if room type actually changed (different room type)
                 // Allow changes within the same room type (same price) without warning
                 $isRoomTypeChange = $oldRoomTypeId && $newRoomTypeId && $oldRoomTypeId !== $newRoomTypeId;
@@ -263,7 +268,13 @@ class GuestService
             // If only non-room fields are being updated (identification_type, identification_number, etc.),
             // no room type change check is needed, so no warning should be shown
 
+            $oldStatus = $guest->status;
             $guest->update($data);
+            if (isset($data['status']) && $oldStatus !== $guest->status) {
+                event(new \App\Events\MailEventOccurred('user.status_changed', [
+                    'user' => $guest->fresh([ 'role' ]), 'old_status' => $oldStatus, 'new_status' => $guest->status,
+                ]));
+            }
 
             // Update guest profile if needed
             if (isset($data['check_in_date']) || isset($data['check_out_date']) || isset($data['total_amount']) || isset($data['notes']) || isset($data['bed_id']) || isset($data['identification_type']) || isset($data['identification_number']) || isset($data['host_name']) || isset($data['host_contact']) || isset($data['emergency_contact_name']) || isset($data['emergency_contact_phone']) || isset($data['reminder'])) {
@@ -362,7 +373,7 @@ class GuestService
     }
 
     /**
-     * Delete guest
+     * Delete guest (hard delete so user row is removed and same email can re-register).
      */
     public function deleteGuest($id)
     {
@@ -370,6 +381,7 @@ class GuestService
 
         try {
             $guest = User::whereHas('role', fn ($q) => $q->where('name', 'guest'))
+                ->with([ 'guestProfile', 'payments' ])
                 ->findOrFail($id);
 
             // Free up bed if assigned
@@ -385,15 +397,22 @@ class GuestService
                 $room = Room::find($guest->room_id);
                 if ($room) {
                     $room->update([ 'is_occupied' => false ]);
-                } // This might be redundant if bed management implies room occupancy
+                }
             }
 
-            $guest->delete();
+            $guest->guestProfile?->delete();
+            $guest->payments()->delete();
+            $guest->forceDelete();
 
             DB::commit();
             return response()->json([ 'message' => 'Guest deleted successfully' ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
+            Log::error('Error deleting guest', [
+                'guest_id' => $id,
+                'error'    => $e->getMessage(),
+                'trace'    => $e->getTraceAsString(),
+            ]);
             throw $e;
         }
     }
@@ -559,5 +578,14 @@ class GuestService
         $guestId = str_pad($guest->id, 4, '0', STR_PAD_LEFT);
 
         return "GST-{$year}-{$guestId}";
+    }
+
+    private function normalizeMailLocale(mixed $value): string
+    {
+        $s = is_string($value) ? strtolower(trim($value)) : '';
+        if ($s === 'kz') {
+            $s = 'kk';
+        }
+        return in_array($s, [ 'en', 'kk', 'ru' ], true) ? $s : 'en';
     }
 }

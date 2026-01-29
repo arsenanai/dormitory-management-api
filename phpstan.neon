@@ -9,6 +9,9 @@ parameters:
 
     level: 9
 
+    parallel:
+        maximumNumberOfProcesses: 1
+
     treatPhpDocTypesAsCertain: true
     checkMissingCallableSignature: true
     checkMissingVarTagTypehint: true

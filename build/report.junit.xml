@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="CLI Arguments" tests="7" assertions="27" errors="0" failures="0" skipped="0" time="0.844425">
+    <testsuite name="Tests\Feature\PaymentStatusUpdateTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/PaymentStatusUpdateTest.php" tests="3" assertions="11" errors="0" failures="0" skipped="0" time="0.648193">
+      <testcase name="it_does_not_change_status_when_payment_is_not_pending" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/PaymentStatusUpdateTest.php" line="92" class="Tests\Feature\PaymentStatusUpdateTest" classname="Tests.Feature.PaymentStatusUpdateTest" assertions="3" time="0.499855"/>
+      <testcase name="it_changes_payment_status_from_pending_to_processing_when_bank_check_is_uploaded" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/PaymentStatusUpdateTest.php" line="57" class="Tests\Feature\PaymentStatusUpdateTest" classname="Tests.Feature.PaymentStatusUpdateTest" assertions="6" time="0.060530"/>
+      <testcase name="it_does_not_change_status_when_admin_explicitly_sets_status" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/PaymentStatusUpdateTest.php" line="122" class="Tests\Feature\PaymentStatusUpdateTest" classname="Tests.Feature.PaymentStatusUpdateTest" assertions="2" time="0.087808"/>
+    </testsuite>
+    <testsuite name="Tests\Feature\GuestPaymentSyncAndMailTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/GuestPaymentSyncAndMailTest.php" tests="4" assertions="16" errors="0" failures="0" skipped="0" time="0.196232">
+      <testcase name="completed_to_pending_sets_guest_pending_and_queues_user_status_mail" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/GuestPaymentSyncAndMailTest.php" line="89" class="Tests\Feature\GuestPaymentSyncAndMailTest" classname="Tests.Feature.GuestPaymentSyncAndMailTest" assertions="4" time="0.054650"/>
+      <testcase name="processing_to_completed_sets_guest_active_and_queues_payment_status_mail_only" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/GuestPaymentSyncAndMailTest.php" line="119" class="Tests\Feature\GuestPaymentSyncAndMailTest" classname="Tests.Feature.GuestPaymentSyncAndMailTest" assertions="4" time="0.049992"/>
+      <testcase name="pending_to_completed_sets_guest_active_and_queues_payment_status_mail_only" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/GuestPaymentSyncAndMailTest.php" line="147" class="Tests\Feature\GuestPaymentSyncAndMailTest" classname="Tests.Feature.GuestPaymentSyncAndMailTest" assertions="4" time="0.046480"/>
+      <testcase name="completed_to_processing_sets_guest_pending_and_queues_user_status_mail" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/GuestPaymentSyncAndMailTest.php" line="59" class="Tests\Feature\GuestPaymentSyncAndMailTest" classname="Tests.Feature.GuestPaymentSyncAndMailTest" assertions="4" time="0.045109"/>
+    </testsuite>
+  </testsuite>
+</testsuites>

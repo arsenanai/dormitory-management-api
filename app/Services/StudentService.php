@@ -152,7 +152,7 @@ class StudentService
             // Handle bed assignment and get the new room_id if it changes
             $oldRoomId = $student->room_id;
             $oldRoomTypeId = $student->room?->room_type_id;
-            
+
             $newRoomId = $this->processBedAssignment($student, isset($data['bed_id']) ? (int) $data['bed_id'] : null, $authUser->hasRole('sudo'));
             if ($newRoomId !== false) { // `false` indicates no change
                 $data['room_id'] = $newRoomId;
@@ -162,10 +162,10 @@ class StudentService
                     // Update room_id immediately so payment calculation uses the new room
                     $student->room_id = $newRoomId;
                     $student->save();
-                    
+
                     $student->load([ 'room.roomType', 'role' ]);
                     $newRoomTypeId = $student->room?->room_type_id;
-                    
+
                     // Only trigger payment when room type actually changes (e.g. standard ↔ lux)
                     if ($oldRoomTypeId && $newRoomTypeId && $oldRoomTypeId !== $newRoomTypeId) {
                         if ($student->hasPaidSemesterRentPayment()) {
@@ -277,10 +277,15 @@ class StudentService
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->findOrFail($id);
 
+        $oldStatus = $student->status;
         $student->status = 'active';
         $student->save();
 
-        return $student->load([ 'role', 'studentProfile', 'room' ]); // Return User model
+        event(new \App\Events\MailEventOccurred('user.status_changed', [
+            'user' => $student, 'old_status' => $oldStatus, 'new_status' => 'active',
+        ]));
+
+        return $student->load([ 'role', 'studentProfile', 'room' ]);
     }
 
     /**
@@ -474,6 +479,9 @@ class StudentService
                 $student->createPaymentsForTriggerEvent('registration');
             }
 
+            $locale = $this->normalizeMailLocale($data['locale'] ?? null);
+            event(new \App\Events\MailEventOccurred('user.registered', [ 'user' => $student, 'locale' => $locale ]));
+
             return $student->load([ 'role', 'studentProfile', 'room.dormitory', 'studentBed' ]);
         });
     }
@@ -546,13 +554,19 @@ class StudentService
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->findOrFail($id);
 
+        $oldStatus = $student->status;
         if (isset($data['has_access'])) {
             $student->status = $data['has_access'] ? 'active' : 'suspended';
         }
         $student->save();
 
+        if (isset($data['has_access']) && $oldStatus !== $student->status) {
+            event(new \App\Events\MailEventOccurred('user.status_changed', [
+                'user' => $student, 'old_status' => $oldStatus, 'new_status' => $student->status,
+            ]));
+        }
 
-        return $student->load([ 'role', 'room', 'studentProfile' ]); // Return User model
+        return $student->load([ 'role', 'room', 'studentProfile' ]);
     }
 
     /**
@@ -861,5 +875,14 @@ class StudentService
             $query->whereHas('user', fn ($q) => $q->where('id', '!=', $ignoreUserId));
         }
         return ! $query->exists();
+    }
+
+    private function normalizeMailLocale(mixed $value): string
+    {
+        $s = is_string($value) ? strtolower(trim($value)) : '';
+        if ($s === 'kz') {
+            $s = 'kk';
+        }
+        return in_array($s, [ 'en', 'kk', 'ru' ], true) ? $s : 'en';
     }
 }

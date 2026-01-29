@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -155,7 +156,7 @@ class User extends Authenticatable
     {
         $query = $this->payments()
             ->where('payment_type_id', $paymentType->id)
-            ->where('status', \App\Enums\PaymentStatus::Pending);
+            ->where('status', PaymentStatus::Pending);
 
         // For monthly payments, check current month
         if ($paymentType->isMonthly()) {
@@ -187,7 +188,7 @@ class User extends Authenticatable
         $today = now()->copy()->startOfDay();
 
         return $this->payments()
-            ->where('status', \App\Enums\PaymentStatus::Completed)
+            ->where('status', PaymentStatus::Completed)
             ->whereHas('type', function ($q) {
                 $q->where('target_role', 'student')
                   ->where('frequency', 'semesterly');
@@ -214,7 +215,7 @@ class User extends Authenticatable
         $end = \Carbon\Carbon::parse($profile->visit_end_date)->copy()->endOfDay();
 
         return $this->payments()
-            ->where('status', \App\Enums\PaymentStatus::Completed)
+            ->where('status', PaymentStatus::Completed)
             ->whereHas('type', function ($q) {
                 $q->where('target_role', 'guest');
             })

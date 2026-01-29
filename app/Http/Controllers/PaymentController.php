@@ -195,7 +195,7 @@ class PaymentController extends Controller
         $requestInput = $request->except(['_token', '_method']); // Exclude Laravel internal fields
         $requestKeys = array_keys($requestInput);
         $unexpectedFields = array_diff($requestKeys, $allowedFields);
-        
+
         if (!empty($unexpectedFields)) {
             return response()->json([
                 'message' => 'Invalid request. Only payment_check field is allowed.',

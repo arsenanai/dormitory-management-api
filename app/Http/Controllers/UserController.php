@@ -52,6 +52,7 @@ class UserController extends Controller
         'identification_number'    => 'nullable|string|max:255',
         'emergency_contact_name'   => 'nullable|string|max:255',
         'emergency_contact_phone'  => 'nullable|string|max:255',
+        'locale'                   => 'nullable|string|in:en,kk,ru,kz',
     ];
 
     public function __construct(UserAuthService $authService, StudentService $studentService, GuestService $guestService)
@@ -198,10 +199,10 @@ class UserController extends Controller
                 ],
                 'student_profile.gender'                   => 'required|in:male,female',
                 'student_profile.violations'               => 'nullable|string|max:1000',
+                'locale'                                   => 'nullable|string|in:en,kk,ru,kz',
             ]);
 
             // The service expects a Dormitory object.
-            $dormitory = null;
             $dormitory = \App\Models\Dormitory::find($validatedData['dormitory_id']);
 
             if (! $dormitory) {
@@ -367,6 +368,13 @@ class UserController extends Controller
             \App\Models\GuestProfile::create($guestProfileData);
         }
 
+        if ($user->hasRole('student') || $user->hasRole('guest')) {
+            event(new \App\Events\MailEventOccurred('user.registered', [
+                'user'   => $user->load([ 'role', 'studentProfile', 'guestProfile' ]),
+                'locale' => 'en',
+            ]));
+        }
+
         return response()->json($user->load([ 'role', 'room.dormitory', 'adminDormitory', 'studentProfile', 'guestProfile' ]), 201);
     }
 
@@ -458,7 +466,13 @@ class UserController extends Controller
         $userData = array_intersect_key($validated, array_flip($userFields));
         $profileData = array_intersect_key($validated, array_flip($profileFields));
 
+        $oldStatus = $user->status;
         $user->update($userData);
+        if (($user->hasRole('student') || $user->hasRole('guest')) && isset($userData['status']) && $oldStatus !== $user->status) {
+            event(new \App\Events\MailEventOccurred('user.status_changed', [
+                'user' => $user->fresh([ 'role' ]), 'old_status' => $oldStatus, 'new_status' => $user->status,
+            ]));
+        }
 
         // Update profile if student or guest
         if ($user->hasRole('student')) {

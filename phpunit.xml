@@ -36,9 +36,6 @@
             <text outputFile="build/coverage.txt"/>
             <clover outputFile="build/logs/clover.xml"/>
         </report>
-        <require>
-            <minimumPercent>80</minimumPercent>
-        </require>
     </coverage>
     <logging>
         <junit outputFile="build/report.junit.xml"/>

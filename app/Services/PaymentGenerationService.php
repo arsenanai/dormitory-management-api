@@ -86,11 +86,11 @@ class PaymentGenerationService
             }
 
             $semesterStart = $this->getSemesterStartDate($currentSemester, $semesterConfig);
-            
+
             // Check if today is within the first few days of the semester
             // (to allow for some flexibility in when the command runs)
             $daysSinceStart = $now->diffInDays($semesterStart);
-            
+
             // Consider it a new semester if we're within the first 7 days
             return $daysSinceStart <= 7 && $daysSinceStart >= 0;
         } catch (\Exception $e) {

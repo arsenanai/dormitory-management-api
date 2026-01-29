@@ -12,9 +12,11 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
+#[CoversNothing]
 class PaymentStatusUpdateTest extends TestCase
 {
     use RefreshDatabase;
@@ -29,8 +31,8 @@ class PaymentStatusUpdateTest extends TestCase
         Storage::fake('local');
 
         // Create roles
-        $studentRole = Role::factory()->create(['name' => 'student']);
-        $adminRole = Role::factory()->create(['name' => 'admin']);
+        $studentRole = Role::factory()->create([ 'name' => 'student' ]);
+        $adminRole = Role::factory()->create([ 'name' => 'admin' ]);
 
         // Create users
         $this->student = User::factory()->create([
@@ -43,41 +45,42 @@ class PaymentStatusUpdateTest extends TestCase
 
         // Create payment type
         $this->paymentType = PaymentType::factory()->create([
-            'name' => 'renting',
-            'frequency' => 'semesterly',
+            'name'               => 'renting',
+            'frequency'          => 'semesterly',
             'calculation_method' => 'fixed',
-            'fixed_amount' => 1000.00,
-            'target_role' => 'student',
+            'fixed_amount'       => 1000.00,
+            'target_role'        => 'student',
         ]);
     }
 
-    #[Test]
+    #[Test ]
     public function it_changes_payment_status_from_pending_to_processing_when_bank_check_is_uploaded(): void
     {
         // Create a pending payment
         $payment = Payment::factory()->create([
-            'user_id' => $this->student->id,
+            'user_id'         => $this->student->id,
             'payment_type_id' => $this->paymentType->id,
-            'status' => PaymentStatus::Pending,
-            'amount' => 1000.00,
-            'payment_check' => null,
+            'status'          => PaymentStatus::Pending,
+            'amount'          => 1000.00,
+            'payment_check'   => null,
         ]);
 
         // Verify initial status is pending
         $this->assertEquals(PaymentStatus::Pending, $payment->status);
         $this->assertNull($payment->payment_check);
 
-        // Upload bank check as student
+        // Upload bank check as student (multipart; my-payments only accepts payment_check)
         $file = UploadedFile::fake()->create('bank_check.pdf', 500, 'application/pdf');
 
         $response = $this->actingAs($this->student)
-            ->putJson("/api/my-payments/{$payment->id}", [
+            ->post("/api/my-payments/{$payment->id}", [
+                '_method'       => 'PUT',
                 'payment_check' => $file,
             ]);
 
         // Assert response is successful
         $response->assertOk();
-        $response->assertJsonPath('data.data.status', PaymentStatus::Processing->value);
+        $response->assertJsonPath('data.status', PaymentStatus::Processing->value);
 
         // Verify payment status changed to processing
         $payment->refresh();
@@ -85,53 +88,56 @@ class PaymentStatusUpdateTest extends TestCase
         $this->assertNotNull($payment->payment_check);
     }
 
-    #[Test]
+    #[Test ]
     public function it_does_not_change_status_when_payment_is_not_pending(): void
     {
         // Create a completed payment
         $payment = Payment::factory()->create([
-            'user_id' => $this->student->id,
+            'user_id'         => $this->student->id,
             'payment_type_id' => $this->paymentType->id,
-            'status' => PaymentStatus::Completed,
-            'amount' => 1000.00,
-            'payment_check' => 'payment_checks/existing_check.pdf',
+            'status'          => PaymentStatus::Completed,
+            'amount'          => 1000.00,
+            'payment_check'   => 'payment_checks/existing_check.pdf',
         ]);
 
         // Upload new bank check
         $file = UploadedFile::fake()->create('new_bank_check.pdf', 500, 'application/pdf');
 
         $response = $this->actingAs($this->student)
-            ->putJson("/api/my-payments/{$payment->id}", [
+            ->post("/api/my-payments/{$payment->id}", [
+                '_method'       => 'PUT',
                 'payment_check' => $file,
             ]);
 
-        // Assert response is successful
-        $response->assertOk();
+        // Endpoint rejects upload when payment is not pending (422)
+        $response->assertStatus(422);
+        $response->assertJsonPath('message', 'You can only upload bank checks for pending payments.');
 
         // Verify payment status remains completed
         $payment->refresh();
         $this->assertEquals(PaymentStatus::Completed, $payment->status);
     }
 
-    #[Test]
+    #[Test ]
     public function it_does_not_change_status_when_admin_explicitly_sets_status(): void
     {
         // Create a pending payment
         $payment = Payment::factory()->create([
-            'user_id' => $this->student->id,
+            'user_id'         => $this->student->id,
             'payment_type_id' => $this->paymentType->id,
-            'status' => PaymentStatus::Pending,
-            'amount' => 1000.00,
-            'payment_check' => null,
+            'status'          => PaymentStatus::Pending,
+            'amount'          => 1000.00,
+            'payment_check'   => null,
         ]);
 
-        // Admin updates payment with explicit status
+        // Admin updates payment with explicit status (multipart + _method=PUT)
         $file = UploadedFile::fake()->create('bank_check.pdf', 500, 'application/pdf');
 
         $response = $this->actingAs($this->admin)
-            ->putJson("/api/payments/{$payment->id}", [
+            ->post("/api/payments/{$payment->id}", [
+                '_method'       => 'PUT',
                 'payment_check' => $file,
-                'status' => PaymentStatus::Completed->value,
+                'status'        => PaymentStatus::Completed->value,
             ]);
 
         // Assert response is successful

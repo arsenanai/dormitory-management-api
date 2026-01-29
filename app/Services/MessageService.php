@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Dormitory;
 use App\Models\Message;
+use App\Models\Role;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class MessageService
@@ -146,9 +148,17 @@ class MessageService
         $message->sent_at = now();
         $message->save();
 
+        $recipients = $this->getRecipientUsersForMessage($message);
+        if ($recipients->isNotEmpty()) {
+            event(new \App\Events\MailEventOccurred('message.sent', [
+                'message' => $message->load([ 'sender', 'dormitory', 'room' ]),
+                'recipients' => $recipients,
+            ]));
+        }
+
         return response()->json([
             'message' => 'Message sent successfully',
-            'data'    => $message->load([ 'sender', 'dormitory', 'room' ])
+            'data'    => $message->load([ 'sender', 'dormitory', 'room' ]),
         ]);
     }
 
@@ -277,5 +287,48 @@ class MessageService
             ->count();
 
         return response()->json([ 'count' => $count ]);
+    }
+
+    /**
+     * Get users that receive a message based on its scope (recipient_type, dormitory_id, room_id, recipient_ids).
+     * Used when sending notification emails for message.sent.
+     *
+     * @return Collection<int, User>
+     */
+    public function getRecipientUsersForMessage(Message $message): Collection
+    {
+        $studentGuestRoleIds = Role::whereIn('name', [ 'student', 'guest' ])->pluck('id');
+
+        $query = User::query()
+            ->whereIn('role_id', $studentGuestRoleIds)
+            ->whereNotNull('room_id')
+            ->with([ 'role', 'room' ]);
+
+        switch ($message->recipient_type) {
+            case 'all':
+                return $query->get();
+            case 'dormitory':
+                if (! $message->dormitory_id) {
+                    return collect();
+                }
+                return $query->whereHas('room', fn ($q) => $q->where('dormitory_id', $message->dormitory_id))
+                    ->get();
+            case 'room':
+                if (! $message->room_id) {
+                    return collect();
+                }
+                return $query->where('room_id', $message->room_id)->get();
+            case 'individual':
+                $ids = $message->recipient_ids;
+                if (! is_array($ids) || $ids === []) {
+                    return collect();
+                }
+                return User::query()
+                    ->whereIn('id', $ids)
+                    ->with([ 'role', 'room' ])
+                    ->get();
+            default:
+                return collect();
+        }
     }
 }

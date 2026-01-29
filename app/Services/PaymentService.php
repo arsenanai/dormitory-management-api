@@ -42,12 +42,12 @@ class PaymentService
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('name', 'like', '%' . $search . '%')
-                            ->orWhere('email', 'like', '%' . $search . '%')
-                            ->orWhereHas('studentProfile', function ($profileQuery) use ($search) {
-                                $profileQuery->where('iin', 'like', '%' . $search . '%');
-                            });
-                    })
+                    $userQuery->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhereHas('studentProfile', function ($profileQuery) use ($search) {
+                            $profileQuery->where('iin', 'like', '%' . $search . '%');
+                        });
+                })
                     ->orWhere('amount', $search);
             });
         }
@@ -231,49 +231,66 @@ class PaymentService
             // Sync user status based on payment status changes
             $oldStatus = $payment->status;
             $newStatusValue = $data['status'] ?? null;
-            
+            $newStatus = null;
+
             // Only sync if status is being changed
             if ($newStatusValue !== null) {
                 // Convert string to enum if needed
-                $newStatus = $newStatusValue instanceof PaymentStatus 
-                    ? $newStatusValue 
+                $newStatus = $newStatusValue instanceof PaymentStatus
+                    ? $newStatusValue
                     : PaymentStatus::from($newStatusValue);
-                
+
                 if ($oldStatus !== $newStatus) {
                     $user = $payment->user()->with('role')->first();
-                    
+                    $emitUserStatus = $newStatus !== PaymentStatus::Completed;
+
                     if ($user && $user->hasRole('student')) {
-                        // Payment status changed from "processing" to "completed" → student becomes "active"
                         if ($oldStatus === PaymentStatus::Processing && $newStatus === PaymentStatus::Completed) {
+                            $oldUserStatus = $user->status;
                             $user->status = 'active';
                             $user->save();
-                        }
-                        // Payment status changed from "completed" to "pending" → student becomes "pending"
-                        elseif ($oldStatus === PaymentStatus::Completed && $newStatus === PaymentStatus::Pending) {
+                            if ($emitUserStatus) {
+                                event(new \App\Events\MailEventOccurred('user.status_changed', [
+                                    'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'active',
+                                ]));
+                            }
+                        } elseif ($oldStatus === PaymentStatus::Completed && $newStatus === PaymentStatus::Pending) {
+                            $oldUserStatus = $user->status;
                             $user->status = 'pending';
                             $user->save();
+                            if ($emitUserStatus) {
+                                event(new \App\Events\MailEventOccurred('user.status_changed', [
+                                    'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'pending',
+                                ]));
+                            }
                         }
                     } elseif ($user && $user->hasRole('guest')) {
-                        // Guest status sync logic
-                        // When payment is changed back to pending → guest becomes "pending"
                         if ($oldStatus === PaymentStatus::Completed && $newStatus === PaymentStatus::Pending) {
+                            $oldUserStatus = $user->status;
                             $user->status = 'pending';
                             $user->save();
-                        }
-                        // When payment is changed to completed → check if all payments are completed
-                        elseif ($oldStatus !== PaymentStatus::Completed && $newStatus === PaymentStatus::Completed) {
-                            // Check if guest has any pending payments
+                            if ($emitUserStatus) {
+                                event(new \App\Events\MailEventOccurred('user.status_changed', [
+                                    'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'pending',
+                                ]));
+                            }
+                        } elseif ($oldStatus !== PaymentStatus::Completed && $newStatus === PaymentStatus::Completed) {
                             $hasPendingPayments = $user->payments()
                                 ->whereHas('type', function ($q) {
                                     $q->where('target_role', 'guest');
                                 })
                                 ->where('status', PaymentStatus::Pending)
                                 ->exists();
-                            
-                            // If no pending payments, set guest to "active"
-                            if (!$hasPendingPayments) {
+
+                            if (! $hasPendingPayments) {
+                                $oldUserStatus = $user->status;
                                 $user->status = 'active';
                                 $user->save();
+                                if ($emitUserStatus) {
+                                    event(new \App\Events\MailEventOccurred('user.status_changed', [
+                                        'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'active',
+                                    ]));
+                                }
                             }
                         }
                     }
@@ -281,60 +298,67 @@ class PaymentService
             }
 
             $payment->update($data);
-            
+
             // After payment update, sync guest status based on all payments
-            // Reload payment with user to get updated status
             $payment->refresh();
             $updatedUser = $payment->user()->with('role')->first();
-            
+
             if ($updatedUser && $updatedUser->hasRole('guest')) {
-                $this->syncGuestStatusBasedOnPayments($updatedUser);
+                $skipStatusEmail = $newStatus !== null && $newStatus === PaymentStatus::Completed;
+                $this->syncGuestStatusBasedOnPayments($updatedUser, $skipStatusEmail);
             }
 
-            return new PaymentResource($payment->load([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ]));
+            $payment->load([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ]);
+            if ($newStatus !== null && $oldStatus !== $newStatus && $newStatus === PaymentStatus::Completed) {
+                event(new \App\Events\MailEventOccurred('payment.status_changed', [
+                    'payment' => $payment, 'old_status' => $oldStatus, 'new_status' => $newStatus,
+                ]));
+            }
+
+            return new PaymentResource($payment);
         });
     }
 
     /**
      * Sync guest status based on payment status
-     * - If guest has any pending payments → status = "pending"
-     * - If all payments are completed → status = "active"
-     * 
+     * - If guest has any incomplete payments (pending or processing) → status = "pending"
+     * - If all guest payments are completed → status = "active"
+     *
      * @param \App\Models\User $guest
+     * @param bool $skipStatusEmail when true, do not emit user.status_changed (e.g. we send payment email instead)
      * @return void
      */
-    private function syncGuestStatusBasedOnPayments(\App\Models\User $guest): void
+    private function syncGuestStatusBasedOnPayments(\App\Models\User $guest, bool $skipStatusEmail = false): void
     {
-        // Check if guest has any pending payments
-        $hasPendingPayments = $guest->payments()
-            ->whereHas('type', function ($q) {
-                $q->where('target_role', 'guest');
-            })
-            ->where('status', PaymentStatus::Pending)
+        $guestPaymentQuery = fn () => $guest->payments()->whereHas('type', function ($q) {
+            $q->where('target_role', 'guest');
+        });
+
+        $hasAnyIncomplete = $guestPaymentQuery()
+            ->whereIn('status', [ PaymentStatus::Pending, PaymentStatus::Processing ])
             ->exists();
-        
-        // Check if guest has any processing payments
-        $hasProcessingPayments = $guest->payments()
-            ->whereHas('type', function ($q) {
-                $q->where('target_role', 'guest');
-            })
-            ->where('status', PaymentStatus::Processing)
+
+        $allCompleted = ! $guestPaymentQuery()
+            ->where('status', '!=', PaymentStatus::Completed)
             ->exists();
-        
-        // If guest has pending payments, set status to "pending"
-        if ($hasPendingPayments) {
-            if ($guest->status !== 'pending') {
-                $guest->status = 'pending';
-                $guest->save();
+
+        if ($hasAnyIncomplete && $guest->status !== 'pending') {
+            $oldStatus = $guest->status;
+            $guest->status = 'pending';
+            $guest->save();
+            if (! $skipStatusEmail) {
+                event(new \App\Events\MailEventOccurred('user.status_changed', [
+                    'user' => $guest, 'old_status' => $oldStatus, 'new_status' => 'pending',
+                ]));
             }
-        }
-        // If no pending payments and has processing payments, keep current status (don't change)
-        // If no pending payments and no processing payments (all completed), set to "active"
-        elseif (!$hasProcessingPayments) {
-            // All payments are completed, set guest to "active"
-            if ($guest->status !== 'active') {
-                $guest->status = 'active';
-                $guest->save();
+        } elseif ($allCompleted && $guest->status !== 'active') {
+            $oldStatus = $guest->status;
+            $guest->status = 'active';
+            $guest->save();
+            if (! $skipStatusEmail) {
+                event(new \App\Events\MailEventOccurred('user.status_changed', [
+                    'user' => $guest, 'old_status' => $oldStatus, 'new_status' => 'active',
+                ]));
             }
         }
     }
@@ -381,7 +405,7 @@ class PaymentService
 
         $payments = $query->orderBy('deal_date', 'desc')->get();
 
-        $configrationService = new ConfigrationService();
+        $configurationService = new ConfigurationService();
         $currencySymbol = $configurationService->getCurrencySymbol();
 
         // Create CSV content

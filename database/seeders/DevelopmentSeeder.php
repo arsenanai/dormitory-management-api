@@ -158,40 +158,40 @@ class DevelopmentSeeder extends Seeder
             [155, 89, 182],   // Purple
             [241, 196, 15],   // Yellow/Orange
         ];
-        
+
         foreach ($colors as $color) {
             // Create a 100x100 image
             $image = imagecreatetruecolor(100, 100);
             $bgColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
             imagefill($image, 0, 0, $bgColor);
-            
+
             // Add a simple circle or pattern for visual interest
             $white = imagecolorallocate($image, 255, 255, 255);
             $centerX = 50;
             $centerY = 50;
             $radius = 35;
             imagefilledellipse($image, $centerX, $centerY, $radius * 2, $radius * 2, $white);
-            
+
             // Add a smaller circle inside
             $innerColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
             imagefilledellipse($image, $centerX, $centerY, $radius, $radius, $innerColor);
-            
+
             // Capture output
             ob_start();
             imagepng($image);
             $imageData = ob_get_contents();
             ob_end_clean();
             imagedestroy($image);
-            
+
             $avatars[] = base64_encode($imageData);
         }
-        
+
         return $avatars;
     }
 
     /**
      * Generate room type photos using GD library
-     * 
+     *
      * @param string $roomTypeName Name of the room type (e.g., 'standard', 'lux')
      * @param int $count Number of photos to generate
      * @return array Array of file paths
@@ -200,7 +200,7 @@ class DevelopmentSeeder extends Seeder
     {
         $photos = [];
         $directory = 'room-type';
-        
+
         // Different color schemes for different room types
         $colorSchemes = [
             'standard' => [
@@ -214,57 +214,58 @@ class DevelopmentSeeder extends Seeder
                 [255, 192, 203],  // Pink
             ],
         ];
-        
+
         $colors = $colorSchemes[$roomTypeName] ?? $colorSchemes['standard'];
-        
+
         for ($i = 0; $i < $count; $i++) {
             $color = $colors[$i % count($colors)];
-            
+
             // Create a 800x600 image (room photo size)
             $image = imagecreatetruecolor(800, 600);
             $bgColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
             imagefill($image, 0, 0, $bgColor);
-            
+
             // Add some visual elements to make it look like a room
-            $darkerColor = imagecolorallocate($image, 
-                max(0, $color[0] - 30), 
-                max(0, $color[1] - 30), 
+            $darkerColor = imagecolorallocate(
+                $image,
+                max(0, $color[0] - 30),
+                max(0, $color[1] - 30),
                 max(0, $color[2] - 30)
             );
-            
+
             // Draw a "window" rectangle
             $windowX = 150;
             $windowY = 100;
             $windowW = 200;
             $windowH = 250;
             imagefilledrectangle($image, $windowX, $windowY, $windowX + $windowW, $windowY + $windowH, $darkerColor);
-            
+
             // Draw a "bed" rectangle
             $bedX = 400;
             $bedY = 400;
             $bedW = 300;
             $bedH = 150;
             imagefilledrectangle($image, $bedX, $bedY, $bedX + $bedW, $bedY + $bedH, $darkerColor);
-            
+
             // Add text label
             $textColor = imagecolorallocate($image, 100, 100, 100);
             imagestring($image, 5, 50, 50, ucfirst($roomTypeName) . ' Room Photo ' . ($i + 1), $textColor);
-            
+
             // Generate filename
             $filename = $roomTypeName . '_photo_' . ($i + 1) . '.png';
             $path = $directory . '/' . $filename;
-            
+
             // Save image to storage
             ob_start();
             imagepng($image);
             $imageData = ob_get_contents();
             ob_end_clean();
             imagedestroy($image);
-            
+
             Storage::disk('public')->put($path, $imageData);
             $photos[] = $path;
         }
-        
+
         return $photos;
     }
 
@@ -284,14 +285,14 @@ class DevelopmentSeeder extends Seeder
         $stepStart = microtime(true);
         $standardRoomType = RoomType::firstOrCreate([ 'name' => 'standard' ], [ 'capacity' => 2, 'daily_rate' => 10000.00, 'semester_rate' => 300000.00 ]);
         $luxRoomType = RoomType::firstOrCreate([ 'name' => 'lux' ], [ 'capacity' => 1, 'daily_rate' => 20000.00, 'semester_rate' => 500000.00 ]);
-        
+
         // Generate and store photos for room types
         $standardPhotos = $this->generateRoomTypePhotos('standard', 3);
         $luxPhotos = $this->generateRoomTypePhotos('lux', 3);
-        
+
         $standardRoomType->update([ 'photos' => $standardPhotos ]);
         $luxRoomType->update([ 'photos' => $luxPhotos ]);
-        
+
         $this->command->info('Room types created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         // Create Blood Types
