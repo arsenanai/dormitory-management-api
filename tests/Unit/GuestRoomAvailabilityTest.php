@@ -10,6 +10,9 @@ use App\Services\RoomService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\RoomService
+ */
 class GuestRoomAvailabilityTest extends TestCase
 {
     use RefreshDatabase;
@@ -31,19 +34,19 @@ class GuestRoomAvailabilityTest extends TestCase
     public function it_returns_guest_rooms_for_guests()
     {
         $room = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
             'occupant_type' => 'guest',
         ]);
 
         Bed::create([
-            'room_id' => $room->id,
+            'room_id'    => $room->id,
             'bed_number' => 1,
         ]);
 
         $availableRooms = $this->roomService->available($this->dormitory->id, 'guest', [
             'start_date' => '2023-01-01',
-            'end_date' => '2023-01-02',
+            'end_date'   => '2023-01-02',
         ]);
 
         $this->assertCount(1, $availableRooms);
@@ -53,19 +56,19 @@ class GuestRoomAvailabilityTest extends TestCase
     public function it_does_not_return_student_rooms_for_guests_by_default()
     {
         $room = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
             'occupant_type' => 'student',
         ]);
 
         Bed::create([
-            'room_id' => $room->id,
+            'room_id'    => $room->id,
             'bed_number' => 1,
         ]);
 
         $availableRooms = $this->roomService->available($this->dormitory->id, 'guest', [
             'start_date' => '2023-01-01',
-            'end_date' => '2023-01-02',
+            'end_date'   => '2023-01-02',
         ]);
 
         $this->assertCount(0, $availableRooms);

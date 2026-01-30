@@ -259,13 +259,18 @@ class StudentService
             $this->deleteFiles(is_array($filesToDelete) ? $filesToDelete : []);
         }
 
-        // Free up the bed if assigned
+        // Free up the bed if assigned (beds.user_id and is_occupied cleared so FK allows user deletion)
         if ($student->studentBed) {
-            $student->studentBed->update([ 'user_id' => null ]);
+            $student->studentBed->update([ 'user_id' => null, 'is_occupied' => false ]);
         }
 
-        $student->studentProfile->delete();
-        $student->delete();
+        // Delete student profile if present (e.g. incomplete registration may have none)
+        if ($student->studentProfile) {
+            $student->studentProfile->delete();
+        }
+
+        // Hard delete user so the row is removed from the table; cascades remove payments and profile
+        $student->forceDelete();
         return true; // Return boolean for success
     }
 
@@ -282,7 +287,7 @@ class StudentService
         $student->save();
 
         event(new \App\Events\MailEventOccurred('user.status_changed', [
-            'user' => $student, 'old_status' => $oldStatus, 'new_status' => 'active',
+            'user'       => $student, 'old_status' => $oldStatus, 'new_status' => 'active',
         ]));
 
         return $student->load([ 'role', 'studentProfile', 'room' ]);
@@ -431,7 +436,7 @@ class StudentService
 
         return DB::transaction(function () use ($data, $dormitory) {
             // Validate that the student's gender is compatible with the dormitory's gender policy.
-            $gender = $data['gender'] ?? null;
+            $gender = $data['student_profile']['gender'] ?? $data['gender'] ?? null;
             if (
                 ($dormitory->gender === 'male' && $gender === 'female') ||
                 ($dormitory->gender === 'female' && $gender === 'male')
@@ -443,11 +448,18 @@ class StudentService
             $userData = $this->prepareUserData($data);
             $profileData = $this->prepareProfileData($data, false);
 
-            // The 'files' array is already validated and part of $data['student_profile'].
-            // We just need to store them and get their paths.
-            if (isset($profileData['files']) && is_array($profileData['files'])) {
-                $storedFilePaths = $this->storeNewFiles($profileData['files']);
+            // Store uploaded files from request (registration sends multipart; files may not be in profileData)
+            $incomingFiles = $data['student_profile']['files'] ?? $profileData['files'] ?? null;
+            if (isset($incomingFiles) && is_array($incomingFiles)) {
+                $storedFilePaths = $this->storeNewFiles($incomingFiles);
                 $profileData['files'] = $storedFilePaths;
+            } elseif (isset($profileData['files']) && is_array($profileData['files'])) {
+                // Strip any UploadedFile instances so we never persist file objects
+                $clean = [];
+                foreach ($profileData['files'] as $idx => $f) {
+                    $clean[ $idx ] = ($f instanceof \Illuminate\Http\UploadedFile) ? null : $f;
+                }
+                $profileData['files'] = array_replace(array_fill(0, 3, null), $clean);
             }
             // If a bed is assigned, update the user's room_id and dormitory_id
             // if (isset($data['bed_id'])) {
@@ -562,7 +574,7 @@ class StudentService
 
         if (isset($data['has_access']) && $oldStatus !== $student->status) {
             event(new \App\Events\MailEventOccurred('user.status_changed', [
-                'user' => $student, 'old_status' => $oldStatus, 'new_status' => $student->status,
+                'user'       => $student, 'old_status' => $oldStatus, 'new_status' => $student->status,
             ]));
         }
 
@@ -717,13 +729,17 @@ class StudentService
 
     /**
      * Prepares the data array for the StudentProfile.
+     * Merges with all fillable keys so optional fields sent by the frontend are never dropped.
      */
     private function prepareProfileData(array $data, bool $isUpdate): array
     {
         $profileFillable = (new StudentProfile())->getFillable();
         // Prioritize the nested student_profile object if it exists, otherwise use the flat data array.
         $sourceData = $data['student_profile'] ?? $data;
+        // Start with null for every fillable key, then overlay request data so all keys land.
+        $defaults = array_fill_keys($profileFillable, null);
         $profileData = array_intersect_key($sourceData, array_flip($profileFillable));
+        $profileData = array_merge($defaults, $profileData);
 
         // Ensure student_id is correctly handled for both create and update.
         // The `student_id` might be at the root of `$data` or inside `student_profile`.
@@ -738,6 +754,13 @@ class StudentService
         // Explicitly cast boolean-like strings to a boolean for database insertion.
         if (isset($profileData['agree_to_dormitory_rules'])) {
             $profileData['agree_to_dormitory_rules'] = filter_var($profileData['agree_to_dormitory_rules'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        // DB columns that are NOT NULL without default when inserting: ensure booleans are never null.
+        foreach ([ 'is_backup_list', 'registration_limit_reached' ] as $key) {
+            if (array_key_exists($key, $profileData) && $profileData[ $key ] === null) {
+                $profileData[ $key ] = false;
+            }
         }
 
         return $profileData;

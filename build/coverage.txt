@@ -1,28 +1,56 @@
 
 
 [1;37;40mCode Coverage Report:       [0m
-[1;37;40m  2026-01-29 13:45:18       [0m
+[1;37;40m  2026-01-30 06:12:05       [0m
 [1;37;40m                            [0m
 [1;37;40m Summary:                   [0m
-[37;41m  Classes:  0.00% (0/66)    [0m
-[37;41m  Methods:  4.58% (19/415)  [0m
-[37;41m  Lines:    4.44% (197/4438)[0m
+[37;41m  Classes:  3.03% (2/66)    [0m
+[37;41m  Methods: 11.08% (46/415)  [0m
+[37;41m  Lines:   13.57% (603/4445)[0m
 
+App\Events\MailEventOccurred
+  [30;42mMethods: 100.00% ( 1/ 1)[0m   [30;42mLines: 100.00% (  1/  1)[0m
+App\Http\Controllers\AdminController
+  [37;41mMethods:   0.00% ( 0/ 6)[0m   [37;41mLines:  46.43% ( 26/ 56)[0m
+App\Http\Controllers\DashboardController
+  [37;41mMethods:  12.50% ( 1/ 8)[0m   [37;41mLines:  12.50% (  1/  8)[0m
+App\Http\Controllers\DormitoryController
+  [37;41mMethods:  33.33% ( 4/12)[0m   [37;41mLines:  47.62% ( 30/ 63)[0m
+App\Http\Controllers\PaymentController
+  [37;41mMethods:  20.00% ( 2/10)[0m   [37;41mLines:  47.27% ( 52/110)[0m
+App\Http\Controllers\PaymentTypeController
+  [30;43mMethods:  80.00% ( 4/ 5)[0m   [30;43mLines:  87.50% (  7/  8)[0m
+App\Http\Controllers\RoomTypeController
+  [37;41mMethods:  33.33% ( 2/ 6)[0m   [30;43mLines:  72.73% ( 16/ 22)[0m
 App\Http\Controllers\StudentController
-  [37;41mMethods:  15.38% ( 2/13)[0m   [37;41mLines:  34.95% ( 72/206)[0m
+  [37;41mMethods:  23.08% ( 3/13)[0m   [30;43mLines:  71.84% (148/206)[0m
+App\Http\Controllers\UserController
+  [37;41mMethods:  10.53% ( 2/19)[0m   [37;41mLines:   1.43% (  9/629)[0m
 App\Http\Middleware\RoleMiddleware
-  [37;41mMethods:   0.00% ( 0/ 1)[0m   [30;42mLines:  94.74% ( 18/ 19)[0m
-App\Models\Bed
-  [37;41mMethods:  33.33% ( 1/ 3)[0m   [37;41mLines:  33.33% (  1/  3)[0m
-App\Models\GuestProfile
+  [37;41mMethods:   0.00% ( 0/ 1)[0m   [30;43mLines:  78.95% ( 15/ 19)[0m
+App\Jobs\SendUserRegisteredMail
+  [37;41mMethods:  50.00% ( 1/ 2)[0m   [37;41mLines:  36.84% (  7/ 19)[0m
+App\Listeners\ProcessMailEvent
+  [37;41mMethods:   9.09% ( 1/11)[0m   [30;43mLines:  53.97% ( 68/126)[0m
+App\Mail\UserRegisteredMail
+  [30;43mMethods:  66.67% ( 2/ 3)[0m   [30;42mLines:  95.45% ( 21/ 22)[0m
+App\Models\Dormitory
   [37;41mMethods:  50.00% ( 1/ 2)[0m   [37;41mLines:  50.00% (  1/  2)[0m
 App\Models\Room
-  [30;43mMethods:  66.67% ( 2/ 3)[0m   [30;43mLines:  66.67% (  2/  3)[0m
+  [30;42mMethods: 100.00% ( 3/ 3)[0m   [30;42mLines: 100.00% (  3/  3)[0m
 App\Models\User
   [37;41mMethods:  37.50% ( 6/16)[0m   [37;41mLines:   8.33% (  6/ 72)[0m
-App\Services\FileService
-  [37;41mMethods:   0.00% ( 0/ 7)[0m   [37;41mLines:  21.67% ( 13/ 60)[0m
-App\Services\RoomTypeService
-  [37;41mMethods:  50.00% ( 4/ 8)[0m   [30;43mLines:  81.82% ( 18/ 22)[0m
+App\Services\AdminService
+  [37;41mMethods:  33.33% ( 2/ 6)[0m   [30;43mLines:  76.92% ( 50/ 65)[0m
+App\Services\DashboardService
+  [37;41mMethods:   9.09% ( 1/11)[0m   [37;41mLines:  10.57% ( 26/246)[0m
+App\Services\DormitoryService
+  [37;41mMethods:  40.00% ( 4/10)[0m   [37;41mLines:  12.50% ( 12/ 96)[0m
+App\Services\GuestService
+  [37;41mMethods:   8.33% ( 1/12)[0m   [37;41mLines:   0.32% (  1/311)[0m
+App\Services\PaymentService
+  [37;41mMethods:  12.50% ( 1/ 8)[0m   [37;41mLines:   0.49% (  1/204)[0m
+App\Services\RoomService
+  [37;41mMethods:   0.00% ( 0/ 8)[0m   [37;41mLines:  13.68% ( 16/117)[0m
 App\Services\StudentService
-  [37;41mMethods:  10.34% ( 3/29)[0m   [37;41mLines:  16.46% ( 66/401)[0m
+  [37;41mMethods:  13.79% ( 4/29)[0m   [37;41mLines:  21.39% ( 86/402)[0m

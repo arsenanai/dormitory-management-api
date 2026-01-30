@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\AdminProfile;
+use App\Models\Dormitory;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -38,14 +40,30 @@ class AdminSeeder extends Seeder
             'email_verified_at' => now(),
         ]);
 
-        // Create AdminProfile for the admin user
-        \App\Models\AdminProfile::firstOrCreate([
-            'user_id' => $adminUser->id,
-        ], [
-            'position'        => 'Dormitory Administrator',
-            'department'      => 'Student Housing',
-            'office_phone'    => '+7 777 123 45 67',
-            'office_location' => 'Main Office',
-        ]);
+        // Create or get a default dormitory assigned to this admin (required for admin login)
+        $dormitory = Dormitory::firstOrCreate(
+            [ 'name' => 'Main Dormitory' ],
+            [
+                'address'  => '123 Main St',
+                'gender'   => 'male',
+                'capacity' => 100,
+                'admin_id' => $adminUser->id,
+            ]
+        );
+        if (! $dormitory->admin_id) {
+            $dormitory->update([ 'admin_id' => $adminUser->id ]);
+        }
+
+        // Create AdminProfile for the admin user and link dormitory
+        AdminProfile::updateOrCreate(
+            [ 'user_id' => $adminUser->id ],
+            [
+                'dormitory_id'   => $dormitory->id,
+                'position'       => 'Dormitory Administrator',
+                'department'     => 'Student Housing',
+                'office_phone'   => '+7 777 123 45 67',
+                'office_location' => 'Main Office',
+            ]
+        );
     }
 }

@@ -7,6 +7,9 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Models\StudentProfile
+ */
 class StudentProfileModelTest extends TestCase
 {
     use RefreshDatabase;
@@ -16,24 +19,24 @@ class StudentProfileModelTest extends TestCase
         $user = User::factory()->create();
 
         $profile = StudentProfile::create([
-            'user_id' => $user->id,
-            'iin' => '123456789012',
-            'student_id' => 'STU001',
-            'faculty' => 'Engineering',
-            'specialist' => 'Computer Science',
-            'enrollment_year' => 2024,
-            'gender' => 'male',
-            'emergency_contact_name' => 'John Doe',
+            'user_id'                 => $user->id,
+            'iin'                     => '123456789012',
+            'student_id'              => 'STU001',
+            'faculty'                 => 'Engineering',
+            'specialist'              => 'Computer Science',
+            'enrollment_year'         => 2024,
+            'gender'                  => 'male',
+            'emergency_contact_name'  => 'John Doe',
             'emergency_contact_phone' => '+77001234567',
-            'emergency_contact_type' => 'parent',
+            'emergency_contact_type'  => 'parent',
             'emergency_contact_email' => 'parent@example.com',
         ]);
 
         $this->assertDatabaseHas('student_profiles', [
-            'user_id' => $user->id,
-            'emergency_contact_name' => 'John Doe',
+            'user_id'                 => $user->id,
+            'emergency_contact_name'  => 'John Doe',
             'emergency_contact_phone' => '+77001234567',
-            'emergency_contact_type' => 'parent',
+            'emergency_contact_type'  => 'parent',
             'emergency_contact_email' => 'parent@example.com',
         ]);
 
@@ -45,20 +48,20 @@ class StudentProfileModelTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $types = ['parent', 'guardian', 'other'];
+        $types = [ 'parent', 'guardian', 'other' ];
 
         foreach ($types as $type) {
             $profile = StudentProfile::create([
-                'user_id' => $user->id,
-                'iin' => fake()->unique()->numerify('############'),
-                'student_id' => fake()->unique()->numerify('STU#####'),
-                'faculty' => 'Engineering',
-                'specialist' => 'Computer Science',
-                'enrollment_year' => 2024,
-                'gender' => 'male',
-                'emergency_contact_name' => 'Contact Name',
+                'user_id'                 => $user->id,
+                'iin'                     => fake()->unique()->numerify('############'),
+                'student_id'              => fake()->unique()->numerify('STU#####'),
+                'faculty'                 => 'Engineering',
+                'specialist'              => 'Computer Science',
+                'enrollment_year'         => 2024,
+                'gender'                  => 'male',
+                'emergency_contact_name'  => 'Contact Name',
                 'emergency_contact_phone' => '+77001234567',
-                'emergency_contact_type' => $type,
+                'emergency_contact_type'  => $type,
                 'emergency_contact_email' => 'contact@example.com',
             ]);
 
@@ -106,20 +109,20 @@ class StudentProfileModelTest extends TestCase
         $user = User::factory()->create();
 
         $profile = StudentProfile::create([
-            'user_id' => $user->id,
-            'iin' => '123456789012',
-            'student_id' => 'STU001',
-            'faculty' => 'Engineering',
-            'specialist' => 'Computer Science',
-            'enrollment_year' => 2024,
-            'gender' => 'male',
-            'identification_type' => 'passport',
+            'user_id'               => $user->id,
+            'iin'                   => '123456789012',
+            'student_id'            => 'STU001',
+            'faculty'               => 'Engineering',
+            'specialist'            => 'Computer Science',
+            'enrollment_year'       => 2024,
+            'gender'                => 'male',
+            'identification_type'   => 'passport',
             'identification_number' => 'A123456789',
         ]);
 
         $this->assertDatabaseHas('student_profiles', [
-            'user_id' => $user->id,
-            'identification_type' => 'passport',
+            'user_id'               => $user->id,
+            'identification_type'   => 'passport',
             'identification_number' => 'A123456789',
         ]);
 
@@ -132,22 +135,22 @@ class StudentProfileModelTest extends TestCase
         $user = User::factory()->create();
 
         $types = [
-            ['type' => 'passport', 'number' => 'A123456789'],
-            ['type' => 'national_id', 'number' => '123456789012'],
-            ['type' => 'drivers_license', 'number' => 'DL987654321'],
-            ['type' => 'other', 'number' => 'OTHER123456']
+            [ 'type' => 'passport', 'number' => 'A123456789' ],
+            [ 'type' => 'national_id', 'number' => '123456789012' ],
+            [ 'type' => 'drivers_license', 'number' => 'DL987654321' ],
+            [ 'type' => 'other', 'number' => 'OTHER123456' ]
         ];
 
         foreach ($types as $identification) {
             $profile = StudentProfile::create([
-                'user_id' => $user->id,
-                'iin' => fake()->unique()->numerify('############'),
-                'student_id' => fake()->unique()->numerify('STU#####'),
-                'faculty' => 'Engineering',
-                'specialist' => 'Computer Science',
-                'enrollment_year' => 2024,
-                'gender' => 'male',
-                'identification_type' => $identification['type'],
+                'user_id'               => $user->id,
+                'iin'                   => fake()->unique()->numerify('############'),
+                'student_id'            => fake()->unique()->numerify('STU#####'),
+                'faculty'               => 'Engineering',
+                'specialist'            => 'Computer Science',
+                'enrollment_year'       => 2024,
+                'gender'                => 'male',
+                'identification_type'   => $identification['type'],
                 'identification_number' => $identification['number'],
             ]);
 

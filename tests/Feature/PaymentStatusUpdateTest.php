@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\PaymentStatus;
+use App\Http\Controllers\PaymentController;
 use App\Models\Payment;
 use App\Models\PaymentType;
 use App\Models\Role;
@@ -12,11 +13,11 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-#[CoversNothing]
+#[CoversClass(PaymentController::class) ]
 class PaymentStatusUpdateTest extends TestCase
 {
     use RefreshDatabase;

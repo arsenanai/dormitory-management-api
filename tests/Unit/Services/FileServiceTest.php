@@ -8,6 +8,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\FileService
+ */
 class FileServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -86,7 +89,7 @@ class FileServiceTest extends TestCase
     public function test_validate_file_with_custom_rules(): void
     {
         $file = UploadedFile::fake()->create('image.png', 500, 'image/png');
-        $customRules = ['mimes:png,jpg', 'max:1000'];
+        $customRules = [ 'mimes:png,jpg', 'max:1000' ];
         $result = $this->fileService->validateFile($file, $customRules);
 
         $this->assertTrue($result['valid']);
@@ -147,7 +150,7 @@ class FileServiceTest extends TestCase
      */
     public function test_download_student_file_different_image_extensions(): void
     {
-        $extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $extensions = [ 'jpg', 'jpeg', 'png', 'gif', 'webp' ];
 
         foreach ($extensions as $ext) {
             $filename = "test_image.{$ext}";

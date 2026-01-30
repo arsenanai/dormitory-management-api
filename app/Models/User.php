@@ -136,13 +136,23 @@ class User extends Authenticatable
 
         $createdPayments = [];
 
+        // For guests with room_daily_rate, use guest profile dates for payment date range
+        $dateFrom = null;
+        $dateTo = null;
+        if ($roleName === 'guest' && $this->guestProfile) {
+            if ($this->guestProfile->visit_start_date && $this->guestProfile->visit_end_date) {
+                $dateFrom = \Carbon\Carbon::parse($this->guestProfile->visit_start_date);
+                $dateTo = \Carbon\Carbon::parse($this->guestProfile->visit_end_date);
+            }
+        }
+
         foreach ($paymentTypes as $paymentType) {
             // Check if payment already exists for this type and period
-            if ($this->hasExistingPaymentForType($paymentType, $triggerEvent)) {
+            if ($this->hasExistingPaymentForType($paymentType, $triggerEvent, $dateFrom, $dateTo)) {
                 continue;
             }
 
-            $payment = Payment::createForUser($this, $paymentType);
+            $payment = Payment::createForUser($this, $paymentType, $dateFrom, $dateTo);
             $createdPayments[] = $payment;
         }
 
@@ -151,9 +161,20 @@ class User extends Authenticatable
 
     /**
      * Check if user already has a payment for the given PaymentType and trigger event.
+     * For 'new_booking' events, checks date range overlap instead of just existence.
+     *
+     * @param PaymentType $paymentType
+     * @param string $triggerEvent
+     * @param \Carbon\Carbon|null $dateFrom Optional start date for date range check
+     * @param \Carbon\Carbon|null $dateTo Optional end date for date range check
+     * @return bool
      */
-    private function hasExistingPaymentForType(PaymentType $paymentType, string $triggerEvent): bool
-    {
+    private function hasExistingPaymentForType(
+        PaymentType $paymentType,
+        string $triggerEvent,
+        ?\Carbon\Carbon $dateFrom = null,
+        ?\Carbon\Carbon $dateTo = null
+    ): bool {
         $query = $this->payments()
             ->where('payment_type_id', $paymentType->id)
             ->where('status', PaymentStatus::Pending);
@@ -168,10 +189,41 @@ class User extends Authenticatable
             // Check if payment exists in the last 6 months (semester period)
             $query->where('created_at', '>=', now()->subMonths(6));
         }
-        // For one-time payments, check if any exists
+        // For one-time payments
         else {
-            // For registration/booking, only create once per user
-            if (in_array($triggerEvent, ['registration', 'new_booking'])) {
+            // For 'new_booking' events, check date range overlap (allow multiple bookings for different dates)
+            if ($triggerEvent === 'new_booking' && $dateFrom && $dateTo) {
+                $query->where(function ($q) use ($dateFrom, $dateTo) {
+                    // Check if any existing payment overlaps with the new date range
+                    $q->where(function ($q2) use ($dateFrom, $dateTo) {
+                        // New range starts within existing payment range
+                        $q2->where('date_from', '<=', $dateFrom)
+                           ->where(function ($q3) use ($dateFrom, $dateTo) {
+                               $q3->whereNull('date_to')
+                                  ->orWhere('date_to', '>=', $dateFrom);
+                           });
+                    })
+                    ->orWhere(function ($q2) use ($dateFrom, $dateTo) {
+                        // New range ends within existing payment range
+                        $q2->where('date_from', '<=', $dateTo)
+                           ->where(function ($q3) use ($dateFrom, $dateTo) {
+                               $q3->whereNull('date_to')
+                                  ->orWhere('date_to', '>=', $dateTo);
+                           });
+                    })
+                    ->orWhere(function ($q2) use ($dateFrom, $dateTo) {
+                        // New range completely contains existing payment range
+                        $q2->where('date_from', '>=', $dateFrom)
+                           ->where(function ($q3) use ($dateFrom, $dateTo) {
+                               $q3->whereNull('date_to')
+                                  ->orWhere('date_to', '<=', $dateTo);
+                           });
+                    });
+                });
+                return $query->exists();
+            }
+            // For registration, only create once per user
+            elseif ($triggerEvent === 'registration') {
                 return $query->exists();
             }
         }

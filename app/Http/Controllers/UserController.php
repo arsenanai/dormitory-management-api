@@ -171,10 +171,11 @@ class UserController extends Controller
                 'student_profile.blood_type'               => 'nullable|string',
                 'student_profile.city'                     => 'nullable|string|max:255',
                 'student_profile.country'                  => 'nullable|string|max:255',
-                'student_profile.emergency_contact_name'   => 'nullable|string|max:255',
-                'student_profile.emergency_contact_phone'  => 'nullable|string|max:255',
-                'student_profile.emergency_contact_type'   => 'nullable|in:parent,guardian,other',
-                'student_profile.emergency_contact_email'  => 'nullable|email|max:255',
+                'student_profile.emergency_contact_name'         => 'nullable|string|max:255',
+                'student_profile.emergency_contact_phone'        => 'nullable|string|max:255',
+                'student_profile.emergency_contact_type'         => 'nullable|in:parent,guardian,other',
+                'student_profile.emergency_contact_email'        => 'nullable|email|max:255',
+                'student_profile.emergency_contact_relationship' => 'nullable|string|max:255',
                 'student_profile.identification_type'      => 'required|string|in:passport,national_id,drivers_license,other',
                 'student_profile.identification_number'    => 'required|string|max:255',
                 'student_profile.enrollment_year'          => 'required|integer|digits:4',
@@ -211,6 +212,29 @@ class UserController extends Controller
 
             // Ensure boolean fields are correctly casted, as they might come from FormData.
             $validatedData['student_profile']['agree_to_dormitory_rules'] = filter_var($validatedData['student_profile']['agree_to_dormitory_rules'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            // Ensure multipart file inputs are passed through (validated() may omit nested file arrays).
+            // Build [0, 1, 2] array so avatar (index 2) is always at the correct slot.
+            $profileFiles = [ null, null, null ];
+            foreach ([ 0, 1, 2 ] as $index) {
+                $file = $request->file("student_profile.files.{$index}");
+                if ($file instanceof UploadedFile && $file->isValid()) {
+                    $profileFiles[ $index ] = $file;
+                }
+            }
+            // Fallback: when only some indices are sent (e.g. only avatar at [2]), dot notation may not find them in some environments; merge from allFiles() preserving keys.
+            $allFiles = $request->allFiles();
+            $nestedFiles = $allFiles['student_profile']['files'] ?? [];
+            if (is_array($nestedFiles)) {
+                foreach ($nestedFiles as $idx => $file) {
+                    if ($file instanceof UploadedFile && $file->isValid() && $idx >= 0 && $idx <= 2) {
+                        $profileFiles[ (int) $idx ] = $file;
+                    }
+                }
+            }
+            if (array_filter($profileFiles)) {
+                $validatedData['student_profile']['files'] = $profileFiles;
+            }
 
             // The createStudent method in StudentService now handles all the logic.
             // We just need to pass it the validated and normalized data.
@@ -470,7 +494,7 @@ class UserController extends Controller
         $user->update($userData);
         if (($user->hasRole('student') || $user->hasRole('guest')) && isset($userData['status']) && $oldStatus !== $user->status) {
             event(new \App\Events\MailEventOccurred('user.status_changed', [
-                'user' => $user->fresh([ 'role' ]), 'old_status' => $oldStatus, 'new_status' => $user->status,
+                'user'       => $user->fresh([ 'role' ]), 'old_status' => $oldStatus, 'new_status' => $user->status,
             ]));
         }
 
@@ -678,7 +702,7 @@ class UserController extends Controller
             $result = $this->studentService->updateStudent($user->id, $validated, $user);
 
             return response()->json([
-                'data' => $result['user'],
+                'data'    => $result['user'],
                 'warning' => $result['warning'],
             ]);
         }
@@ -713,7 +737,7 @@ class UserController extends Controller
             $result = $this->guestService->updateGuest($user->id, $validated);
 
             return response()->json([
-                'data' => $result['user'],
+                'data'    => $result['user'],
                 'warning' => $result['warning'],
             ]);
         }

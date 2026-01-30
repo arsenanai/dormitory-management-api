@@ -32,6 +32,13 @@ class PaymentTypeSeeder extends Seeder
                 'target_role' => 'guest',
                 'trigger_event' => 'registration',
             ],
+            [
+                'name' => 'guest_booking',
+                'frequency' => 'once',
+                'calculation_method' => 'room_daily_rate',
+                'target_role' => 'guest',
+                'trigger_event' => 'new_booking',
+            ],
         ];
 
         foreach ($types as $type) {

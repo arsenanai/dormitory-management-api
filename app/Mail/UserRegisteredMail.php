@@ -17,6 +17,10 @@ final class UserRegisteredMail extends Mailable implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    public int $timeout = 30;
+
+    public int $tries = 3;
+
     public function __construct(
         public readonly User $user,
         public readonly string $preferredLocale = 'en',

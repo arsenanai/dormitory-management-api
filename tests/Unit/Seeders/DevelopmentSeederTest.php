@@ -8,6 +8,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \Database\Seeders\DevelopmentSeeder
+ */
 class DevelopmentSeederTest extends TestCase
 {
     use RefreshDatabase;
@@ -30,7 +33,7 @@ class DevelopmentSeederTest extends TestCase
             }
         });
 
-        Storage::fake('local');
+        Storage::fake('public');
     }
 
     /**
@@ -91,7 +94,7 @@ class DevelopmentSeederTest extends TestCase
         $this->seeder->run();
 
         $students = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
-            ->with(['room', 'studentBed'])
+            ->with([ 'room', 'studentBed' ])
             ->take(10)
             ->get();
 
@@ -118,7 +121,7 @@ class DevelopmentSeederTest extends TestCase
         $this->seeder->run();
 
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
-            ->with(['studentProfile', 'room', 'studentBed'])
+            ->with([ 'studentProfile', 'room', 'studentBed' ])
             ->first();
 
         $this->assertNotNull($student);
@@ -154,7 +157,7 @@ class DevelopmentSeederTest extends TestCase
         // All files should exist in storage
         foreach ($files as $file) {
             if ($file) {
-                $this->assertTrue(Storage::disk('local')->exists($file));
+                $this->assertTrue(Storage::disk('public')->exists($file));
             }
         }
     }

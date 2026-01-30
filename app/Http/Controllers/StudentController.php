@@ -330,7 +330,7 @@ class StudentController extends Controller
 
         $result = $this->studentService->updateStudent($id, $validated, Auth::user()->load('adminDormitory'));
         return response()->json([
-            'data' => $result['user'],
+            'data'    => $result['user'],
             'warning' => $result['warning'],
         ]);
     }
@@ -353,10 +353,8 @@ class StudentController extends Controller
     /**
      * Remove the specified student from the system
      *
-     * Performs soft delete of student account:
-     * - Marks user as deleted (soft delete)
-     * - Removes room assignment
-     * - Maintains data integrity for reporting
+     * Performs hard delete: removes the user row and all related data
+     * (student profile, payments via cascade; bed assignment cleared).
      *
      * @param int $id Student ID
      * @return JsonResponse JSON response with deletion confirmation

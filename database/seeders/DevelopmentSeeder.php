@@ -572,6 +572,41 @@ class DevelopmentSeeder extends Seeder
         }
         $this->command->info('Bed assignments updated: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
+        // Add room 211 (student, no maintenance) with free beds for registration/testing
+        $stepStart = microtime(true);
+        $room211 = Room::firstOrCreate(
+            [
+                'dormitory_id'  => $adminDormitory->id,
+                'number'        => '211',
+            ],
+            [
+                'room_type_id'  => $standardRoomType->id,
+                'occupant_type' => 'student',
+                'floor'         => 2,
+                'is_maintenance' => false,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ]
+        );
+        $existingBedsCount = \App\Models\Bed::where('room_id', $room211->id)->count();
+        if ($existingBedsCount === 0) {
+            \App\Models\Bed::insert([
+                [
+                    'room_id'    => $room211->id,
+                    'bed_number' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'room_id'    => $room211->id,
+                    'bed_number' => 2,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+        $this->command->info('Room 211 (free beds for students) created: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+
         // Create 5 Guests with optimized operations
         $stepStart = microtime(true);
         $guestRooms = Room::where('dormitory_id', $adminDormitory->id)

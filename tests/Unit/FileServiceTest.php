@@ -8,6 +8,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\FileService
+ */
 class FileServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -43,7 +46,7 @@ class FileServiceTest extends TestCase
         // Should return JSON error response
         $this->assertInstanceOf(\Illuminate\Http\JsonResponse::class, $response);
         $this->assertEquals(404, $response->getStatusCode());
-        $this->assertEquals(['message' => 'File not found.'], json_decode($response->getContent(), true));
+        $this->assertEquals([ 'message' => 'File not found.' ], json_decode($response->getContent(), true));
     }
 
     /** @test */

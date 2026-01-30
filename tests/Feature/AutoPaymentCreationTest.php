@@ -17,6 +17,9 @@ use App\Services\UserAuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\UserAuthService
+ */
 class AutoPaymentCreationTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,25 +35,25 @@ class AutoPaymentCreationTest extends TestCase
     {
         parent::setUp();
 
-        $this->studentRole = Role::factory()->create(['name' => 'student']);
-        $this->guestRole = Role::factory()->create(['name' => 'guest']);
+        $this->studentRole = Role::factory()->create([ 'name' => 'student' ]);
+        $this->guestRole = Role::factory()->create([ 'name' => 'guest' ]);
 
         $this->dormitory = Dormitory::factory()->create([
-            'name' => 'Test Dormitory',
+            'name'   => 'Test Dormitory',
             'gender' => 'male',
         ]);
 
         $this->roomType = RoomType::factory()->create([
-            'name' => 'Standard',
-            'daily_rate' => 50.00,
+            'name'          => 'Standard',
+            'daily_rate'    => 50.00,
             'semester_rate' => 5000.00,
-            'capacity' => 2, // RoomFactory will create 2 beds automatically
+            'capacity'      => 2, // RoomFactory will create 2 beds automatically
         ]);
 
         $this->room = Room::factory()->create([
             'dormitory_id' => $this->dormitory->id,
             'room_type_id' => $this->roomType->id,
-            'number' => '101',
+            'number'       => '101',
         ]);
 
         // Use the first bed created by RoomFactory
@@ -61,43 +64,43 @@ class AutoPaymentCreationTest extends TestCase
     {
         // Create PaymentType for student registration
         $rentingType = PaymentType::factory()->create([
-            'name' => 'renting',
-            'frequency' => 'semesterly',
+            'name'               => 'renting',
+            'frequency'          => 'semesterly',
             'calculation_method' => 'room_semester_rate',
-            'target_role' => 'student',
-            'trigger_event' => 'registration',
+            'target_role'        => 'student',
+            'trigger_event'      => 'registration',
         ]);
 
         $cateringType = PaymentType::factory()->create([
-            'name' => 'catering',
-            'frequency' => 'monthly',
+            'name'               => 'catering',
+            'frequency'          => 'monthly',
             'calculation_method' => 'fixed',
-            'fixed_amount' => 150.00,
-            'target_role' => 'student',
-            'trigger_event' => 'registration',
+            'fixed_amount'       => 150.00,
+            'target_role'        => 'student',
+            'trigger_event'      => 'registration',
         ]);
 
         $authService = app(UserAuthService::class);
 
         // Register a student with room assignment
         $student = $authService->registerStudent([
-            'name' => 'John Doe',
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john@example.com',
-            'password' => 'password123',
-            'phone_numbers' => ['+77001234567'],
-            'room_id' => $this->room->id,
-            'faculty' => 'Engineering',
-            'specialist' => 'Computer Science',
-            'enrollment_year' => 2024,
-            'gender' => 'male',
-            'deal_number' => 'DEAL-001',
-            'country' => 'Kazakhstan',
-            'region' => 'Almaty',
-            'city' => 'Almaty',
-            'iin' => '123456789012',
-            'student_id' => 'STU-001',
+            'name'                     => 'John Doe',
+            'first_name'               => 'John',
+            'last_name'                => 'Doe',
+            'email'                    => 'john@example.com',
+            'password'                 => 'password123',
+            'phone_numbers'            => [ '+77001234567' ],
+            'room_id'                  => $this->room->id,
+            'faculty'                  => 'Engineering',
+            'specialist'               => 'Computer Science',
+            'enrollment_year'          => 2024,
+            'gender'                   => 'male',
+            'deal_number'              => 'DEAL-001',
+            'country'                  => 'Kazakhstan',
+            'region'                   => 'Almaty',
+            'city'                     => 'Almaty',
+            'iin'                      => '123456789012',
+            'student_id'               => 'STU-001',
             'agree_to_dormitory_rules' => true,
         ]);
 
@@ -123,29 +126,29 @@ class AutoPaymentCreationTest extends TestCase
     {
         // Create PaymentType for guest registration
         $guestStayType = PaymentType::factory()->create([
-            'name' => 'guest_stay',
-            'frequency' => 'once',
+            'name'               => 'guest_stay',
+            'frequency'          => 'once',
             'calculation_method' => 'room_daily_rate',
-            'target_role' => 'guest',
-            'trigger_event' => 'registration',
+            'target_role'        => 'guest',
+            'trigger_event'      => 'registration',
         ]);
 
         $authService = app(UserAuthService::class);
 
         // Register a guest with room and dates
         $guest = $authService->registerGuest([
-            'name' => 'Jane Guest',
-            'first_name' => 'Jane',
-            'last_name' => 'Guest',
-            'email' => 'jane@example.com',
-            'password' => 'password123',
-            'phone_numbers' => ['+77001234568'],
-            'room_id' => $this->room->id,
+            'name'             => 'Jane Guest',
+            'first_name'       => 'Jane',
+            'last_name'        => 'Guest',
+            'email'            => 'jane@example.com',
+            'password'         => 'password123',
+            'phone_numbers'    => [ '+77001234568' ],
+            'room_id'          => $this->room->id,
             'visit_start_date' => '2026-01-01',
-            'visit_end_date' => '2026-01-11', // 10 days
+            'visit_end_date'   => '2026-01-11', // 10 days
             'purpose_of_visit' => 'Conference',
-            'host_name' => 'John Host',
-            'host_contact' => '+77001234569',
+            'host_name'        => 'John Host',
+            'host_contact'     => '+77001234569',
         ]);
 
         // Reload guest with profile
@@ -164,12 +167,12 @@ class AutoPaymentCreationTest extends TestCase
     public function test_guest_new_booking_creates_pending_payments(): void
     {
         // Create admin user for authentication with dormitory
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate([ 'name' => 'admin' ]);
         $admin = User::factory()->create([
-            'role_id' => $adminRole->id,
+            'role_id'      => $adminRole->id,
             'dormitory_id' => $this->dormitory->id,
         ]);
-        $this->dormitory->update(['admin_id' => $admin->id]);
+        $this->dormitory->update([ 'admin_id' => $admin->id ]);
         $this->actingAs($admin);
 
         // Create guest user
@@ -179,25 +182,25 @@ class AutoPaymentCreationTest extends TestCase
         ]);
 
         \App\Models\GuestProfile::factory()->create([
-            'user_id' => $guest->id,
+            'user_id'          => $guest->id,
             'visit_start_date' => '2026-01-01',
-            'visit_end_date' => '2026-01-05',
+            'visit_end_date'   => '2026-01-05',
         ]);
 
         // Create PaymentType for new booking
         $bookingType = PaymentType::factory()->create([
-            'name' => 'guest_booking',
-            'frequency' => 'once',
+            'name'               => 'guest_booking',
+            'frequency'          => 'once',
             'calculation_method' => 'room_daily_rate',
-            'target_role' => 'guest',
-            'trigger_event' => 'new_booking',
+            'target_role'        => 'guest',
+            'trigger_event'      => 'new_booking',
         ]);
 
         $guestService = app(\App\Services\GuestService::class);
 
         // Update guest with new booking dates
         $guestService->updateGuest($guest->id, [
-            'check_in_date' => '2026-02-01',
+            'check_in_date'  => '2026-02-01',
             'check_out_date' => '2026-02-15', // 14 days
         ]);
 
@@ -212,11 +215,81 @@ class AutoPaymentCreationTest extends TestCase
         $this->assertEquals(PaymentStatus::Pending, $payment->status);
     }
 
+    public function test_guest_multiple_bookings_create_multiple_payments(): void
+    {
+        // Create admin user for authentication with dormitory
+        $adminRole = Role::firstOrCreate([ 'name' => 'admin' ]);
+        $admin = User::factory()->create([
+            'role_id'      => $adminRole->id,
+            'dormitory_id' => $this->dormitory->id,
+        ]);
+        $this->dormitory->update([ 'admin_id' => $admin->id ]);
+        $this->actingAs($admin);
+
+        // Create guest user
+        $guest = User::factory()->create([
+            'role_id' => $this->guestRole->id,
+            'room_id' => $this->room->id,
+        ]);
+
+        \App\Models\GuestProfile::factory()->create([
+            'user_id'          => $guest->id,
+            'visit_start_date' => '2026-01-01',
+            'visit_end_date'   => '2026-01-05',
+        ]);
+
+        // Ensure guest_booking payment type exists (from seeder)
+        $bookingType = PaymentType::firstOrCreate(
+            [ 'name' => 'guest_booking' ],
+            [
+                'frequency'          => 'once',
+                'calculation_method' => 'room_daily_rate',
+                'target_role'        => 'guest',
+                'trigger_event'      => 'new_booking',
+            ]
+        );
+
+        $guestService = app(\App\Services\GuestService::class);
+
+        // First booking: Feb 1-15 (14 days)
+        $guestService->updateGuest($guest->id, [
+            'check_in_date'  => '2026-02-01',
+            'check_out_date' => '2026-02-15',
+            'bed_id'         => $this->bed->id,
+        ]);
+
+        $firstBookingPayments = Payment::where('user_id', $guest->id)
+            ->where('payment_type_id', $bookingType->id)
+            ->where('status', PaymentStatus::Pending)
+            ->get();
+
+        $this->assertEquals(1, $firstBookingPayments->count(), 'First booking should create one payment');
+
+        // Second booking: March 1-10 (9 days) - different date range, should create another payment
+        $guestService->updateGuest($guest->id, [
+            'check_in_date'  => '2026-03-01',
+            'check_out_date' => '2026-03-10',
+            'bed_id'         => $this->bed->id,
+        ]);
+
+        $allBookingPayments = Payment::where('user_id', $guest->id)
+            ->where('payment_type_id', $bookingType->id)
+            ->where('status', PaymentStatus::Pending)
+            ->get();
+
+        $this->assertEquals(2, $allBookingPayments->count(), 'Two bookings with different dates should create two payments');
+
+        // Verify payment amounts
+        $paymentAmounts = $allBookingPayments->pluck('amount')->map(fn ($amt) => (float) $amt)->toArray();
+        $this->assertContains(700.00, $paymentAmounts, 'First booking should be 14 days * 50.00 = 700.00');
+        $this->assertContains(450.00, $paymentAmounts, 'Second booking should be 9 days * 50.00 = 450.00');
+    }
+
     public function test_room_type_change_creates_pending_payments(): void
     {
         // Create admin user for authentication
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $admin = User::factory()->create(['role_id' => $adminRole->id]);
+        $adminRole = Role::firstOrCreate([ 'name' => 'admin' ]);
+        $admin = User::factory()->create([ 'role_id' => $adminRole->id ]);
         $this->actingAs($admin);
 
         // Create student with room
@@ -231,16 +304,16 @@ class AutoPaymentCreationTest extends TestCase
 
         // Create new room type (lux) with capacity 2
         $luxRoomType = RoomType::factory()->create([
-            'name' => 'Lux',
-            'daily_rate' => 100.00,
+            'name'          => 'Lux',
+            'daily_rate'    => 100.00,
             'semester_rate' => 10000.00,
-            'capacity' => 2,
+            'capacity'      => 2,
         ]);
 
         $luxRoom = Room::factory()->create([
             'dormitory_id' => $this->dormitory->id,
             'room_type_id' => $luxRoomType->id,
-            'number' => '201',
+            'number'       => '201',
         ]);
 
         // Use the first bed created by RoomFactory (capacity 2 creates beds 1 and 2)
@@ -248,11 +321,11 @@ class AutoPaymentCreationTest extends TestCase
 
         // Create PaymentType for room type change
         $roomChangeType = PaymentType::factory()->create([
-            'name' => 'room_upgrade',
-            'frequency' => 'semesterly',
+            'name'               => 'room_upgrade',
+            'frequency'          => 'semesterly',
             'calculation_method' => 'room_semester_rate',
-            'target_role' => 'student',
-            'trigger_event' => 'room_type_change',
+            'target_role'        => 'student',
+            'trigger_event'      => 'room_type_change',
         ]);
 
         $studentService = app(\App\Services\StudentService::class);
@@ -277,41 +350,41 @@ class AutoPaymentCreationTest extends TestCase
     {
         // Create PaymentType
         $rentingType = PaymentType::factory()->create([
-            'name' => 'renting',
-            'frequency' => 'semesterly',
+            'name'               => 'renting',
+            'frequency'          => 'semesterly',
             'calculation_method' => 'room_semester_rate',
-            'target_role' => 'student',
-            'trigger_event' => 'registration',
+            'target_role'        => 'student',
+            'trigger_event'      => 'registration',
         ]);
 
         $authService = app(UserAuthService::class);
 
         // Register student
         $student = $authService->registerStudent([
-            'name' => 'John Doe',
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john@example.com',
-            'password' => 'password123',
-            'phone_numbers' => ['+77001234567'],
-            'room_id' => $this->room->id,
-            'faculty' => 'Engineering',
-            'specialist' => 'Computer Science',
-            'enrollment_year' => 2024,
-            'gender' => 'male',
-            'deal_number' => 'DEAL-001',
-            'country' => 'Kazakhstan',
-            'region' => 'Almaty',
-            'city' => 'Almaty',
-            'iin' => '123456789012',
-            'student_id' => 'STU-002',
+            'name'                     => 'John Doe',
+            'first_name'               => 'John',
+            'last_name'                => 'Doe',
+            'email'                    => 'john@example.com',
+            'password'                 => 'password123',
+            'phone_numbers'            => [ '+77001234567' ],
+            'room_id'                  => $this->room->id,
+            'faculty'                  => 'Engineering',
+            'specialist'               => 'Computer Science',
+            'enrollment_year'          => 2024,
+            'gender'                   => 'male',
+            'deal_number'              => 'DEAL-001',
+            'country'                  => 'Kazakhstan',
+            'region'                   => 'Almaty',
+            'city'                     => 'Almaty',
+            'iin'                      => '123456789012',
+            'student_id'               => 'STU-002',
             'agree_to_dormitory_rules' => true,
         ]);
 
         $initialCount = Payment::where('user_id', $student->id)->count();
 
         // Try to create payments again (should not create duplicates)
-        $student->load(['role', 'room.roomType']);
+        $student->load([ 'role', 'room.roomType' ]);
         $student->createPaymentsForTriggerEvent('registration');
 
         $finalCount = Payment::where('user_id', $student->id)->count();
@@ -324,33 +397,33 @@ class AutoPaymentCreationTest extends TestCase
     {
         // Create PaymentType
         PaymentType::factory()->create([
-            'name' => 'renting',
-            'frequency' => 'semesterly',
+            'name'               => 'renting',
+            'frequency'          => 'semesterly',
             'calculation_method' => 'room_semester_rate',
-            'target_role' => 'student',
-            'trigger_event' => 'registration',
+            'target_role'        => 'student',
+            'trigger_event'      => 'registration',
         ]);
 
         $authService = app(UserAuthService::class);
 
         // Register student WITHOUT room assignment
         $student = $authService->registerStudent([
-            'name' => 'John Doe',
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john@example.com',
-            'password' => 'password123',
-            'phone_numbers' => ['+77001234567'],
-            'faculty' => 'Engineering',
-            'specialist' => 'Computer Science',
-            'enrollment_year' => 2024,
-            'gender' => 'male',
-            'deal_number' => 'DEAL-001',
-            'country' => 'Kazakhstan',
-            'region' => 'Almaty',
-            'city' => 'Almaty',
-            'iin' => '123456789012',
-            'student_id' => 'STU-003',
+            'name'                     => 'John Doe',
+            'first_name'               => 'John',
+            'last_name'                => 'Doe',
+            'email'                    => 'john@example.com',
+            'password'                 => 'password123',
+            'phone_numbers'            => [ '+77001234567' ],
+            'faculty'                  => 'Engineering',
+            'specialist'               => 'Computer Science',
+            'enrollment_year'          => 2024,
+            'gender'                   => 'male',
+            'deal_number'              => 'DEAL-001',
+            'country'                  => 'Kazakhstan',
+            'region'                   => 'Almaty',
+            'city'                     => 'Almaty',
+            'iin'                      => '123456789012',
+            'student_id'               => 'STU-003',
             'agree_to_dormitory_rules' => true,
         ]);
 

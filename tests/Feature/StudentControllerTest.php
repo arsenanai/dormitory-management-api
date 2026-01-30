@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Http\Controllers\StudentController
+ */
 class StudentControllerTest extends TestCase
 {
     use RefreshDatabase;
@@ -37,39 +40,39 @@ class StudentControllerTest extends TestCase
     private function seedTestData(): void
     {
         // Create roles
-        $studentRole = Role::factory()->create(['name' => 'student']);
-        $adminRole = Role::factory()->create(['name' => 'admin']);
-        $sudoRole = Role::factory()->create(['name' => 'sudo']);
+        $studentRole = Role::factory()->create([ 'name' => 'student' ]);
+        $adminRole = Role::factory()->create([ 'name' => 'admin' ]);
+        $sudoRole = Role::factory()->create([ 'name' => 'sudo' ]);
 
         // Create dormitory
         $this->testDormitory = Dormitory::factory()->create([
-            'name' => 'Test Dormitory',
-            'gender' => 'male',
+            'name'     => 'Test Dormitory',
+            'gender'   => 'male',
             'admin_id' => null  // Will be set below
         ]);
 
         // Create users with tokens
         $this->adminUser = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@test.com',
-            'role_id' => $adminRole->id,
+            'name'         => 'Admin User',
+            'email'        => 'admin@test.com',
+            'role_id'      => $adminRole->id,
             'dormitory_id' => $this->testDormitory->id
         ]);
 
         // Set up adminDormitory relationship
-        $this->testDormitory->update(['admin_id' => $this->adminUser->id]);
+        $this->testDormitory->update([ 'admin_id' => $this->adminUser->id ]);
 
         Sanctum::actingAs($this->adminUser);
 
         $this->sudoUser = User::factory()->create([
-            'name' => 'Sudo User',
-            'email' => 'sudo@test.com',
+            'name'    => 'Sudo User',
+            'email'   => 'sudo@test.com',
             'role_id' => $sudoRole->id
         ]);
 
         $this->studentUser = User::factory()->create([
-            'name' => 'Student User',
-            'email' => 'student@test.com',
+            'name'    => 'Student User',
+            'email'   => 'student@test.com',
             'role_id' => $studentRole->id
         ]);
     }
@@ -116,8 +119,8 @@ class StudentControllerTest extends TestCase
         $student1 = $this->createTestStudent();
         $student2 = $this->createTestStudent();
 
-        $student1->studentProfile->update(['faculty' => 'engineering']);
-        $student2->studentProfile->update(['faculty' => 'medicine']);
+        $student1->studentProfile->update([ 'faculty' => 'engineering' ]);
+        $student2->studentProfile->update([ 'faculty' => 'medicine' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->getJson('/api/students?faculty=engineering');
@@ -132,8 +135,8 @@ class StudentControllerTest extends TestCase
      */
     public function test_admin_can_filter_students_by_status(): void
     {
-        $activeStudent = $this->createTestStudent(['status' => 'active']);
-        $pendingStudent = $this->createTestStudent(['status' => 'pending']);
+        $activeStudent = $this->createTestStudent([ 'status' => 'active' ]);
+        $pendingStudent = $this->createTestStudent([ 'status' => 'pending' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->getJson('/api/students?status=active');
@@ -148,8 +151,8 @@ class StudentControllerTest extends TestCase
      */
     public function test_admin_can_search_students(): void
     {
-        $student1 = $this->createTestStudent(['name' => 'John Doe']);
-        $student2 = $this->createTestStudent(['name' => 'Jane Smith']);
+        $student1 = $this->createTestStudent([ 'name' => 'John Doe' ]);
+        $student2 = $this->createTestStudent([ 'name' => 'Jane Smith' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->getJson('/api/students?search=John');
@@ -194,11 +197,11 @@ class StudentControllerTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'john.doe@test.com',
-            'name' => 'John Doe'
+            'name'  => 'John Doe'
         ]);
 
         $this->assertDatabaseHas('student_profiles', [
-            'iin' => '123456789012',
+            'iin'     => '123456789012',
             'faculty' => 'engineering'
         ]);
     }
@@ -230,8 +233,8 @@ class StudentControllerTest extends TestCase
      */
     public function test_admin_can_create_student_with_bed_assignment(): void
     {
-        $room = Room::factory()->create(['dormitory_id' => $this->testDormitory->id]);
-        $bed = Bed::factory()->create(['room_id' => $room->id, 'is_occupied' => false, 'bed_number' => 99]);
+        $room = Room::factory()->create([ 'dormitory_id' => $this->testDormitory->id ]);
+        $bed = Bed::factory()->create([ 'room_id' => $room->id, 'is_occupied' => false, 'bed_number' => 99 ]);
 
         $data = $this->getValidStudentRequestData();
         $data['bed_id'] = $bed->id;
@@ -252,10 +255,10 @@ class StudentControllerTest extends TestCase
     public function test_create_student_with_invalid_data_fails(): void
     {
         $data = [
-            'email' => 'invalid-email',
-            'first_name' => '',
+            'email'           => 'invalid-email',
+            'first_name'      => '',
             'student_profile' => [
-                'iin' => '123',
+                'iin'     => '123',
                 'faculty' => ''
             ]
         ];
@@ -264,7 +267,7 @@ class StudentControllerTest extends TestCase
             ->postJson('/api/students', $data);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'first_name', 'student_profile.iin', 'student_profile.faculty']);
+            ->assertJsonValidationErrors([ 'email', 'first_name', 'student_profile.iin', 'student_profile.faculty' ]);
     }
 
     /**
@@ -281,7 +284,7 @@ class StudentControllerTest extends TestCase
             ->postJson('/api/students', $data);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors([ 'email' ]);
     }
 
     // ========== Show Tests ==========
@@ -332,11 +335,11 @@ class StudentControllerTest extends TestCase
         $student = $this->createTestStudent();
 
         $updateData = [
-            'first_name' => 'Jane',
-            'last_name' => 'Smith',
-            'email' => 'jane.smith@test.com',
+            'first_name'      => 'Jane',
+            'last_name'       => 'Smith',
+            'email'           => 'jane.smith@test.com',
             'student_profile' => [
-                'faculty' => 'medicine',
+                'faculty'         => 'medicine',
                 'enrollment_year' => 2023
             ]
         ];
@@ -345,11 +348,11 @@ class StudentControllerTest extends TestCase
             ->putJson("/api/students/{$student->id}", $updateData);
 
         $response->assertStatus(200)
-            ->assertJson(['name' => 'Jane Smith']);
+            ->assertJson([ 'name' => 'Jane Smith' ]);
 
         $this->assertDatabaseHas('users', [
-            'id' => $student->id,
-            'name' => 'Jane Smith',
+            'id'    => $student->id,
+            'name'  => 'Jane Smith',
             'email' => 'jane.smith@test.com'
         ]);
     }
@@ -361,12 +364,12 @@ class StudentControllerTest extends TestCase
     {
         $student = $this->createTestStudent();
 
-        $newRoom = Room::factory()->create(['dormitory_id' => $this->testDormitory->id]);
-        $newBed = Bed::factory()->create(['room_id' => $newRoom->id, 'is_occupied' => false]);
+        $newRoom = Room::factory()->create([ 'dormitory_id' => $this->testDormitory->id ]);
+        $newBed = Bed::factory()->create([ 'room_id' => $newRoom->id, 'is_occupied' => false ]);
 
         $updateData = [
             'bed_id' => $newBed->id,
-            'email' => $student->email
+            'email'  => $student->email
         ];
 
         $response = $this->actingAs($this->adminUser)
@@ -387,7 +390,7 @@ class StudentControllerTest extends TestCase
         $student = $this->createTestStudent();
 
         $updateData = [
-            'email' => 'invalid-email',
+            'email'           => 'invalid-email',
             'student_profile' => [
                 'enrollment_year' => 'not-a-number'
             ]
@@ -397,7 +400,7 @@ class StudentControllerTest extends TestCase
             ->putJson("/api/students/{$student->id}", $updateData);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'student_profile.enrollment_year']);
+            ->assertJsonValidationErrors([ 'email', 'student_profile.enrollment_year' ]);
     }
 
     // ========== Destroy Tests ==========
@@ -413,9 +416,9 @@ class StudentControllerTest extends TestCase
             ->deleteJson("/api/students/{$student->id}");
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Student deleted successfully']);
+            ->assertJson([ 'message' => 'Student deleted successfully' ]);
 
-        $this->assertSoftDeleted('users', ['id' => $student->id]);
+        $this->assertDatabaseMissing('users', [ 'id' => $student->id ]);
     }
 
     /**
@@ -454,8 +457,8 @@ class StudentControllerTest extends TestCase
         $student1 = $this->createTestStudent();
         $student2 = $this->createTestStudent();
 
-        $student1->studentProfile->update(['faculty' => 'engineering']);
-        $student2->studentProfile->update(['faculty' => 'medicine']);
+        $student1->studentProfile->update([ 'faculty' => 'engineering' ]);
+        $student2->studentProfile->update([ 'faculty' => 'medicine' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->getJson('/api/students/export?faculty=engineering');
@@ -473,13 +476,13 @@ class StudentControllerTest extends TestCase
      */
     public function test_admin_can_approve_student(): void
     {
-        $student = $this->createTestStudent(['status' => 'pending']);
+        $student = $this->createTestStudent([ 'status' => 'pending' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->patchJson("/api/students/{$student->id}/approve");
 
         $response->assertStatus(200)
-            ->assertJson(['message' => 'Student approved successfully']);
+            ->assertJson([ 'message' => 'Student approved successfully' ]);
 
         $student->refresh();
         $this->assertEquals('active', $student->status);
@@ -490,7 +493,7 @@ class StudentControllerTest extends TestCase
      */
     public function test_approving_already_active_student(): void
     {
-        $student = $this->createTestStudent(['status' => 'active']);
+        $student = $this->createTestStudent([ 'status' => 'active' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->patchJson("/api/students/{$student->id}/approve");
@@ -506,8 +509,8 @@ class StudentControllerTest extends TestCase
      */
     public function test_admin_can_list_all_students(): void
     {
-        $this->createTestStudent(['name' => 'Student A']);
-        $this->createTestStudent(['name' => 'Student B']);
+        $this->createTestStudent([ 'name' => 'Student A' ]);
+        $this->createTestStudent([ 'name' => 'Student B' ]);
 
         $response = $this->actingAs($this->adminUser)
             ->getJson('/api/students-list');
@@ -552,7 +555,7 @@ class StudentControllerTest extends TestCase
             ->assertStatus(403);
 
         $this->actingAs($this->studentUser)
-            ->putJson("/api/students/{$otherStudent->id}", ['first_name' => 'Test'])
+            ->putJson("/api/students/{$otherStudent->id}", [ 'first_name' => 'Test' ])
             ->assertStatus(403);
 
         $this->actingAs($this->studentUser)
@@ -569,30 +572,30 @@ class StudentControllerTest extends TestCase
     private function getValidStudentRequestData(): array
     {
         return [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john.doe@test.com',
-            'password' => 'password123',
+            'first_name'            => 'John',
+            'last_name'             => 'Doe',
+            'email'                 => 'john.doe@test.com',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
-            'phone_numbers' => ['+1234567890'],
-            'gender' => 'male',
-            'student_profile' => [
-                'iin' => '123456789012',
-                'faculty' => 'engineering',
-                'specialist' => 'computer_science',
-                'enrollment_year' => 2024,
-                'agree_to_dormitory_rules' => true,
-                'has_meal_plan' => true,
-                'gender' => 'male',
-                'identification_type' => 'passport',
-                'identification_number' => 'PASS123456',
-                'blood_type' => 'A+',
-                'country' => 'Kazakhstan',
-                'city' => 'Almaty',
-                'emergency_contact_name' => 'Parent Name',
-                'emergency_contact_phone' => '+1234567891',
-                'emergency_contact_type' => 'parent',
-                'emergency_contact_email' => 'parent@test.com',
+            'phone_numbers'         => [ '+1234567890' ],
+            'gender'                => 'male',
+            'student_profile'       => [
+                'iin'                            => '123456789012',
+                'faculty'                        => 'engineering',
+                'specialist'                     => 'computer_science',
+                'enrollment_year'                => 2024,
+                'agree_to_dormitory_rules'       => true,
+                'has_meal_plan'                  => true,
+                'gender'                         => 'male',
+                'identification_type'            => 'passport',
+                'identification_number'          => 'PASS123456',
+                'blood_type'                     => 'A+',
+                'country'                        => 'Kazakhstan',
+                'city'                           => 'Almaty',
+                'emergency_contact_name'         => 'Parent Name',
+                'emergency_contact_phone'        => '+1234567891',
+                'emergency_contact_type'         => 'parent',
+                'emergency_contact_email'        => 'parent@test.com',
                 'emergency_contact_relationship' => 'parent'
             ]
         ];
@@ -603,18 +606,18 @@ class StudentControllerTest extends TestCase
         $studentRole = Role::where('name', 'student')->first();
 
         $student = User::factory()->create(array_merge([
-            'name' => 'Test Student',
-            'email' => 'student_' . uniqid() . '@test.com',
-            'role_id' => $studentRole->id,
-            'status' => 'pending',
+            'name'         => 'Test Student',
+            'email'        => 'student_' . uniqid() . '@test.com',
+            'role_id'      => $studentRole->id,
+            'status'       => 'pending',
             'dormitory_id' => $this->testDormitory->id
         ], $overrides));
 
         StudentProfile::factory()->create([
             'user_id' => $student->id,
-            'iin' => str_pad((string) rand(1, 999999999999), 12, '0', STR_PAD_LEFT)
+            'iin'     => str_pad((string) rand(1, 999999999999), 12, '0', STR_PAD_LEFT)
         ]);
 
-        return $student->fresh(['studentProfile']);
+        return $student->fresh([ 'studentProfile' ]);
     }
 }

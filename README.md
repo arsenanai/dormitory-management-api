@@ -172,24 +172,8 @@ The application sends emails for several events. All mailables are queued; a que
 
 ### Configuration
 
-**Queue (`.env`):**
-
-| Variable | Description |
-|----------|-------------|
-| `QUEUE_CONNECTION` | `database` (default), `sync`, or `redis`. Use `database` + a running worker for queued mail; use `sync` to run jobs immediately (no worker, handy for local debug). |
-
-The `jobs` table is created by migrations. For `redis`, set `REDIS_HOST`, `REDIS_PASSWORD`, etc.
-
-**Mail (`.env`):**
-
-| Variable | Description |
-|----------|-------------|
-| `MAIL_MAILER` | `log` (writes to `storage/logs/laravel.log`), `smtp`, etc. Use `log` for local debugging. |
-| `MAIL_FROM_ADDRESS` | Sender address. |
-| `MAIL_FROM_NAME` | Sender name (e.g. `${APP_NAME}`). |
-| SMTP | When `MAIL_MAILER=smtp`: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_ENCRYPTION`. |
-
-For local testing without SMTP, set `MAIL_MAILER=log` and inspect `storage/logs/laravel.log`. Use MailHog or real SMTP for sending.
+- **Mail**: Set `MAIL_MAILER`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`, and transport-specific vars in `.env`. For local testing, `MAIL_MAILER=log` writes to `storage/logs/laravel.log`; use MailHog or similar for real SMTP.
+- **Queue**: Default `QUEUE_CONNECTION` is `database`. The `jobs` table is created by migrations. Use `sync` to run jobs immediately in the same process (no worker needed, but not recommended for production).
 
 ### Running the queue worker
 
@@ -201,13 +185,6 @@ php artisan queue:work
 
 # Or specify connection and queue explicitly
 php artisan queue:work database --queue=default
-```
-
-**After code or config changes**, restart the worker so it picks up updates:
-
-```bash
-php artisan queue:restart
-# Then start the worker again (e.g. php artisan queue:work)
 ```
 
 For production, run the worker via a process manager (e.g. systemd, supervisor) so it restarts on failure. Example systemd unit:
@@ -245,18 +222,6 @@ For better performance, use Redis as the queue driver:
 ### Manual QA: mail notifications
 
 **Step-by-step triggering guide:** see **[docs/MAIL_QA_TRIGGERING_GUIDE.md](../docs/MAIL_QA_TRIGGERING_GUIDE.md)** for exact flows (prerequisites, queue/mail setup, UI steps, cron commands, edge cases, and a checklist).
-
-**Trigger mail events from CLI** (no UI; no queue worker needed—command forces `queue=sync`):
-
-```bash
-# Flushes mail idempotency cache, dispatches user.registered, user.status_changed, payment.status_changed
-php artisan mail:trigger-events
-
-# Same, plus prints recent mail-related log lines
-php artisan mail:trigger-events --verify
-```
-
-Requires `MAIL_MAILER=log` (or real SMTP) and at least one user with email and one payment. Check `storage/logs/laravel.log` for output.
 
 Summary:
 

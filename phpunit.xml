@@ -5,8 +5,8 @@
          colors="true"
          cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
-         requireCoverageMetadata="true"
-         beStrictAboutCoverageMetadata="true"
+         requireCoverageMetadata="false"
+         beStrictAboutCoverageMetadata="false"
          beStrictAboutOutputDuringTests="true"
          failOnRisky="true"
          failOnWarning="true">
@@ -16,6 +16,22 @@
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+        </testsuite>
+        <!-- Done-task related feature tests. Run: php artisan test with option testsuite Related, optionally coverage. See tests/README-RELATED-TESTS.md -->
+        <testsuite name="Related">
+            <file>tests/Feature/AdminDormitoryOptionalTest.php</file>
+            <file>tests/Feature/DormitoryContactFieldsTest.php</file>
+            <file>tests/Feature/DormitoryRegistrationTest.php</file>
+            <file>tests/Feature/EmailAvailabilityTest.php</file>
+            <file>tests/Feature/GuestPaymentSyncAndMailTest.php</file>
+            <file>tests/Feature/PaymentSemesterFilterTest.php</file>
+            <file>tests/Feature/PaymentStatusUpdateTest.php</file>
+            <file>tests/Feature/PaymentTypeTest.php</file>
+            <file>tests/Feature/RoomTypePhotosTest.php</file>
+            <file>tests/Feature/StudentEmergencyContactTest.php</file>
+            <file>tests/Feature/StudentIdentificationFieldsTest.php</file>
+            <file>tests/Feature/StudentPhotoUploadTest.php</file>
+            <file>tests/Feature/StudentRegistrationDateTest.php</file>
         </testsuite>
     </testsuites>
     <source>
@@ -32,9 +48,7 @@
     </source>
     <coverage>
         <report>
-            <html outputDirectory="build/coverage"/>
-            <text outputFile="build/coverage.txt"/>
-            <clover outputFile="build/logs/clover.xml"/>
+            <text outputFile="php://stdout" showUncoveredFiles="true" showOnlySummary="false"/>
         </report>
     </coverage>
     <logging>

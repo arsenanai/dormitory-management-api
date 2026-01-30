@@ -17,6 +17,10 @@ final class UserStatusChangedMail extends Mailable implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    public int $timeout = 30;
+
+    public int $tries = 3;
+
     public function __construct(
         public readonly User $user,
         public readonly string $currentStatus,
@@ -35,7 +39,7 @@ final class UserStatusChangedMail extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.user-status-changed',
             with: [
-                'user' => $this->user,
+                'user'          => $this->user,
                 'currentStatus' => $this->currentStatus,
             ],
         );

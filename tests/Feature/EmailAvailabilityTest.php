@@ -7,6 +7,9 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Http\Controllers\UserController
+ */
 class EmailAvailabilityTest extends TestCase
 {
     use RefreshDatabase;
@@ -16,9 +19,9 @@ class EmailAvailabilityTest extends TestCase
         parent::setUp();
 
         // Seed roles for consistent testing
-        Role::factory()->create(['name' => 'student']);
-        Role::factory()->create(['name' => 'admin']);
-        Role::factory()->create(['name' => 'sudo']);
+        Role::factory()->create([ 'name' => 'student' ]);
+        Role::factory()->create([ 'name' => 'admin' ]);
+        Role::factory()->create([ 'name' => 'sudo' ]);
     }
 
     /** @test */
@@ -27,41 +30,41 @@ class EmailAvailabilityTest extends TestCase
         $response = $this->getJson('/api/email/check-availability?email=newuser@example.com');
 
         $response->assertOk()
-                 ->assertJson(['is_available' => true]);
+            ->assertJson([ 'is_available' => true ]);
     }
 
     /** @test */
     public function it_returns_false_for_an_unavailable_email()
     {
-        User::factory()->create(['email' => 'existing@example.com']);
+        User::factory()->create([ 'email' => 'existing@example.com' ]);
 
         $response = $this->getJson('/api/email/check-availability?email=existing@example.com');
 
         $response->assertOk()
-                 ->assertJson(['is_available' => false]);
+            ->assertJson([ 'is_available' => false ]);
     }
 
     /** @test */
     public function it_returns_true_for_an_unavailable_email_when_ignoring_its_own_user_id()
     {
-        $user = User::factory()->create(['email' => 'self@example.com']);
+        $user = User::factory()->create([ 'email' => 'self@example.com' ]);
 
         $response = $this->getJson("/api/email/check-availability?email=self@example.com&ignore_user_id={$user->id}");
 
         $response->assertOk()
-                 ->assertJson(['is_available' => true]);
+            ->assertJson([ 'is_available' => true ]);
     }
 
     /** @test */
     public function it_returns_false_for_an_unavailable_email_when_ignoring_a_different_user_id()
     {
-        $user1 = User::factory()->create(['email' => 'user1@example.com']);
-        $user2 = User::factory()->create(['email' => 'user2@example.com']);
+        $user1 = User::factory()->create([ 'email' => 'user1@example.com' ]);
+        $user2 = User::factory()->create([ 'email' => 'user2@example.com' ]);
 
         $response = $this->getJson("/api/email/check-availability?email=user1@example.com&ignore_user_id={$user2->id}");
 
         $response->assertOk()
-                 ->assertJson(['is_available' => false]);
+            ->assertJson([ 'is_available' => false ]);
     }
 
     /** @test */
@@ -70,7 +73,7 @@ class EmailAvailabilityTest extends TestCase
         $response = $this->getJson('/api/email/check-availability');
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors([ 'email' ]);
     }
 
     /** @test */
@@ -79,7 +82,7 @@ class EmailAvailabilityTest extends TestCase
         $response = $this->getJson('/api/email/check-availability?email=invalid-email');
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors([ 'email' ]);
     }
 
     /** @test */
@@ -88,7 +91,7 @@ class EmailAvailabilityTest extends TestCase
         $response = $this->getJson('/api/email/check-availability?email=test@example.com&ignore_user_id=abc');
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['ignore_user_id']);
+            ->assertJsonValidationErrors([ 'ignore_user_id' ]);
     }
 
     /** @test */
@@ -97,6 +100,6 @@ class EmailAvailabilityTest extends TestCase
         $response = $this->getJson('/api/email/check-availability?email=test@example.com&ignore_user_id=9999');
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['ignore_user_id']);
+            ->assertJsonValidationErrors([ 'ignore_user_id' ]);
     }
 }

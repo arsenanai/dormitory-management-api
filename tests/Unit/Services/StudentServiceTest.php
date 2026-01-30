@@ -14,6 +14,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\StudentService
+ */
 class StudentServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -35,27 +38,27 @@ class StudentServiceTest extends TestCase
     private function seedTestData(): void
     {
         // Create roles
-        $studentRole = Role::factory()->create(['name' => 'student']);
-        $adminRole = Role::factory()->create(['name' => 'admin']);
-        $sudoRole = Role::factory()->create(['name' => 'sudo']);
+        $studentRole = Role::factory()->create([ 'name' => 'student' ]);
+        $adminRole = Role::factory()->create([ 'name' => 'admin' ]);
+        $sudoRole = Role::factory()->create([ 'name' => 'sudo' ]);
 
         // Create dormitory
         $this->testDormitory = Dormitory::factory()->create([
-            'name' => 'Test Dormitory',
+            'name'   => 'Test Dormitory',
             'gender' => 'male'
         ]);
 
         // Create users
         $this->adminUser = User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@test.com',
-            'role_id' => $adminRole->id,
+            'name'         => 'Admin User',
+            'email'        => 'admin@test.com',
+            'role_id'      => $adminRole->id,
             'dormitory_id' => $this->testDormitory->id
         ]);
 
         $this->sudoUser = User::factory()->create([
-            'name' => 'Sudo User',
-            'email' => 'sudo@test.com',
+            'name'    => 'Sudo User',
+            'email'   => 'sudo@test.com',
             'role_id' => $sudoRole->id
         ]);
     }
@@ -150,7 +153,7 @@ class StudentServiceTest extends TestCase
     {
         $data = [
             'first_name' => 'John',
-            'last_name' => 'Doe'
+            'last_name'  => 'Doe'
         ];
 
         $result = $this->studentService->constructFullName($data);
@@ -165,7 +168,7 @@ class StudentServiceTest extends TestCase
     {
         $data = [
             'first_name' => '  John  ',
-            'last_name' => '  Doe  '
+            'last_name'  => '  Doe  '
         ];
 
         $result = $this->studentService->constructFullName($data);
@@ -180,7 +183,7 @@ class StudentServiceTest extends TestCase
     {
         $data = [
             'first_name' => 'John',
-            'last_name' => ''
+            'last_name'  => ''
         ];
 
         $result = $this->studentService->constructFullName($data);
@@ -195,7 +198,7 @@ class StudentServiceTest extends TestCase
     {
         $data = [
             'first_name' => '',
-            'last_name' => 'Doe'
+            'last_name'  => 'Doe'
         ];
 
         $result = $this->studentService->constructFullName($data);
@@ -257,8 +260,8 @@ class StudentServiceTest extends TestCase
     public function test_create_student_with_bed_assignment(): void
     {
         // Create room and bed
-        $room = Room::factory()->create(['dormitory_id' => $this->testDormitory->id]);
-        $bed = Bed::factory()->create(['room_id' => $room->id, 'is_occupied' => false]);
+        $room = Room::factory()->create([ 'dormitory_id' => $this->testDormitory->id ]);
+        $bed = Bed::factory()->create([ 'room_id' => $room->id, 'is_occupied' => false ]);
 
         $data = $this->getValidStudentData();
         $data['bed_id'] = $bed->id;
@@ -296,11 +299,11 @@ class StudentServiceTest extends TestCase
         $student = $this->createTestStudent();
 
         $updateData = [
-            'first_name' => 'Jane',
-            'last_name' => 'Smith',
-            'email' => 'jane.smith@test.com',
+            'first_name'      => 'Jane',
+            'last_name'       => 'Smith',
+            'email'           => 'jane.smith@test.com',
             'student_profile' => [
-                'faculty' => 'medicine',
+                'faculty'         => 'medicine',
                 'enrollment_year' => 2023
             ]
         ];
@@ -322,10 +325,10 @@ class StudentServiceTest extends TestCase
         $student = $this->createTestStudent();
 
         // Create new room and bed
-        $newRoom = Room::factory()->create(['dormitory_id' => $this->testDormitory->id]);
-        $newBed = Bed::factory()->create(['room_id' => $newRoom->id, 'is_occupied' => false]);
+        $newRoom = Room::factory()->create([ 'dormitory_id' => $this->testDormitory->id ]);
+        $newBed = Bed::factory()->create([ 'room_id' => $newRoom->id, 'is_occupied' => false ]);
 
-        $updateData = ['bed_id' => $newBed->id];
+        $updateData = [ 'bed_id' => $newBed->id ];
 
         $result = $this->studentService->updateStudent($student->id, $updateData, $this->sudoUser);
         $updatedStudent = $result['user'];
@@ -347,9 +350,9 @@ class StudentServiceTest extends TestCase
         $student = $this->createTestStudent();
 
         // Create female dormitory
-        $femaleDormitory = Dormitory::factory()->create(['gender' => 'female']);
-        $femaleRoom = Room::factory()->create(['dormitory_id' => $femaleDormitory->id]);
-        $femaleBed = Bed::factory()->create(['room_id' => $femaleRoom->id]);
+        $femaleDormitory = Dormitory::factory()->create([ 'gender' => 'female' ]);
+        $femaleRoom = Room::factory()->create([ 'dormitory_id' => $femaleDormitory->id ]);
+        $femaleBed = Bed::factory()->create([ 'room_id' => $femaleRoom->id ]);
 
         $updateData = [
             'bed_id' => $femaleBed->id,
@@ -367,15 +370,15 @@ class StudentServiceTest extends TestCase
     public function test_get_students_with_filters(): void
     {
         // Create multiple students
-        $student1 = $this->createTestStudent(['name' => 'John Doe', 'email' => 'john@test.com']);
-        $student2 = $this->createTestStudent(['name' => 'Jane Smith', 'email' => 'jane@test.com']);
+        $student1 = $this->createTestStudent([ 'name' => 'John Doe', 'email' => 'john@test.com' ]);
+        $student2 = $this->createTestStudent([ 'name' => 'Jane Smith', 'email' => 'jane@test.com' ]);
 
         // Update profiles with different faculties
-        $student1->studentProfile->update(['faculty' => 'engineering']);
-        $student2->studentProfile->update(['faculty' => 'medicine']);
+        $student1->studentProfile->update([ 'faculty' => 'engineering' ]);
+        $student2->studentProfile->update([ 'faculty' => 'medicine' ]);
 
         // Test faculty filter
-        $filters = ['faculty' => 'engineering'];
+        $filters = [ 'faculty' => 'engineering' ];
         $result = $this->studentService->getStudentsWithFilters($this->sudoUser, $filters);
 
         $this->assertEquals(1, $result->total());
@@ -388,11 +391,11 @@ class StudentServiceTest extends TestCase
     public function test_get_students_with_admin_user(): void
     {
         // Create student in admin's dormitory
-        $studentInDormitory = $this->createTestStudent(['dormitory_id' => $this->testDormitory->id]);
+        $studentInDormitory = $this->createTestStudent([ 'dormitory_id' => $this->testDormitory->id ]);
 
         // Create student in different dormitory
         $otherDormitory = Dormitory::factory()->create();
-        $studentOutsideDormitory = $this->createTestStudent(['dormitory_id' => $otherDormitory->id]);
+        $studentOutsideDormitory = $this->createTestStudent([ 'dormitory_id' => $otherDormitory->id ]);
 
         $result = $this->studentService->getStudentsWithFilters($this->adminUser, []);
 
@@ -428,7 +431,7 @@ class StudentServiceTest extends TestCase
         $result = $this->studentService->deleteStudent($studentId);
 
         $this->assertTrue($result);
-        $this->assertSoftDeleted('users', ['id' => $studentId]);
+        $this->assertDatabaseMissing('users', [ 'id' => $studentId ]);
     }
 
     /**
@@ -436,11 +439,11 @@ class StudentServiceTest extends TestCase
      */
     public function test_delete_student_frees_up_bed(): void
     {
-        $room = Room::factory()->create(['dormitory_id' => $this->testDormitory->id]);
-        $bed = Bed::factory()->create(['room_id' => $room->id, 'is_occupied' => true]);
+        $room = Room::factory()->create([ 'dormitory_id' => $this->testDormitory->id ]);
+        $bed = Bed::factory()->create([ 'room_id' => $room->id, 'is_occupied' => true ]);
 
-        $student = $this->createTestStudent(['room_id' => $room->id]);
-        $bed->update(['user_id' => $student->id]);
+        $student = $this->createTestStudent([ 'room_id' => $room->id ]);
+        $bed->update([ 'user_id' => $student->id ]);
 
         $this->studentService->deleteStudent($student->id);
 
@@ -456,7 +459,7 @@ class StudentServiceTest extends TestCase
      */
     public function test_approve_student(): void
     {
-        $student = $this->createTestStudent(['status' => 'pending']);
+        $student = $this->createTestStudent([ 'status' => 'pending' ]);
 
         $approvedStudent = $this->studentService->approveStudent($student->id);
 
@@ -471,9 +474,9 @@ class StudentServiceTest extends TestCase
     public function test_export_students(): void
     {
         $student = $this->createTestStudent();
-        $student->studentProfile->update(['faculty' => 'engineering']);
+        $student->studentProfile->update([ 'faculty' => 'engineering' ]);
 
-        $filters = ['faculty' => 'engineering'];
+        $filters = [ 'faculty' => 'engineering' ];
         $response = $this->studentService->exportStudents($this->sudoUser, $filters);
 
         $this->assertEquals('text/csv', $response->headers->get('Content-Type'));
@@ -488,9 +491,9 @@ class StudentServiceTest extends TestCase
     public function test_get_student_statistics(): void
     {
         // Create students with different statuses
-        $this->createTestStudent(['status' => 'active']);
-        $this->createTestStudent(['status' => 'pending']);
-        $this->createTestStudent(['status' => 'suspended']);
+        $this->createTestStudent([ 'status' => 'active' ]);
+        $this->createTestStudent([ 'status' => 'pending' ]);
+        $this->createTestStudent([ 'status' => 'suspended' ]);
 
         $stats = $this->studentService->getStudentStatistics($this->sudoUser, []);
 
@@ -505,21 +508,21 @@ class StudentServiceTest extends TestCase
     private function getValidStudentData(): array
     {
         return [
-            'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john.doe@test.com',
-            'password' => 'password123',
+            'first_name'            => 'John',
+            'last_name'             => 'Doe',
+            'email'                 => 'john.doe@test.com',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
-            'gender' => 'male',
-            'student_profile' => [
-                'iin' => '123456789012',
-                'faculty' => 'engineering',
-                'specialist' => 'computer_science',
-                'enrollment_year' => 2024,
+            'gender'                => 'male',
+            'student_profile'       => [
+                'iin'                      => '123456789012',
+                'faculty'                  => 'engineering',
+                'specialist'               => 'computer_science',
+                'enrollment_year'          => 2024,
                 'agree_to_dormitory_rules' => true,
-                'has_meal_plan' => true,
-                'identification_type' => 'passport',
-                'identification_number' => 'PASS123456'
+                'has_meal_plan'            => true,
+                'identification_type'      => 'passport',
+                'identification_number'    => 'PASS123456'
             ]
         ];
     }
@@ -529,18 +532,18 @@ class StudentServiceTest extends TestCase
         $studentRole = Role::where('name', 'student')->first();
 
         $student = User::factory()->create(array_merge([
-            'name' => 'Test Student',
-            'email' => 'student@test.com',
-            'role_id' => $studentRole->id,
-            'status' => 'pending',
+            'name'         => 'Test Student',
+            'email'        => 'student@test.com',
+            'role_id'      => $studentRole->id,
+            'status'       => 'pending',
             'dormitory_id' => $this->testDormitory->id
         ], $overrides));
 
         StudentProfile::factory()->create([
             'user_id' => $student->id,
-            'iin' => '123456789012'
+            'iin'     => '123456789012'
         ]);
 
-        return $student->fresh(['studentProfile']);
+        return $student->fresh([ 'studentProfile' ]);
     }
 }

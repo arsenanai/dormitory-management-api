@@ -10,6 +10,9 @@ use App\Services\RoomService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\RoomService
+ */
 class RoomServiceAvailableTest extends TestCase
 {
     use RefreshDatabase;
@@ -25,15 +28,15 @@ class RoomServiceAvailableTest extends TestCase
 
         // Create test data
         $this->dormitory = Dormitory::factory()->create([
-            'name' => 'Test Dormitory',
+            'name'     => 'Test Dormitory',
             'capacity' => 100,
-            'gender' => 'male',
+            'gender'   => 'male',
         ]);
 
         $this->roomType = RoomType::factory()->create([
-            'name' => 'Standard Room',
-            'capacity' => 2,
-            'daily_rate' => 150.00,
+            'name'          => 'Standard Room',
+            'capacity'      => 2,
+            'daily_rate'    => 150.00,
             'semester_rate' => 20000.00,
         ]);
     }
@@ -43,92 +46,92 @@ class RoomServiceAvailableTest extends TestCase
     {
         // Create rooms with different bed availability scenarios
         $roomWithAvailableBeds = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '101',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '101',
             'occupant_type' => 'student',
         ]);
 
         $roomWithOccupiedBeds = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '102',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '102',
             'occupant_type' => 'student',
         ]);
 
         $roomWithReservedBeds = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '103',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '103',
             'occupant_type' => 'student',
         ]);
 
         $guestRoom = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '104',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '104',
             'occupant_type' => 'guest',
         ]);
 
         // Create beds for each room manually with unique bed numbers
         // Room 101: One available bed, one occupied
         Bed::create([
-            'room_id' => $roomWithAvailableBeds->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $roomWithAvailableBeds->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         Bed::create([
-            'room_id' => $roomWithAvailableBeds->id,
-            'bed_number' => 2,
-            'is_occupied' => true,
+            'room_id'            => $roomWithAvailableBeds->id,
+            'bed_number'         => 2,
+            'is_occupied'        => true,
             'reserved_for_staff' => false,
-            'user_id' => 101,
+            'user_id'            => 101,
         ]);
 
         // Room 102: All beds occupied
         Bed::create([
-            'room_id' => $roomWithOccupiedBeds->id,
-            'bed_number' => 1,
-            'is_occupied' => true,
+            'room_id'            => $roomWithOccupiedBeds->id,
+            'bed_number'         => 1,
+            'is_occupied'        => true,
             'reserved_for_staff' => false,
-            'user_id' => 102,
+            'user_id'            => 102,
         ]);
 
         Bed::create([
-            'room_id' => $roomWithOccupiedBeds->id,
-            'bed_number' => 2,
-            'is_occupied' => true,
+            'room_id'            => $roomWithOccupiedBeds->id,
+            'bed_number'         => 2,
+            'is_occupied'        => true,
             'reserved_for_staff' => false,
-            'user_id' => 103,
+            'user_id'            => 103,
         ]);
 
         // Room 103: All beds reserved for staff
         Bed::create([
-            'room_id' => $roomWithReservedBeds->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $roomWithReservedBeds->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => true,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         Bed::create([
-            'room_id' => $roomWithReservedBeds->id,
-            'bed_number' => 2,
-            'is_occupied' => false,
+            'room_id'            => $roomWithReservedBeds->id,
+            'bed_number'         => 2,
+            'is_occupied'        => false,
             'reserved_for_staff' => true,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         // Guest room: Available beds but wrong occupant type
         Bed::create([
-            'room_id' => $guestRoom->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $guestRoom->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         // Call the service method
@@ -150,27 +153,27 @@ class RoomServiceAvailableTest extends TestCase
     {
         // Create a room with all beds occupied
         $room = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '201',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '201',
             'occupant_type' => 'student',
         ]);
 
         // Create occupied beds
         Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 1,
-            'is_occupied' => true,
+            'room_id'            => $room->id,
+            'bed_number'         => 1,
+            'is_occupied'        => true,
             'reserved_for_staff' => false,
-            'user_id' => 201,
+            'user_id'            => 201,
         ]);
 
         Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 2,
-            'is_occupied' => true,
+            'room_id'            => $room->id,
+            'bed_number'         => 2,
+            'is_occupied'        => true,
             'reserved_for_staff' => false,
-            'user_id' => 202,
+            'user_id'            => 202,
         ]);
 
         // Call the service method
@@ -185,41 +188,41 @@ class RoomServiceAvailableTest extends TestCase
     {
         // Create another dormitory
         $otherDormitory = Dormitory::factory()->create([
-            'name' => 'Other Dormitory',
+            'name'     => 'Other Dormitory',
             'capacity' => 50,
-            'gender' => 'female',
+            'gender'   => 'female',
         ]);
 
         // Create rooms in both dormitories
         $roomInTargetDorm = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '301',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '301',
             'occupant_type' => 'student',
         ]);
 
         $roomInOtherDorm = Room::factory()->create([
-            'dormitory_id' => $otherDormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '302',
+            'dormitory_id'  => $otherDormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '302',
             'occupant_type' => 'student',
         ]);
 
         // Create available beds in both rooms
         Bed::create([
-            'room_id' => $roomInTargetDorm->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $roomInTargetDorm->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         Bed::create([
-            'room_id' => $roomInOtherDorm->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $roomInOtherDorm->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         // Call the service method for target dormitory
@@ -235,34 +238,34 @@ class RoomServiceAvailableTest extends TestCase
     {
         // Create multiple rooms with available beds
         $room1 = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '401',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '401',
             'occupant_type' => 'student',
         ]);
 
         $room2 = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '402',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '402',
             'occupant_type' => 'student',
         ]);
 
         // Create available beds in both rooms
         Bed::create([
-            'room_id' => $room1->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $room1->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         Bed::create([
-            'room_id' => $room2->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $room2->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         // Call the service method
@@ -271,7 +274,7 @@ class RoomServiceAvailableTest extends TestCase
         // Assertions
         $this->assertCount(2, $availableRooms);
         $roomNumbers = $availableRooms->pluck('number')->sort()->values()->toArray();
-        $this->assertEquals(['401', '402'], $roomNumbers);
+        $this->assertEquals([ '401', '402' ], $roomNumbers);
     }
 
     /** @test */
@@ -279,18 +282,18 @@ class RoomServiceAvailableTest extends TestCase
     {
         // Create a room with available beds
         $room = Room::factory()->create([
-            'dormitory_id' => $this->dormitory->id,
-            'room_type_id' => $this->roomType->id,
-            'number' => '501',
+            'dormitory_id'  => $this->dormitory->id,
+            'room_type_id'  => $this->roomType->id,
+            'number'        => '501',
             'occupant_type' => 'student',
         ]);
 
         Bed::create([
-            'room_id' => $room->id,
-            'bed_number' => 1,
-            'is_occupied' => false,
+            'room_id'            => $room->id,
+            'bed_number'         => 1,
+            'is_occupied'        => false,
             'reserved_for_staff' => false,
-            'user_id' => null,
+            'user_id'            => null,
         ]);
 
         // Call the service method

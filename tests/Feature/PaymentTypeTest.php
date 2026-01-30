@@ -2,21 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Tests\Feature\Api;
+namespace Tests\Feature;
 
+use App\Http\Controllers\PaymentTypeController;
 use App\Models\PaymentType;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
+#[CoversClass(PaymentTypeController::class) ]
 class PaymentTypeTest extends TestCase
 {
     use RefreshDatabase;
 
     /** @var User */
     private User $admin;
+
+    /** @var User */
+    private User $sudo;
 
     protected function setUp(): void
     {
@@ -25,10 +31,17 @@ class PaymentTypeTest extends TestCase
         /** @var Role $adminRole */
         $adminRole = Role::factory()->create([ 'name' => 'admin' ]);
 
+        /** @var Role $sudoRole */
+        $sudoRole = Role::factory()->create([ 'name' => 'sudo' ]);
+
         /** @var User $admin */
         $admin = User::factory()->create([ 'role_id' => $adminRole->id ]);
 
+        /** @var User $sudo */
+        $sudo = User::factory()->create([ 'role_id' => $sudoRole->id ]);
+
         $this->admin = $admin;
+        $this->sudo = $sudo;
     }
 
     #[Test ]
@@ -46,7 +59,7 @@ class PaymentTypeTest extends TestCase
     #[Test ]
     public function it_validates_data_when_creating_a_payment_type(): void
     {
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->sudo)
             ->postJson('/api/payment-types', []);
 
         $response->assertStatus(422)
@@ -69,7 +82,7 @@ class PaymentTypeTest extends TestCase
             'target_role'        => 'student'
         ];
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->sudo)
             ->postJson('/api/payment-types', $data);
 
         $response->assertStatus(201)
@@ -87,7 +100,7 @@ class PaymentTypeTest extends TestCase
         /** @var PaymentType $type */
         $type = PaymentType::factory()->create([ 'name' => 'Old Name' ]);
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->sudo)
             ->putJson("/api/payment-types/{$type->id}", [
                 'name'               => 'New Name',
                 'frequency'          => 'once',
@@ -105,7 +118,7 @@ class PaymentTypeTest extends TestCase
         /** @var PaymentType $type */
         $type = PaymentType::factory()->create();
 
-        $response = $this->actingAs($this->admin)
+        $response = $this->actingAs($this->sudo)
             ->deleteJson("/api/payment-types/{$type->id}");
 
         $response->assertNoContent();

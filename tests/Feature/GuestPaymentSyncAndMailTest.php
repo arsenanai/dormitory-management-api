@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\PaymentStatus;
+use App\Listeners\ProcessMailEvent;
 use App\Mail\PaymentStatusChangedMail;
 use App\Mail\UserStatusChangedMail;
 use App\Models\Payment;
@@ -14,11 +15,11 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
-use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-#[CoversNothing]
+#[CoversClass(ProcessMailEvent::class) ]
 class GuestPaymentSyncAndMailTest extends TestCase
 {
     use RefreshDatabase;
@@ -55,7 +56,7 @@ class GuestPaymentSyncAndMailTest extends TestCase
         ]);
     }
 
-    #[Test]
+    #[Test ]
     public function completed_to_processing_sets_guest_pending_and_queues_user_status_mail(): void
     {
         Mail::fake();
@@ -85,7 +86,7 @@ class GuestPaymentSyncAndMailTest extends TestCase
         Mail::assertNotQueued(PaymentStatusChangedMail::class);
     }
 
-    #[Test]
+    #[Test ]
     public function completed_to_pending_sets_guest_pending_and_queues_user_status_mail(): void
     {
         Mail::fake();
@@ -115,7 +116,7 @@ class GuestPaymentSyncAndMailTest extends TestCase
         Mail::assertNotQueued(PaymentStatusChangedMail::class);
     }
 
-    #[Test]
+    #[Test ]
     public function processing_to_completed_sets_guest_active_and_queues_payment_status_mail_only(): void
     {
         Mail::fake();
@@ -143,7 +144,7 @@ class GuestPaymentSyncAndMailTest extends TestCase
         Mail::assertNotQueued(UserStatusChangedMail::class);
     }
 
-    #[Test]
+    #[Test ]
     public function pending_to_completed_sets_guest_active_and_queues_payment_status_mail_only(): void
     {
         Mail::fake();

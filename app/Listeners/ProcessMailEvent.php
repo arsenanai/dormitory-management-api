@@ -29,11 +29,11 @@ final class ProcessMailEvent
         $eventName = $event->eventName;
 
         return match ($eventName) {
-            'user.registered' => $this->resolveUserRegistered($payload),
+            'user.registered'        => $this->resolveUserRegistered($payload),
             'payment.status_changed' => $this->resolvePaymentStatusChanged($payload),
-            'user.status_changed' => $this->resolveUserStatusChanged($payload),
-            'message.sent' => $this->resolveMessageSent($payload),
-            default => [[], []],
+            'user.status_changed'    => $this->resolveUserStatusChanged($payload),
+            'message.sent'           => $this->resolveMessageSent($payload),
+            default                  => [ [], [] ],
         };
     }
 
@@ -45,14 +45,14 @@ final class ProcessMailEvent
     {
         $user = $payload['user'] ?? null;
         if (! $user instanceof \App\Models\User) {
-            return [[], []];
+            return [ [], [] ];
         }
         $locale = isset($payload['locale']) && in_array($payload['locale'], [ 'en', 'kk', 'ru' ], true)
             ? (string) $payload['locale']
             : 'en';
 
         return [
-            [new UserRegisteredMail($user, $locale)],
+            [ new UserRegisteredMail($user, $locale) ],
             $this->emailsForUser($user),
         ];
     }
@@ -70,15 +70,15 @@ final class ProcessMailEvent
             || ! $oldStatus instanceof \App\Enums\PaymentStatus
             || ! $newStatus instanceof \App\Enums\PaymentStatus
         ) {
-            return [[], []];
+            return [ [], [] ];
         }
         $user = $payment->user;
         if (! $user instanceof \App\Models\User) {
-            return [[], []];
+            return [ [], [] ];
         }
 
         return [
-            [new PaymentStatusChangedMail($user, $payment, $newStatus)],
+            [ new PaymentStatusChangedMail($user, $payment, $newStatus, $oldStatus) ],
             $this->emailsForUser($user),
         ];
     }
@@ -92,11 +92,11 @@ final class ProcessMailEvent
         $user = $payload['user'] ?? null;
         $newStatus = $payload['new_status'] ?? null;
         if (! $user instanceof \App\Models\User || ! is_string($newStatus)) {
-            return [[], []];
+            return [ [], [] ];
         }
 
         return [
-            [new UserStatusChangedMail($user, $newStatus)],
+            [ new UserStatusChangedMail($user, $newStatus) ],
             $this->emailsForUser($user),
         ];
     }
@@ -112,7 +112,7 @@ final class ProcessMailEvent
         if (! $message instanceof \App\Models\Message
             || (! $recipients instanceof Collection && ! is_array($recipients))
         ) {
-            return [[], []];
+            return [ [], [] ];
         }
         $mailables = [];
         $emails = [];
@@ -129,7 +129,7 @@ final class ProcessMailEvent
             $emails[] = $addr;
         }
 
-        return [$mailables, $emails];
+        return [ $mailables, $emails ];
     }
 
     /**
@@ -138,7 +138,7 @@ final class ProcessMailEvent
     private function emailsForUser(\App\Models\User $user): array
     {
         $addr = $this->normalizeEmail($user->email);
-        return $addr === null ? [] : [$addr];
+        return $addr === null ? [] : [ $addr ];
     }
 
     private function normalizeEmail(?string $email): ?string
@@ -170,7 +170,7 @@ final class ProcessMailEvent
     public function handle(MailEventOccurred $event): void
     {
         $mailEvents = config('mail_events');
-        $config = is_array($mailEvents) ? ($mailEvents[$event->eventName] ?? null) : null;
+        $config = is_array($mailEvents) ? ($mailEvents[ $event->eventName ] ?? null) : null;
         if (! is_array($config)) {
             Log::warning('Mail event not configured', [
                 'event' => $event->eventName,
@@ -206,7 +206,7 @@ final class ProcessMailEvent
         }
 
         try {
-            [$mailables, $emails] = $this->resolveMailableAndRecipients($event);
+            [ $mailables, $emails ] = $this->resolveMailableAndRecipients($event);
         } catch (\Throwable $e) {
             $this->logMailFailure($event->eventName, null, $e);
             return;
@@ -220,7 +220,7 @@ final class ProcessMailEvent
         }
 
         /** @var array<Mailable> $mailables */
-        $messages = is_array($mailables) ? $mailables : [$mailables];
+        $messages = is_array($mailables) ? $mailables : [ $mailables ];
         $numRecipients = count($emails);
 
         if (count($messages) === 1 && $numRecipients === 1) {
@@ -229,7 +229,7 @@ final class ProcessMailEvent
         }
 
         foreach ($messages as $i => $mailable) {
-            $email = $emails[$i] ?? null;
+            $email = $emails[ $i ] ?? null;
             if ($email === null) {
                 continue;
             }
@@ -249,10 +249,10 @@ final class ProcessMailEvent
     private function logMailFailure(string $eventName, ?string $recipientEmail, \Throwable $e): void
     {
         Log::error('Mail send failed', [
-            'event' => $eventName,
+            'event'     => $eventName,
             'recipient' => $recipientEmail !== null ? md5($recipientEmail) : null,
             'exception' => $e::class,
-            'message' => $e->getMessage(),
+            'message'   => $e->getMessage(),
         ]);
     }
 }

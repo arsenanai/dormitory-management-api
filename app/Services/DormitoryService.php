@@ -24,8 +24,10 @@ class DormitoryService
     {
         $dorm = Dormitory::findOrFail($id);
         $dorm->update($data);
-        $admin = User::findOrFail($data['admin_id']);
-        $this->assignAdmin($dorm, $admin);
+        if (array_key_exists('admin_id', $data)) {
+            $admin = User::findOrFail($data['admin_id']);
+            $this->assignAdmin($dorm, $admin);
+        }
         return $dorm->fresh()->load('admin');
     }
 

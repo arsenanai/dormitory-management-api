@@ -18,6 +18,10 @@ final class MessageSentMail extends Mailable implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
+    public int $timeout = 30;
+
+    public int $tries = 3;
+
     public function __construct(
         public readonly User $recipient,
         public readonly Message $message,
@@ -37,7 +41,7 @@ final class MessageSentMail extends Mailable implements ShouldQueue
             view: 'emails.message-sent',
             with: [
                 'recipient' => $this->recipient,
-                'message' => $this->message,
+                'message'   => $this->message,
             ],
         );
     }

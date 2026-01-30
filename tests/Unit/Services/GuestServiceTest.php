@@ -12,6 +12,9 @@ use App\Services\GuestService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * @coversDefaultClass \App\Services\GuestService
+ */
 class GuestServiceTest extends TestCase
 {
     use RefreshDatabase;
@@ -29,53 +32,53 @@ class GuestServiceTest extends TestCase
         $this->guestService = new GuestService();
 
         // Create guest role
-        $guestRole = Role::factory()->create(['name' => 'guest']);
+        $guestRole = Role::factory()->create([ 'name' => 'guest' ]);
 
         // Create room type
         $this->roomType = RoomType::factory()->create([
-            'name' => 'Test Room Type',
-            'capacity' => 2,
-            'daily_rate' => 50.00,
+            'name'          => 'Test Room Type',
+            'capacity'      => 2,
+            'daily_rate'    => 50.00,
             'semester_rate' => 1500.00,
-            'beds' => [
-                ['id' => '1', 'x' => 10, 'y' => 10, 'width' => 50, 'height' => 80, 'rotation' => 0],
-                ['id' => '2', 'x' => 70, 'y' => 10, 'width' => 50, 'height' => 80, 'rotation' => 0]
+            'beds'          => [
+                [ 'id' => '1', 'x' => 10, 'y' => 10, 'width' => 50, 'height' => 80, 'rotation' => 0 ],
+                [ 'id' => '2', 'x' => 70, 'y' => 10, 'width' => 50, 'height' => 80, 'rotation' => 0 ]
             ]
         ]);
 
         // Create room
         $this->room = Room::factory()->create([
-            'number' => '101',
+            'number'       => '101',
             'room_type_id' => $this->roomType->id,
             'dormitory_id' => 1
         ]);
 
         // Create beds
         $this->bed = Bed::factory()->create([
-            'bed_number' => 1,
-            'room_id' => $this->room->id,
+            'bed_number'  => 1,
+            'room_id'     => $this->room->id,
             'is_occupied' => false
         ]);
 
         // Create guest user
         $this->guestUser = User::factory()->create([
-            'role_id' => $guestRole->id,
-            'room_id' => $this->room->id,
+            'role_id'    => $guestRole->id,
+            'room_id'    => $this->room->id,
             'first_name' => 'John',
-            'last_name' => 'Doe',
-            'email' => 'john.doe@example.com',
-            'phone' => '+1234567890'
+            'last_name'  => 'Doe',
+            'email'      => 'john.doe@example.com',
+            'phone'      => '+1234567890'
         ]);
 
         // Create guest profile
         GuestProfile::factory()->create([
-            'user_id' => $this->guestUser->id,
-            'bed_id' => $this->bed->id,
+            'user_id'          => $this->guestUser->id,
+            'bed_id'           => $this->bed->id,
             'purpose_of_visit' => 'Business',
             'visit_start_date' => now()->addDays(1),
-            'visit_end_date' => now()->addDays(7),
-            'daily_rate' => 50.00,
-            'is_approved' => true
+            'visit_end_date'   => now()->addDays(7),
+            'daily_rate'       => 50.00,
+            'is_approved'      => true
         ]);
     }
 
@@ -97,13 +100,13 @@ class GuestServiceTest extends TestCase
     {
         // Create another room and guest
         $anotherRoomType = RoomType::factory()->create();
-        $anotherRoom = Room::factory()->create(['room_type_id' => $anotherRoomType->id]);
-        $anotherBed = Bed::factory()->create(['room_id' => $anotherRoom->id]);
+        $anotherRoom = Room::factory()->create([ 'room_type_id' => $anotherRoomType->id ]);
+        $anotherBed = Bed::factory()->create([ 'room_id' => $anotherRoom->id ]);
 
-        $anotherGuest = User::factory()->create(['room_id' => $anotherRoom->id]);
-        GuestProfile::factory()->create(['user_id' => $anotherGuest->id, 'bed_id' => $anotherBed->id]);
+        $anotherGuest = User::factory()->create([ 'room_id' => $anotherRoom->id ]);
+        GuestProfile::factory()->create([ 'user_id' => $anotherGuest->id, 'bed_id' => $anotherBed->id ]);
 
-        $filters = ['room_id' => $this->room->id];
+        $filters = [ 'room_id' => $this->room->id ];
         $result = $this->guestService->getGuestsWithFilters($filters);
 
         $this->assertCount(1, $result);
@@ -126,15 +129,15 @@ class GuestServiceTest extends TestCase
     public function test_create_guest_calculates_daily_rate_correctly()
     {
         $guestData = [
-            'name' => 'Jane Smith',
-            'email' => 'jane.smith@example.com',
-            'phone' => '+0987654321',
-            'room_id' => $this->room->id,
-            'check_in_date' => now()->addDays(1)->toDateString(),
+            'name'           => 'Jane Smith',
+            'email'          => 'jane.smith@example.com',
+            'phone'          => '+0987654321',
+            'room_id'        => $this->room->id,
+            'check_in_date'  => now()->addDays(1)->toDateString(),
             'check_out_date' => now()->addDays(8)->toDateString(),
-            'bed_id' => $this->bed->id,
-            'total_amount' => 350.00,
-            'notes' => 'Test guest'
+            'bed_id'         => $this->bed->id,
+            'total_amount'   => 350.00,
+            'notes'          => 'Test guest'
         ];
 
         $guest = $this->guestService->createGuest($guestData);
@@ -149,15 +152,15 @@ class GuestServiceTest extends TestCase
     public function test_create_guest_uses_room_type_daily_rate_as_fallback()
     {
         $guestData = [
-            'name' => 'Bob Johnson',
-            'email' => 'bob.johnson@example.com',
-            'phone' => '+1122334455',
-            'room_id' => $this->room->id,
-            'check_in_date' => now()->addDays(1)->toDateString(),
+            'name'           => 'Bob Johnson',
+            'email'          => 'bob.johnson@example.com',
+            'phone'          => '+1122334455',
+            'room_id'        => $this->room->id,
+            'check_in_date'  => now()->addDays(1)->toDateString(),
             'check_out_date' => now()->addDays(3)->toDateString(),
-            'bed_id' => $this->bed->id,
-            'total_amount' => 0, // Will be calculated
-            'notes' => 'Test guest with calculated rate'
+            'bed_id'         => $this->bed->id,
+            'total_amount'   => 0, // Will be calculated
+            'notes'          => 'Test guest with calculated rate'
         ];
 
         $guest = $this->guestService->createGuest($guestData);
@@ -181,7 +184,7 @@ class GuestServiceTest extends TestCase
     public function test_get_available_rooms_excludes_occupied_rooms()
     {
         // Mark the room as occupied
-        $this->room->update(['is_occupied' => true]);
+        $this->room->update([ 'is_occupied' => true ]);
 
         $result = $this->guestService->getAvailableRooms();
 
@@ -206,13 +209,13 @@ class GuestServiceTest extends TestCase
     {
         // Create another room and guest
         $anotherRoomType = RoomType::factory()->create();
-        $anotherRoom = Room::factory()->create(['room_type_id' => $anotherRoomType->id]);
-        $anotherBed = Bed::factory()->create(['room_id' => $anotherRoom->id]);
+        $anotherRoom = Room::factory()->create([ 'room_type_id' => $anotherRoomType->id ]);
+        $anotherBed = Bed::factory()->create([ 'room_id' => $anotherRoom->id ]);
 
-        $anotherGuest = User::factory()->create(['room_id' => $anotherRoom->id]);
-        GuestProfile::factory()->create(['user_id' => $anotherGuest->id, 'bed_id' => $anotherBed->id]);
+        $anotherGuest = User::factory()->create([ 'room_id' => $anotherRoom->id ]);
+        GuestProfile::factory()->create([ 'user_id' => $anotherGuest->id, 'bed_id' => $anotherBed->id ]);
 
-        $filters = ['room_id' => $this->room->id];
+        $filters = [ 'room_id' => $this->room->id ];
         $result = $this->guestService->exportGuests($filters);
 
         $this->assertCount(1, $result);
@@ -241,7 +244,7 @@ class GuestServiceTest extends TestCase
     public function test_update_guest_updates_guest_data()
     {
         $updateData = [
-            'name' => 'Updated Name',
+            'name'  => 'Updated Name',
             'email' => 'updated.email@example.com',
             'phone' => '+9988776655'
         ];
@@ -258,8 +261,8 @@ class GuestServiceTest extends TestCase
     {
         $this->assertTrue($this->guestService->deleteGuest($this->guestUser->id));
 
-        $this->assertDatabaseMissing('users', ['id' => $this->guestUser->id]);
-        $this->assertDatabaseMissing('guest_profiles', ['user_id' => $this->guestUser->id]);
+        $this->assertDatabaseMissing('users', [ 'id' => $this->guestUser->id ]);
+        $this->assertDatabaseMissing('guest_profiles', [ 'user_id' => $this->guestUser->id ]);
     }
 
     public function test_delete_guest_throws_exception_for_nonexistent_guest()
