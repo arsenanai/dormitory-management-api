@@ -21,7 +21,9 @@ use App\Http\Controllers\UserController;
 // Public routes
 Route::post('/login', [ UserController::class, 'login' ]);
 Route::get('/app-version', function () {
-    return response()->json([ 'version' => '1.0.4' ]);
+    return response()
+        ->json([ 'version' => '1.0.4' ])
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
 });
 Route::post('/register', [ UserController::class, 'register' ]);
 Route::post('/password/reset-link', [ UserController::class, 'sendPasswordResetLink' ]);
