@@ -53,18 +53,36 @@ class RoomTypeService
             $newPhotoPaths = $this->fileService->uploadMultipleFiles($data['photos'], 'room-type', 10);
         }
 
-        // 2. Get the list of existing photos from the request (for updates)
-        $existingPhotos = isset($data['existing_photos']) ? json_decode($data['existing_photos'], true) : [];
+        // 2. Get the list of existing photos from the request (for updates) — ensure array
+        $existingPhotos = $this->normalizePhotosToArray($data['existing_photos'] ?? null);
 
         // 3. If it's an update, determine which old photos to delete
-        if ($existingRoomType) {
-            $originalPhotos = $existingRoomType->photos ?? [];
+        if ($existingRoomType !== null) {
+            $originalPhotos = $this->normalizePhotosToArray($existingRoomType->photos);
             $photosToDelete = array_diff($originalPhotos, $existingPhotos);
             $this->deletePhotos($photosToDelete);
         }
 
         // 4. Merge existing and new photos to create the final list
         return array_merge($existingPhotos, $newPhotoPaths);
+    }
+
+    /**
+     * Ensure value is an array of photo paths (handles JSON string or raw string from DB).
+     *
+     * @param  mixed  $value  photos from request (JSON string) or model (array|string)
+     * @return array<int, string>
+     */
+    private function normalizePhotosToArray(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values($value);
+        }
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? array_values($decoded) : [];
+        }
+        return [];
     }
 
     private function deletePhotos(array $photos)
