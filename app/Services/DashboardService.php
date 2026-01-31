@@ -74,8 +74,10 @@ class DashboardService
         $activeStudents = (clone $query)->where('status', 'active')->count();
         $pendingStudents = (clone $query)->where('status', 'pending')->count();
 
-        // TODO: meal calculation will change
-        $studentsWithMeals = 0;
+        // Meal paying = students with at least one catering payment (pending, processing, or completed)
+        $studentsWithMeals = (clone $query)
+            ->whereHas('payments', fn ($q) => $q->forCatering()->paying())
+            ->count();
 
         return [
             'total'         => $totalStudents,

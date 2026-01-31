@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\PaymentStatus;
 use App\Services\PaymentCalculationService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -77,6 +78,36 @@ class Payment extends Model
     public function type(): BelongsTo
     {
         return $this->belongsTo(PaymentType::class, 'payment_type_id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scopes
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Scope to payments of type "catering".
+     *
+     * @param Builder<Payment> $query
+     */
+    public function scopeForCatering(Builder $query): void
+    {
+        $query->whereHas('type', fn ($q) => $q->where('name', 'catering'));
+    }
+
+    /**
+     * Scope to payments that are paying (pending, processing, or completed).
+     *
+     * @param Builder<Payment> $query
+     */
+    public function scopePaying(Builder $query): void
+    {
+        $query->whereIn('status', [
+            PaymentStatus::Pending,
+            PaymentStatus::Processing,
+            PaymentStatus::Completed,
+        ]);
     }
 
     /*

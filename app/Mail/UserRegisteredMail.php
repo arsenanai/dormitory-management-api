@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Models\User;
+use App\Services\MailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -29,12 +30,26 @@ final class UserRegisteredMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $service = app(MailTemplateService::class);
+        $template = $service->getTemplate('user_registered', $this->preferredLocale);
+        if ($template !== null) {
+            $context = $service->contextForUserRegistered($this->user, $this->preferredLocale);
+            $subject = $service->resolvePlaceholders($template['subject'], $context);
+            return new Envelope(subject: $subject);
+        }
         $subject = (string) __("emails.user_registered.subject", [], $this->preferredLocale);
         return new Envelope(subject: $subject);
     }
 
     public function content(): Content
     {
+        $service = app(MailTemplateService::class);
+        $template = $service->getTemplate('user_registered', $this->preferredLocale);
+        if ($template !== null) {
+            $context = $service->contextForUserRegistered($this->user, $this->preferredLocale);
+            $body = $service->resolvePlaceholders($template['body'], $context);
+            return new Content(htmlString: $body);
+        }
         $name = $this->user->first_name
             ? trim($this->user->first_name . ' ' . ($this->user->last_name ?? ''))
             : $this->user->name;

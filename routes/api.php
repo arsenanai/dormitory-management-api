@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BloodTypeController;
 use App\Http\Controllers\BedController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\ConfigurationController;
+use App\Http\Controllers\MailTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
 use App\Http\Controllers\GuestController;
@@ -246,6 +247,11 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
         Route::put('/configurations/payment-settings', [ ConfigurationController::class, 'updatePaymentSettings' ]);
         // Payment types CRUD (sudo only) - index is already defined above for all roles
         Route::apiResource('payment-types', PaymentTypeController::class)->except(['index']);
+
+        // Mail templates (sudo only)
+        Route::get('/mail-templates', [ MailTemplateController::class, 'index' ]);
+        Route::get('/mail-templates/{type}', [ MailTemplateController::class, 'show' ]);
+        Route::put('/mail-templates/{type}', [ MailTemplateController::class, 'update' ]);
     });
     Route::middleware([ 'role:admin' ])->group(function () {
         Route::get('/rooms-list', [ RoomController::class, 'listAll' ]);

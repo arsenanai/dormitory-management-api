@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\ConfigurationService;
+use App\Services\MailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -20,15 +21,8 @@ final class PaymentStatusChangedMail extends Mailable implements ShouldQueue
     use Queueable;
     use SerializesModels;
 
-    /**
-     * Number of seconds the job can run before timing out.
-     * Prevents the job from hanging indefinitely if SMTP is slow/unreachable.
-     */
     public int $timeout = 30;
 
-    /**
-     * Number of times the job may be attempted.
-     */
     public int $tries = 3;
 
     private const CURRENCY_SYMBOLS = [
@@ -49,23 +43,46 @@ final class PaymentStatusChangedMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'Payment Status Update – Dormitory Management System',
-        );
+        $locale = in_array(app()->getLocale(), [ 'en', 'kk', 'ru' ], true) ? app()->getLocale() : 'en';
+        $service = app(MailTemplateService::class);
+        $template = $service->getTemplate('payment_status_changed', $locale);
+        if ($template !== null) {
+            $amountFormatted = $this->formatAmount();
+            $adminEmail = $this->resolveAdminEmail();
+            $context = $service->contextForPaymentStatusChanged(
+                $this->user,
+                $this->payment,
+                $amountFormatted,
+                $this->currentStatus->value,
+                $adminEmail,
+            );
+            $subject = $service->resolvePlaceholders($template['subject'], $context);
+            return new Envelope(subject: $subject);
+        }
+        return new Envelope(subject: 'Payment Status Update – ' . config('app.name'));
     }
 
     public function content(): Content
     {
-        try {
-            $currencyCode = strtoupper(
-                (string) (app(ConfigurationService::class)->getConfiguration('currency_symbol') ?? 'USD')
+        $locale = in_array(app()->getLocale(), [ 'en', 'kk', 'ru' ], true) ? app()->getLocale() : 'en';
+        $service = app(MailTemplateService::class);
+        $template = $service->getTemplate('payment_status_changed', $locale);
+        if ($template !== null) {
+            $amountFormatted = $this->formatAmount();
+            $adminEmail = $this->resolveAdminEmail();
+            $context = $service->contextForPaymentStatusChanged(
+                $this->user,
+                $this->payment,
+                $amountFormatted,
+                $this->currentStatus->value,
+                $adminEmail,
             );
-        } catch (\Throwable $e) {
-            $currencyCode = 'USD';
+            $body = $service->resolvePlaceholders($template['body'], $context);
+            return new Content(htmlString: $body);
         }
+        $currencyCode = $this->getCurrencyCode();
         $symbol = self::CURRENCY_SYMBOLS[ $currencyCode ] ?? $currencyCode;
         $amountFormatted = number_format((float) $this->payment->amount, 2) . ' ' . $symbol;
-
         $dormitory = $this->user->dormitory_id
             ? $this->user->dormitory ?? \App\Models\Dormitory::with('admin')->find($this->user->dormitory_id)
             : null;
@@ -81,5 +98,31 @@ final class PaymentStatusChangedMail extends Mailable implements ShouldQueue
                 'adminEmail'      => $adminEmail,
             ],
         );
+    }
+
+    private function formatAmount(): string
+    {
+        $currencyCode = $this->getCurrencyCode();
+        $symbol = self::CURRENCY_SYMBOLS[ $currencyCode ] ?? $currencyCode;
+        return number_format((float) $this->payment->amount, 2) . ' ' . $symbol;
+    }
+
+    private function getCurrencyCode(): string
+    {
+        try {
+            return strtoupper(
+                (string) (app(ConfigurationService::class)->getConfiguration('currency_symbol') ?? 'USD')
+            );
+        } catch (\Throwable $e) {
+            return 'USD';
+        }
+    }
+
+    private function resolveAdminEmail(): ?string
+    {
+        $dormitory = $this->user->dormitory_id
+            ? $this->user->dormitory ?? \App\Models\Dormitory::with('admin')->find($this->user->dormitory_id)
+            : null;
+        return $dormitory?->admin?->email;
     }
 }

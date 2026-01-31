@@ -6,6 +6,7 @@ namespace App\Mail;
 
 use App\Models\Message;
 use App\Models\User;
+use App\Services\MailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -30,6 +31,14 @@ final class MessageSentMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $locale = in_array(app()->getLocale(), [ 'en', 'kk', 'ru' ], true) ? app()->getLocale() : 'en';
+        $service = app(MailTemplateService::class);
+        $template = $service->getTemplate('message_sent', $locale);
+        if ($template !== null) {
+            $context = $service->contextForMessageSent($this->recipient, $this->message, null);
+            $subject = $service->resolvePlaceholders($template['subject'], $context);
+            return new Envelope(subject: $subject);
+        }
         return new Envelope(
             subject: 'New Message: ' . \Illuminate\Support\Str::limit($this->message->title ?? 'Notification', 50),
         );
@@ -37,6 +46,14 @@ final class MessageSentMail extends Mailable implements ShouldQueue
 
     public function content(): Content
     {
+        $locale = in_array(app()->getLocale(), [ 'en', 'kk', 'ru' ], true) ? app()->getLocale() : 'en';
+        $service = app(MailTemplateService::class);
+        $template = $service->getTemplate('message_sent', $locale);
+        if ($template !== null) {
+            $context = $service->contextForMessageSent($this->recipient, $this->message, null);
+            $body = $service->resolvePlaceholders($template['body'], $context);
+            return new Content(htmlString: $body);
+        }
         return new Content(
             view: 'emails.message-sent',
             with: [
