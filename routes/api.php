@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BloodTypeController;
 use App\Http\Controllers\BedController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\ConfigurationController;
+use App\Http\Controllers\DormitoryRulesController;
 use App\Http\Controllers\MailTemplateController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DormitoryController;
@@ -239,8 +240,11 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
         Route::put('/configurations/kaspi', [ConfigurationController::class, 'updateKaspiSettings']);
 
         Route::put('/configurations/currency', [ConfigurationController::class, 'updateCurrencySetting']);
-        Route::put('/configurations/dormitory-rules', [ ConfigurationController::class, 'updateDormitoryRules' ]);
         Route::put('/configurations/bank-requisites', [ ConfigurationController::class, 'updateBankRequisites' ]);
+
+        // Dormitory rules (sudo only)
+        Route::get('/dormitory-rules', [ DormitoryRulesController::class, 'index' ]);
+        Route::put('/dormitory-rules', [ DormitoryRulesController::class, 'update' ]);
 
         // Payment settings (sudo only)
         Route::get('/configurations/payment-settings', [ ConfigurationController::class, 'getPaymentSettings' ]);

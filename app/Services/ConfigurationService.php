@@ -300,7 +300,7 @@ class ConfigurationService
             'registration_enabled'       => [ 'value' => true, 'type' => 'boolean' ],
             'backup_list_enabled'        => [ 'value' => true, 'type' => 'boolean' ],
             'payment_deadline_days'      => [ 'value' => 30, 'type' => 'number' ],
-            'dormitory_rules'            => [ 'value' => 'Default dormitory rules: Please be respectful of others.', 'type' => 'string' ],
+            'dormitory_rules'            => [ 'value' => [ 'en' => '', 'kk' => '', 'ru' => '' ], 'type' => 'json' ],
             'bank_requisites'            => [ 'value' => 'Bank Name: XYZ Bank\nAccount Number: 1234567890\nIBAN: KZ0000000000000000', 'type' => 'string' ],
             'currency_symbol'            => [ 'value' => 'KZT', 'type' => 'string' ],
             'smtp_host'                  => [ 'value' => 'smtp.gmail.com', 'type' => 'string' ],

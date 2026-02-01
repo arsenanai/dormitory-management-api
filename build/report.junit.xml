@@ -1,2 +1,836 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites/>
+<testsuites>
+  <testsuite name="/Users/rsa/lab/testcrm/crm-back/phpunit.xml" tests="21" assertions="0" errors="21" failures="0" skipped="0" time="0.000000">
+    <testsuite name="Unit" tests="5" assertions="0" errors="5" failures="0" skipped="0" time="0.000000">
+      <testsuite name="Tests\Unit\RoomServiceAvailableTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/RoomServiceAvailableTest.php" tests="2" assertions="0" errors="2" failures="0" skipped="0" time="0.000000">
+        <testcase name="it_filters_by_dormitory_id" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/RoomServiceAvailableTest.php" line="187" class="Tests\Unit\RoomServiceAvailableTest" classname="Tests.Unit.RoomServiceAvailableTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\RoomServiceAvailableTest::it_filters_by_dormitory_id
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Unit/RoomServiceAvailableTest.php:26</error>
+        </testcase>
+        <testcase name="it_includes_room_type_and_dormitory_relationships" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/RoomServiceAvailableTest.php" line="281" class="Tests\Unit\RoomServiceAvailableTest" classname="Tests.Unit.RoomServiceAvailableTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\RoomServiceAvailableTest::it_includes_room_type_and_dormitory_relationships
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Unit/RoomServiceAvailableTest.php:26</error>
+        </testcase>
+      </testsuite>
+      <testsuite name="Tests\Unit\Services\StudentServiceTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/Services/StudentServiceTest.php" tests="2" assertions="0" errors="2" failures="0" skipped="0" time="0.000000">
+        <testcase name="test_update_student_gender_incompatible_with_dormitory" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/Services/StudentServiceTest.php" line="345" class="Tests\Unit\Services\StudentServiceTest" classname="Tests.Unit.Services.StudentServiceTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\Services\StudentServiceTest::test_update_student_gender_incompatible_with_dormitory
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Unit/Services/StudentServiceTest.php:31</error>
+        </testcase>
+        <testcase name="test_create_student_gender_incompatible_with_dormitory" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/Services/StudentServiceTest.php" line="280" class="Tests\Unit\Services\StudentServiceTest" classname="Tests.Unit.Services.StudentServiceTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\Services\StudentServiceTest::test_create_student_gender_incompatible_with_dormitory
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Unit/Services/StudentServiceTest.php:31</error>
+        </testcase>
+      </testsuite>
+      <testsuite name="Tests\Unit\FileServiceTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/FileServiceTest.php" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.000000">
+        <testcase name="it_downloads_files_from_public_disk" file="/Users/rsa/lab/testcrm/crm-back/tests/Unit/FileServiceTest.php" line="28" class="Tests\Unit\FileServiceTest" classname="Tests.Unit.FileServiceTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\FileServiceTest::it_downloads_files_from_public_disk
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Unit/FileServiceTest.php:22</error>
+        </testcase>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="16" assertions="0" errors="16" failures="0" skipped="0" time="0.000000">
+      <testsuite name="Tests\Feature\AdminDormitoryOptionalTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" tests="6" assertions="0" errors="6" failures="0" skipped="0" time="0.000000">
+        <testcase name="test_admin_can_be_created_without_dormitory" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" line="37" class="Tests\Feature\AdminDormitoryOptionalTest" classname="Tests.Feature.AdminDormitoryOptionalTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AdminDormitoryOptionalTest::test_admin_can_be_created_without_dormitory
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php:25</error>
+        </testcase>
+        <testcase name="test_admin_can_be_updated_with_null_dormitory_id" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" line="90" class="Tests\Feature\AdminDormitoryOptionalTest" classname="Tests.Feature.AdminDormitoryOptionalTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AdminDormitoryOptionalTest::test_admin_can_be_updated_with_null_dormitory_id
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php:25</error>
+        </testcase>
+        <testcase name="test_admin_validation_allows_null_dormitory_id" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" line="140" class="Tests\Feature\AdminDormitoryOptionalTest" classname="Tests.Feature.AdminDormitoryOptionalTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AdminDormitoryOptionalTest::test_admin_validation_allows_null_dormitory_id
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php:25</error>
+        </testcase>
+        <testcase name="test_admin_can_be_updated_to_add_dormitory" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" line="114" class="Tests\Feature\AdminDormitoryOptionalTest" classname="Tests.Feature.AdminDormitoryOptionalTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AdminDormitoryOptionalTest::test_admin_can_be_updated_to_add_dormitory
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php:25</error>
+        </testcase>
+        <testcase name="test_admin_validation_rejects_invalid_dormitory_id" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" line="163" class="Tests\Feature\AdminDormitoryOptionalTest" classname="Tests.Feature.AdminDormitoryOptionalTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AdminDormitoryOptionalTest::test_admin_validation_rejects_invalid_dormitory_id
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php:25</error>
+        </testcase>
+        <testcase name="test_admin_can_be_created_with_dormitory" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php" line="63" class="Tests\Feature\AdminDormitoryOptionalTest" classname="Tests.Feature.AdminDormitoryOptionalTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AdminDormitoryOptionalTest::test_admin_can_be_created_with_dormitory
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/AdminDormitoryOptionalTest.php:25</error>
+        </testcase>
+      </testsuite>
+      <testsuite name="Tests\Feature\DormitoryContactFieldsTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" tests="6" assertions="0" errors="6" failures="0" skipped="0" time="0.000000">
+        <testcase name="test_dormitory_can_have_reception_and_medical_phone_fields" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" line="34" class="Tests\Feature\DormitoryContactFieldsTest" classname="Tests.Feature.DormitoryContactFieldsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryContactFieldsTest::test_dormitory_can_have_reception_and_medical_phone_fields
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php:25</error>
+        </testcase>
+        <testcase name="test_dormitory_api_returns_contact_fields" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" line="81" class="Tests\Feature\DormitoryContactFieldsTest" classname="Tests.Feature.DormitoryContactFieldsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryContactFieldsTest::test_dormitory_api_returns_contact_fields
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php:25</error>
+        </testcase>
+        <testcase name="test_dormitory_crud_accepts_reception_and_medical_phone" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" line="51" class="Tests\Feature\DormitoryContactFieldsTest" classname="Tests.Feature.DormitoryContactFieldsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryContactFieldsTest::test_dormitory_crud_accepts_reception_and_medical_phone
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php:25</error>
+        </testcase>
+        <testcase name="test_dormitory_contact_fields_are_optional" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" line="191" class="Tests\Feature\DormitoryContactFieldsTest" classname="Tests.Feature.DormitoryContactFieldsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryContactFieldsTest::test_dormitory_contact_fields_are_optional
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php:25</error>
+        </testcase>
+        <testcase name="test_dormitory_contact_fields_can_be_updated" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" line="165" class="Tests\Feature\DormitoryContactFieldsTest" classname="Tests.Feature.DormitoryContactFieldsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryContactFieldsTest::test_dormitory_contact_fields_can_be_updated
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php:25</error>
+        </testcase>
+        <testcase name="test_dormitory_contact_fields_are_displayed_in_student_home_api" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php" line="106" class="Tests\Feature\DormitoryContactFieldsTest" classname="Tests.Feature.DormitoryContactFieldsTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryContactFieldsTest::test_dormitory_contact_fields_are_displayed_in_student_home_api
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63
+/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryContactFieldsTest.php:25</error>
+        </testcase>
+      </testsuite>
+      <testsuite name="Tests\Feature\DormitoryRegistrationTest" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryRegistrationTest.php" tests="4" assertions="0" errors="4" failures="0" skipped="0" time="0.000000">
+        <testcase name="it_sets_cache_control_headers" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryRegistrationTest.php" line="185" class="Tests\Feature\DormitoryRegistrationTest" classname="Tests.Feature.DormitoryRegistrationTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryRegistrationTest::it_sets_cache_control_headers
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63</error>
+        </testcase>
+        <testcase name="it_returns_empty_rooms_array_when_no_rooms_have_available_beds" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryRegistrationTest.php" line="118" class="Tests\Feature\DormitoryRegistrationTest" classname="Tests.Feature.DormitoryRegistrationTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryRegistrationTest::it_returns_empty_rooms_array_when_no_rooms_have_available_beds
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63</error>
+        </testcase>
+        <testcase name="it_includes_dormitory_details_in_response" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryRegistrationTest.php" line="161" class="Tests\Feature\DormitoryRegistrationTest" classname="Tests.Feature.DormitoryRegistrationTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryRegistrationTest::it_includes_dormitory_details_in_response
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63</error>
+        </testcase>
+        <testcase name="it_returns_only_rooms_with_available_beds_for_registration" file="/Users/rsa/lab/testcrm/crm-back/tests/Feature/DormitoryRegistrationTest.php" line="22" class="Tests\Feature\DormitoryRegistrationTest" classname="Tests.Feature.DormitoryRegistrationTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\DormitoryRegistrationTest::it_returns_only_rooms_with_available_beds_for_registration
+Illuminate\Database\QueryException: SQLSTATE[HY000] [2002] Operation not permitted (Connection: mysql, SQL: select exists (select 1 from information_schema.tables where table_schema = schema() and table_name = 'migrations' and table_type in ('BASE TABLE', 'SYSTEM VERSIONED')) as `exists`)
+
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:826
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:780
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:397
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:343
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Connection.php:360
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Schema/Builder.php:174
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/DatabaseMigrationRepository.php:185
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:756
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:67
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Migrations/Migrator.php:669
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Database/Console/Migrations/FreshCommand.php:66
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:36
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Util.php:43
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:96
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php:35
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Container/Container.php:799
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:211
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Command/Command.php:341
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Command.php:180
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:1102
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:356
+/Users/rsa/lab/testcrm/crm-back/vendor/symfony/console/Application.php:195
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Console/Application.php:165
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php:447
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:451
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Testing/PendingCommand.php:675
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithConsole.php:87
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:119
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:84
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/RefreshDatabase.php:25
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:209
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/Concerns/InteractsWithTestCaseLifecycle.php:97
+/Users/rsa/lab/testcrm/crm-back/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:63</error>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

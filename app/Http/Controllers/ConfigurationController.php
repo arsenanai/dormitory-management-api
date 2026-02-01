@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Configuration;
 use App\Services\ConfigurationService;
+use App\Services\DormitoryRulesService;
 use Illuminate\Http\Request;
 
 class ConfigurationController extends Controller
 {
-    public function __construct(private ConfigurationService $configurationService)
-    {
+    public function __construct(
+        private ConfigurationService $configurationService,
+        private DormitoryRulesService $dormitoryRulesService,
+    ) {
     }
 
     /**
@@ -226,8 +229,7 @@ class ConfigurationController extends Controller
     public function getPublicSettings()
     {
         $settings = [
-            // Provide a default empty string if the rule is not set
-            'dormitory_rules' => $this->configurationService->getConfiguration('dormitory_rules') ?? '',
+            'dormitory_rules' => $this->dormitoryRulesService->getLocales(),
             'currency_symbol' => $this->configurationService->getConfiguration('currency_symbol') ?? 'USD',
             'bank_requisites' => $this->configurationService->getConfiguration('bank_requisites') ?? 'Bank Name: XYZ Bank\nAccount Number: 1234567890\nIBAN: KZ0000000000000000',
         ];
@@ -257,20 +259,6 @@ class ConfigurationController extends Controller
         );
 
         return response()->json([ 'message' => 'Currency settings updated successfully.' ]);
-    }
-
-    /**
-     * Update dormitory rules setting
-     */
-    public function updateDormitoryRules(Request $request)
-    {
-        $validated = $request->validate([
-            'dormitory_rules' => 'nullable|string',
-        ]);
-
-        $this->configurationService->setConfiguration('dormitory_rules', $validated['dormitory_rules'], 'string', 'Dormitory Rules and Regulations');
-
-        return response()->json([ 'message' => 'Dormitory rules updated successfully.' ]);
     }
 
     /**
