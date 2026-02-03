@@ -50,6 +50,8 @@ class UserAuthService
             $role = $user->role()->first();
             // Allow students with any status (pending, active, etc.) to log in
             // They can view their pending payments and account status
+            // Sudo users don't need dormitory assignment - they're super admins
+            // Only regular admin users need dormitory assignment
             if ($role && $role->name === 'admin') {
                 $user->load('adminDormitory');
                 /** @var \App\Models\Dormitory|null $adminDormitory */
@@ -58,6 +60,7 @@ class UserAuthService
                     return 'not_assigned_admin';
                 }
             }
+            // Note: sudo users bypass the dormitory check above
             return $user;
         }
         return;

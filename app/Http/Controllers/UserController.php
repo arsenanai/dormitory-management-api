@@ -93,6 +93,9 @@ class UserController extends Controller
         if ($result->role && $result->role->name === 'admin') {
             // Load the correct relationship that already exists on the User model
             $result->load([ 'role', 'adminDormitory' ]);
+        } elseif ($result->role && $result->role->name === 'sudo') {
+            // Sudo users don't need dormitory assignment - they're super admins
+            $result->load([ 'role' ]);
         } elseif ($result->role && $result->role->name === 'student') {
             $result->load([ 'role', 'studentProfile' ]);
         } elseif ($result->role && $result->role->name === 'guest') {
@@ -101,10 +104,20 @@ class UserController extends Controller
 
         $token = $result->createToken('user-token')->plainTextToken;
 
+        // Determine dormitory based on role
+        $dormitory = null;
+        if ($result->role->name === 'admin') {
+            $dormitory = $result->adminDormitory;
+        } elseif ($result->role->name === 'sudo') {
+            // Sudo users don't have a dormitory assignment
+            $dormitory = null;
+        } else {
+            $dormitory = $result->dormitory;
+        }
+
         return response()->json([
             'user'  => $result->toArray() + [
-                // Ensure a consistent 'dormitory' property for both admins and students
-                'dormitory' => $result->role->name === 'admin' ? $result->adminDormitory : $result->dormitory,
+                'dormitory' => $dormitory,
             ],
             'token' => $token,
         ]);
