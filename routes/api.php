@@ -24,7 +24,7 @@ use App\Http\Controllers\UserController;
 Route::post('/login', [ UserController::class, 'login' ]);
 Route::get('/app-version', function () {
     return response()
-        ->json([ 'version' => '1.0.4' ])
+        ->json([ 'version' => '1.0.5' ])
         ->header('Cache-Control', 'no-store, no-cache, must-revalidate');
 });
 Route::post('/register', [ UserController::class, 'register' ]);
