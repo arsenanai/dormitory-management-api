@@ -16,10 +16,13 @@ use Illuminate\Validation\Rule;
 
 use function response;
 
+use App\Services\SduIntegrationService;
+
 class UserController extends Controller {
 	protected $authService;
 	protected $studentService;
 	protected $guestService;
+	protected $sduIntegrationService;
 
 	private array $adminRegisterRules = [
 		'name'     => 'required|string|max:255',
@@ -54,10 +57,34 @@ class UserController extends Controller {
 		'locale'                   => 'nullable|string|in:en,kk,ru,kz',
 	];
 
-	public function __construct( UserAuthService $authService, StudentService $studentService, GuestService $guestService ) {
+	public function __construct(
+		UserAuthService $authService,
+		StudentService $studentService,
+		GuestService $guestService,
+		SduIntegrationService $sduIntegrationService
+	) {
 		$this->authService = $authService;
 		$this->studentService = $studentService;
 		$this->guestService = $guestService;
+		$this->sduIntegrationService = $sduIntegrationService;
+	}
+
+	/**
+	 * Autocomplete student data from SDU API
+	 */
+	public function autocompleteStudent( Request $request ) {
+		$request->validate( [
+			'student_id' => 'required|string|max:20',
+		] );
+
+		$studentId = $request->input( 'student_id' );
+		$data = $this->sduIntegrationService->getStudentData( $studentId );
+
+		if ( ! $data ) {
+			return response()->json( [ 'message' => 'Student not found or API unavailable' ], 404 );
+		}
+
+		return response()->json( $data );
 	}
 
 	public function login( Request $request ) {
@@ -193,6 +220,7 @@ class UserController extends Controller {
 				'student_profile.enrollment_year'                => 'required|integer|digits:4',
 				'student_profile.faculty'                        => 'required|string|max:255',
 				'student_profile.specialist'                     => 'required|string|max:255',
+				'student_profile.student_id'                     => 'nullable|string|max:20|unique:student_profiles,student_id',
 				'student_profile.iin'                            => 'required|digits:12|unique:student_profiles,iin',
 				'student_profile.region'                         => 'nullable|string|max:255',
 				'student_profile.files'                          => 'sometimes|nullable|array|max:4',
