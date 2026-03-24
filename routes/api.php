@@ -238,17 +238,17 @@ Route::middleware( [ 'auth:sanctum' ] )->group( function () {
 		// // Dormitory settings saving
 		// Route::put( '/configurations/dormitory', [ ConfigurationController::class, 'updateDormitorySettings' ] );
 		// Configuration settings accessible to admin and sudo
-		Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
-		Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
-		Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
-		Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
+		// Route::get( '/configurations/card-reader', [ ConfigurationController::class, 'getCardReaderSettings' ] );
+		// Route::put( '/configurations/card-reader', [ ConfigurationController::class, 'updateCardReaderSettings' ] );
+		// Route::get( '/configurations/onec', [ ConfigurationController::class, 'getOneCSettings' ] );
+		// Route::put( '/configurations/onec', [ ConfigurationController::class, 'updateOneCSettings' ] );
 		// Kaspi integration settings (admin and sudo can manage)
-		Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
-		Route::put( '/configurations/kaspi', [ ConfigurationController::class, 'updateKaspiSettings' ] );
+		// Route::get( '/configurations/kaspi', [ ConfigurationController::class, 'getKaspiSettings' ] );
+		// Route::put( '/configurations/kaspi', [ ConfigurationController::class, 'updateKaspiSettings' ] );
 
 		// SDU integration settings (admin and sudo can manage)
-		Route::get( '/configurations/sdu', [ ConfigurationController::class, 'getSduSettings' ] );
-		Route::put( '/configurations/sdu', [ ConfigurationController::class, 'updateSduSettings' ] );
+		// Route::get( '/configurations/sdu', [ ConfigurationController::class, 'getSduSettings' ] );
+		// Route::put( '/configurations/sdu', [ ConfigurationController::class, 'updateSduSettings' ] );
 
 		Route::put( '/configurations/currency', [ ConfigurationController::class, 'updateCurrencySetting' ] );
 		Route::put( '/configurations/bank-requisites', [ ConfigurationController::class, 'updateBankRequisites' ] );

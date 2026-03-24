@@ -48,3 +48,4 @@ docker-compose.dev.yml
 
 .DS_Store
 /storage/debugbar
+build/report.junit.xml

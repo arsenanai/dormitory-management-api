@@ -66,98 +66,98 @@ class ConfigurationController extends Controller {
 	/**
 	 * Get card reader settings
 	 */
-	public function getCardReaderSettings() {
-		$settings = $this->configurationService->getCardReaderSettings();
-		return response()->json( $settings );
-	}
+	// public function getCardReaderSettings() {
+	// 	$settings = $this->configurationService->getCardReaderSettings();
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Update card reader settings
 	 */
-	public function updateCardReaderSettings( Request $request ) {
-		$validated = $request->validate( [
-			'card_reader_enabled'     => 'required|boolean',
-			'card_reader_host'        => 'required_if:card_reader_enabled,true|nullable|string|max:255',
-			'card_reader_port'        => 'required_if:card_reader_enabled,true|nullable|integer|min:1|max:65535',
-			'card_reader_timeout'     => 'required_if:card_reader_enabled,true|nullable|integer|min:1|max:300',
-			'card_reader_locations'   => 'nullable|array',
-			'card_reader_locations.*' => 'string|max:255',
-		] );
+	// public function updateCardReaderSettings( Request $request ) {
+	// 	$validated = $request->validate( [
+	// 		'card_reader_enabled'     => 'required|boolean',
+	// 		'card_reader_host'        => 'required_if:card_reader_enabled,true|nullable|string|max:255',
+	// 		'card_reader_port'        => 'required_if:card_reader_enabled,true|nullable|integer|min:1|max:65535',
+	// 		'card_reader_timeout'     => 'required_if:card_reader_enabled,true|nullable|integer|min:1|max:300',
+	// 		'card_reader_locations'   => 'nullable|array',
+	// 		'card_reader_locations.*' => 'string|max:255',
+	// 	] );
 
-		$settings = $this->configurationService->updateCardReaderSettings( $validated );
-		return response()->json( $settings );
-	}
+	// 	$settings = $this->configurationService->updateCardReaderSettings( $validated );
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Get 1C integration settings
 	 */
-	public function getOneCSettings() {
-		$settings = $this->configurationService->getOneCSettings();
-		return response()->json( $settings );
-	}
+	// public function getOneCSettings() {
+	// 	$settings = $this->configurationService->getOneCSettings();
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Update 1C integration settings
 	 */
-	public function updateOneCSettings( Request $request ) {
-		$validated = $request->validate( [
-			'onec_enabled'       => 'required|boolean',
-			'onec_host'          => 'required_if:onec_enabled,true|nullable|string|max:255',
-			'onec_database'      => 'required_if:onec_enabled,true|nullable|string|max:255',
-			'onec_username'      => 'required_if:onec_enabled,true|nullable|string|max:255',
-			'onec_password'      => 'required_if:onec_enabled,true|nullable|string|max:255',
-			'onec_sync_interval' => 'required_if:onec_enabled,true|nullable|integer|min:60|max:86400',
-		] );
+	// public function updateOneCSettings( Request $request ) {
+	// 	$validated = $request->validate( [
+	// 		'onec_enabled'       => 'required|boolean',
+	// 		'onec_host'          => 'required_if:onec_enabled,true|nullable|string|max:255',
+	// 		'onec_database'      => 'required_if:onec_enabled,true|nullable|string|max:255',
+	// 		'onec_username'      => 'required_if:onec_enabled,true|nullable|string|max:255',
+	// 		'onec_password'      => 'required_if:onec_enabled,true|nullable|string|max:255',
+	// 		'onec_sync_interval' => 'required_if:onec_enabled,true|nullable|integer|min:60|max:86400',
+	// 	] );
 
-		$settings = $this->configurationService->updateOneCSettings( $validated );
-		return response()->json( $settings );
-	}
+	// 	$settings = $this->configurationService->updateOneCSettings( $validated );
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Get Kaspi integration settings
 	 */
-	public function getKaspiSettings() {
-		$settings = $this->configurationService->getKaspiSettings();
-		return response()->json( $settings );
-	}
+	// public function getKaspiSettings() {
+	// 	$settings = $this->configurationService->getKaspiSettings();
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Update Kaspi integration settings
 	 */
-	public function updateKaspiSettings( Request $request ) {
-		$validated = $request->validate( [
-			'kaspi_enabled'     => 'required|boolean',
-			'kaspi_api_key'     => 'required_if:kaspi_enabled,true|nullable|string|max:255|regex:/^[a-zA-Z0-9_-]*$/',
-			'kaspi_merchant_id' => 'required_if:kaspi_enabled,true|nullable|string|max:255',
-			'kaspi_webhook_url' => 'required_if:kaspi_enabled,true|nullable|url|max:255',
-		] );
+	// public function updateKaspiSettings( Request $request ) {
+	// 	$validated = $request->validate( [
+	// 		'kaspi_enabled'     => 'required|boolean',
+	// 		'kaspi_api_key'     => 'required_if:kaspi_enabled,true|nullable|string|max:255|regex:/^[a-zA-Z0-9_-]*$/',
+	// 		'kaspi_merchant_id' => 'required_if:kaspi_enabled,true|nullable|string|max:255',
+	// 		'kaspi_webhook_url' => 'required_if:kaspi_enabled,true|nullable|url|max:255',
+	// 	] );
 
-		$settings = $this->configurationService->updateKaspiSettings( $validated );
-		return response()->json( $settings );
-	}
+	// 	$settings = $this->configurationService->updateKaspiSettings( $validated );
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Get SDU integration settings
 	 */
-	public function getSduSettings() {
-		$settings = $this->configurationService->getSduSettings();
-		return response()->json( $settings );
-	}
+	// public function getSduSettings() {
+	// 	$settings = $this->configurationService->getSduSettings();
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Update SDU integration settings
 	 */
-	public function updateSduSettings( Request $request ) {
-		$validated = $request->validate( [
-			'sdu_enabled'    => 'required|boolean',
-			'sdu_api_url'    => 'required_if:sdu_enabled,true|nullable|url|max:255',
-			'sdu_api_secret' => 'required_if:sdu_enabled,true|nullable|string|max:255',
-		] );
+	// public function updateSduSettings( Request $request ) {
+	// 	$validated = $request->validate( [
+	// 		'sdu_enabled'    => 'required|boolean',
+	// 		'sdu_api_url'    => 'required_if:sdu_enabled,true|nullable|url|max:255',
+	// 		'sdu_api_secret' => 'required_if:sdu_enabled,true|nullable|string|max:255',
+	// 	] );
 
 
-		$settings = $this->configurationService->updateSduSettings( $validated );
-		return response()->json( $settings );
-	}
+	// 	$settings = $this->configurationService->updateSduSettings( $validated );
+	// 	return response()->json( $settings );
+	// }
 
 	/**
 	 * Get IIN integration settings

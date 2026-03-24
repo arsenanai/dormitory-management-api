@@ -88,112 +88,111 @@ class ConfigurationService {
 	/**
 	 * Get card reader settings
 	 */
-	public function getCardReaderSettings(): array {
-		return [
-			'card_reader_enabled'   => $this->getConfiguration( 'card_reader_enabled' ),
-			'card_reader_host'      => $this->getConfiguration( 'card_reader_host' ),
-			'card_reader_port'      => $this->getConfiguration( 'card_reader_port' ),
-			'card_reader_timeout'   => $this->getConfiguration( 'card_reader_timeout' ),
-			'card_reader_locations' => $this->getConfiguration( 'card_reader_locations' ),
-		];
-	}
+	// public function getCardReaderSettings(): array {
+	// 	return [
+	// 		'card_reader_enabled'   => $this->getConfiguration( 'card_reader_enabled' ),
+	// 		'card_reader_host'      => $this->getConfiguration( 'card_reader_host' ),
+	// 		'card_reader_port'      => $this->getConfiguration( 'card_reader_port' ),
+	// 		'card_reader_timeout'   => $this->getConfiguration( 'card_reader_timeout' ),
+	// 		'card_reader_locations' => $this->getConfiguration( 'card_reader_locations' ),
+	// 	];
+	// }
 
 	/**
 	 * Update card reader settings
 	 */
-	public function updateCardReaderSettings( array $settings ): array {
-		foreach ( $settings as $key => $value ) {
-			$type = $key === 'card_reader_enabled' ? 'boolean' :
-				( $key === 'card_reader_locations' ? 'json' : 'string' );
-			$this->setConfiguration( $key, $value, $type, 'Card Reader Configuration' );
-		}
+	// public function updateCardReaderSettings( array $settings ): array {
+	// 	foreach ( $settings as $key => $value ) {
+	// 		$type = $key === 'card_reader_enabled' ? 'boolean' :
+	// 			( $key === 'card_reader_locations' ? 'json' : 'string' );
+	// 		$this->setConfiguration( $key, $value, $type, 'Card Reader Configuration' );
+	// 	}
 
-		return $this->getCardReaderSettings();
-	}
+	// 	return $this->getCardReaderSettings();
+	// }
 
 	/**
 	 * Get 1C integration settings
 	 */
-	public function getOneCSettings(): array {
-		return [
-			'onec_enabled'       => $this->getConfiguration( 'onec_enabled' ),
-			'onec_host'          => $this->getConfiguration( 'onec_host' ),
-			'onec_database'      => $this->getConfiguration( 'onec_database' ),
-			'onec_username'      => $this->getConfiguration( 'onec_username' ),
-			'onec_password'      => $this->getConfiguration( 'onec_password' ),
-			'onec_sync_interval' => $this->getConfiguration( 'onec_sync_interval' ),
-		];
-	}
+	// public function getOneCSettings(): array {
+	// 	return [
+	// 		'onec_enabled'       => $this->getConfiguration( 'onec_enabled' ),
+	// 		'onec_host'          => $this->getConfiguration( 'onec_host' ),
+	// 		'onec_database'      => $this->getConfiguration( 'onec_database' ),
+	// 		'onec_username'      => $this->getConfiguration( 'onec_username' ),
+	// 		'onec_password'      => $this->getConfiguration( 'onec_password' ),
+	// 		'onec_sync_interval' => $this->getConfiguration( 'onec_sync_interval' ),
+	// 	];
+	// }
 
 	/**
 	 * Update 1C integration settings
 	 */
-	public function updateOneCSettings( array $settings ): array {
-		foreach ( $settings as $key => $value ) {
-			$type = $key === 'onec_enabled' ? 'boolean' :
-				( $key === 'onec_sync_interval' ? 'number' : 'string' );
-			$this->setConfiguration( $key, $value, $type, '1C Integration Configuration' );
-		}
+	// public function updateOneCSettings( array $settings ): array {
+	// 	foreach ( $settings as $key => $value ) {
+	// 		$type = $key === 'onec_enabled' ? 'boolean' :
+	// 			( $key === 'onec_sync_interval' ? 'number' : 'string' );
+	// 		$this->setConfiguration( $key, $value, $type, '1C Integration Configuration' );
+	// 	}
 
-		return $this->getOneCSettings();
-	}
+	// 	return $this->getOneCSettings();
+	// }
 
 	/**
 	 * Get Kaspi integration settings
 	 */
-	public function getKaspiSettings(): array {
-		return [
-			'kaspi_enabled'     => $this->getConfiguration( 'kaspi_enabled' ),
-			'kaspi_api_key'     => $this->getConfiguration( 'kaspi_api_key' ),
-			'kaspi_merchant_id' => $this->getConfiguration( 'kaspi_merchant_id' ),
-			'kaspi_webhook_url' => $this->getConfiguration( 'kaspi_webhook_url' ),
-		];
-	}
+	// public function getKaspiSettings(): array {
+	// 	return [
+	// 		'kaspi_enabled'     => $this->getConfiguration( 'kaspi_enabled' ),
+	// 		'kaspi_api_key'     => $this->getConfiguration( 'kaspi_api_key' ),
+	// 		'kaspi_merchant_id' => $this->getConfiguration( 'kaspi_merchant_id' ),
+	// 		'kaspi_webhook_url' => $this->getConfiguration( 'kaspi_webhook_url' ),
+	// 	];
+	// }
 
 	/**
 	 * Update Kaspi integration settings
 	 */
-	public function updateKaspiSettings( array $settings ): array {
-		foreach ( $settings as $key => $value ) {
-			$type = $key === 'kaspi_enabled' ? 'boolean' : 'string';
-			$this->setConfiguration( $key, $value, $type, 'Kaspi Integration Configuration' );
-		}
+	// public function updateKaspiSettings( array $settings ): array {
+	// 	foreach ( $settings as $key => $value ) {
+	// 		$type = $key === 'kaspi_enabled' ? 'boolean' : 'string';
+	// 		$this->setConfiguration( $key, $value, $type, 'Kaspi Integration Configuration' );
+	// 	}
 
-		return $this->getKaspiSettings();
-	}
+	// 	return $this->getKaspiSettings();
+	// }
 
 	/**
 	 * Get SDU integration settings
 	 */
-	public function getSduSettings(): array {
-		return [
-			'sdu_enabled'    => $this->getConfiguration( 'sdu_enabled' ),
-			'sdu_api_url'    => $this->getConfiguration( 'sdu_api_url' ),
-			'sdu_api_secret' => $this->getConfiguration( 'sdu_api_secret' ),
-		];
-	}
+	// public function getSduSettings(): array {
+	// 	return [
+	// 		'sdu_enabled'    => $this->getConfiguration( 'sdu_enabled' ),
+	// 		'sdu_api_url'    => $this->getConfiguration( 'sdu_api_url' ),
+	// 		'sdu_api_secret' => $this->getConfiguration( 'sdu_api_secret' ),
+	// 	];
+	// }
 
 	/**
 	 * Update SDU integration settings
 	 */
-	public function updateSduSettings( array $settings ): array {
-		foreach ( $settings as $key => $value ) {
-			$type = $key === 'sdu_enabled' ? 'boolean' : 'string';
-			$this->setConfiguration( $key, $value, $type, 'SDU Integration Configuration' );
-		}
+	// public function updateSduSettings( array $settings ): array {
+	// 	foreach ( $settings as $key => $value ) {
+	// 		$type = $key === 'sdu_enabled' ? 'boolean' : 'string';
+	// 		$this->setConfiguration( $key, $value, $type, 'SDU Integration Configuration' );
+	// 	}
 
-		return $this->getSduSettings();
-	}
+	// 	return $this->getSduSettings();
+	// }
 
 	/**
 	 * Get IIN integration settings
 	 */
 	public function getIinSettings(): array {
 		return [
-			'iin_integration_enabled'         => $this->getConfiguration( 'iin_integration_enabled' ),
-			'iin_base_url'                    => $this->getConfiguration( 'iin_base_url' ),
-			'iin_encryption_key'              => $this->getConfiguration( 'iin_encryption_key' ),
-			'student_id_autocomplete_enabled' => $this->getConfiguration( 'sdu_enabled' ),
+			'iin_integration_enabled' => $this->getConfiguration( 'iin_integration_enabled' ),
+			'iin_base_url'            => $this->getConfiguration( 'iin_base_url' ),
+			'iin_encryption_key'      => $this->getConfiguration( 'iin_encryption_key' ),
 		];
 	}
 
@@ -202,9 +201,8 @@ class ConfigurationService {
 	 */
 	public function updateIinSettings( array $settings ): array {
 		foreach ( $settings as $key => $value ) {
-			$type = in_array( $key, [ 'iin_integration_enabled', 'student_id_autocomplete_enabled' ] ) ? 'boolean' : 'string';
-			$realKey = $key === 'student_id_autocomplete_enabled' ? 'sdu_enabled' : $key;
-			$this->setConfiguration( $realKey, $value, $type, 'IIN Integration Configuration' );
+			$type = $key === 'iin_integration_enabled' ? 'boolean' : 'string';
+			$this->setConfiguration( $key, $value, $type, 'IIN Integration Configuration' );
 		}
 
 		return $this->getIinSettings();
