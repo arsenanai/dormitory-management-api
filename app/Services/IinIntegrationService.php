@@ -9,10 +9,30 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class IinIntegrationService {
+	private array $lastRequestDebug = [];
+
 	public function __construct(
 		private ConfigurationService $configurationService,
 		private FileService $fileService
 	) {
+	}
+
+	public function getLastRequestDebug(): array {
+		return $this->lastRequestDebug;
+	}
+
+	private function recordDebug( string $method, string $url, array $payload, $response ): void {
+		$this->lastRequestDebug = [
+			'request'  => [
+				'method'  => $method,
+				'url'     => $url,
+				'payload' => $payload,
+			],
+			'response' => [
+				'status' => $response->status(),
+				'body'   => $response->json() ?? $response->body(),
+			],
+		];
 	}
 
 	/**
@@ -32,13 +52,17 @@ class IinIntegrationService {
 
 		try {
 			$response = Http::post( $url );
+			$this->recordDebug( 'POST', $url, [], $response );
 
 			if ( $response->failed() ) {
 				Log::error( "IIN Send OTP failed for student $studentId: " . $response->body() );
 				throw new Exception( 'Failed to send OTP. Please check the student ID or try again later.' );
 			}
 
-			return $response->json();
+			$json = $response->json();
+
+			// The SDU API wraps responses in a 'data' key
+			return $json['data'] ?? $json;
 		} catch (Exception $e) {
 			Log::error( "IIN Send OTP exception for student $studentId: " . $e->getMessage() );
 			throw $e;
@@ -62,13 +86,16 @@ class IinIntegrationService {
 
 		try {
 			$response = Http::post( $url, [ 'otp' => $otp ] );
+			$this->recordDebug( 'POST', $url, [ 'otp' => $otp ], $response );
 
 			if ( $response->failed() ) {
 				Log::error( "IIN Verify OTP failed for student $studentId: " . $response->body() );
 				throw new Exception( 'Invalid OTP or verification failed.' );
 			}
 
-			$data = $response->json();
+			$json = $response->json();
+			// The SDU API wraps responses in a 'data' key
+			$data = $json['data'] ?? $json;
 
 			if ( ! isset( $data['encrypted_data'] ) ) {
 				throw new Exception( 'Invalid response format from IIN service.' );

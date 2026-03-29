@@ -22,11 +22,19 @@ class IinIntegrationController extends Controller {
 		try {
 			$response = $this->iinIntegrationService->sendOtp( $validated['student_id'] );
 
-			return response()->json( $response );
+			return response()->json( [
+				'message'    => $response['message'] ?? 'OTP sent',
+				'identifier' => $response['masked_email'] ?? null,
+			] );
 		} catch (Exception $e) {
 			Log::error( 'Send OTP Error: ' . $e->getMessage() );
 
-			return response()->json( [ 'message' => $e->getMessage() ], 500 );
+			$body = [ 'message' => $e->getMessage() ];
+			if ( $this->isDebugEnvironment() ) {
+				$body['debug'] = $this->iinIntegrationService->getLastRequestDebug();
+			}
+
+			return response()->json( $body, 500 );
 		}
 	}
 
@@ -45,21 +53,42 @@ class IinIntegrationController extends Controller {
 				$validated['otp']
 			);
 
-			// Map the response to frontend structure
+			// Map the SDU API response fields to frontend structure
 			$mappedData = [
-				'firstName'      => $decryptedData['name'] ?? '',
-				'lastName'       => $decryptedData['surname'] ?? '',
-				'iin'            => $decryptedData['iin'] ?? '',
-				'passportNumber' => $decryptedData['passport_number'] ?? '',
-				'studentId'      => $decryptedData['student_id'] ?? '',
+				'firstName'      => $decryptedData['first_name'] ?? '',
+				'lastName'       => $decryptedData['last_name'] ?? '',
+				'iin'            => $decryptedData['iin_no'] ?? '',
+				'passportNumber' => $decryptedData['passport_no'] ?? '',
+				'studentId'      => $decryptedData['stud_id'] ?? '',
 				'photoPath'      => $decryptedData['photo_path'] ?? null,
+				'gender'         => $decryptedData['gender'] ?? '',
+				'email'          => $decryptedData['email'] ?? '',
+				'phones'         => $decryptedData['phones'] ?? [],
+				'country'        => $decryptedData['address']['country'] ?? '',
+				'region'         => $decryptedData['address']['province'] ?? '',
+				'city'           => $decryptedData['address']['city'] ?? '',
+				'specialist'     => $decryptedData['speciality'] ?? '',
+				'enrollmentYear' => $decryptedData['enrollment_year'] ?? '',
+				'emergencyContactName'  => $decryptedData['emergency_contact'][0]['name'] ?? '',
+				'emergencyContactPhone' => $decryptedData['emergency_contact'][0]['phone'] ?? '',
+				'emergencyContactType'  => $decryptedData['emergency_contact'][0]['emergency_contact_type'] ?? '',
+				'emergencyContactEmail' => $decryptedData['emergency_contact'][0]['email'] ?? '',
 			];
 
 			return response()->json( $mappedData );
 		} catch (Exception $e) {
 			Log::error( 'Verify OTP Error: ' . $e->getMessage() );
 
-			return response()->json( [ 'message' => $e->getMessage() ], 500 );
+			$body = [ 'message' => $e->getMessage() ];
+			if ( $this->isDebugEnvironment() ) {
+				$body['debug'] = $this->iinIntegrationService->getLastRequestDebug();
+			}
+
+			return response()->json( $body, 500 );
 		}
+	}
+
+	private function isDebugEnvironment(): bool {
+		return in_array( config( 'app.env' ), [ 'local', 'development', 'staging' ] );
 	}
 }
