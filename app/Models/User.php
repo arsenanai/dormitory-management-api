@@ -96,6 +96,11 @@ class User extends Authenticatable
         return $this->hasMany(Payment::class, 'user_id');
     }
 
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
     public function currentSemesterPayment(): HasOne
     {
         return $this->hasOne(Payment::class, 'user_id')->latestOfMany();

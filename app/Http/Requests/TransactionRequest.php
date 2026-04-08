@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class TransactionRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
+     */
+    public function rules(): array
+    {
+        $isPost = $this->isMethod('POST');
+        $isPut = $this->isMethod('PUT') || $this->isMethod('PATCH');
+
+        $rules = [
+            'payment_ids'     => ($isPost ? 'required' : 'sometimes') . '|array|min:1',
+            'payment_ids.*'   => 'exists:payments,id',
+            'amounts'         => 'sometimes|array',
+            'amounts.*'       => 'numeric|min:0.01',
+            'amount'          => ($isPost ? 'required' : 'sometimes') . '|numeric|min:0.01',
+            'payment_method'  => 'sometimes|string|in:bank_check,kaspi,stripe',
+            'payment_check'   => 'sometimes|nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+        ];
+
+        $userRole = $this->user()->role?->name;
+
+        // For admin creation, require user_id and allow status
+        if ($isPost && in_array($userRole, ['admin', 'sudo'])) {
+            $rules['user_id'] = 'required|exists:users,id';
+            $rules['status'] = 'sometimes|string|in:pending,processing,completed,failed,cancelled,refunded';
+        }
+
+        // For admin updates, allow status changes
+        if ($isPut && in_array($userRole, ['admin', 'sudo'])) {
+            $rules['status'] = 'sometimes|string|in:pending,processing,completed,failed,cancelled,refunded';
+        }
+
+        // For student/guest creation, require payment_check for bank_check method
+        if ($isPost && in_array($userRole, ['student', 'guest'])) {
+            $rules['payment_method'] = 'required|string|in:bank_check';
+            $rules['payment_check'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:2048';
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'payment_ids.required' => 'You must select at least one payment to cover.',
+            'payment_ids.*.exists' => 'One or more selected payments are invalid.',
+            'amount.required' => 'The transaction amount is required.',
+            'amount.min' => 'The amount must be at least 0.01.',
+            'payment_check.required' => 'Bank check upload is required for bank check payments.',
+            'payment_check.mimes' => 'The bank check must be a file of type: jpg, jpeg, png, pdf.',
+            'payment_check.max' => 'The bank check file may not be larger than 2MB.',
+        ];
+    }
+}

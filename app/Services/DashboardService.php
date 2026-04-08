@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentStatus;
 use App\Models\Bed;
 use App\Models\Dormitory;
 use App\Models\Message;
 use App\Models\Payment;
 use App\Models\Room;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -139,31 +141,39 @@ class DashboardService
      */
     private function getPaymentStats($dormitoryId = null)
     {
-        $query = Payment::query();
+        $paymentQuery = Payment::query();
+        $transactionQuery = Transaction::query();
 
         if ($dormitoryId) {
-            $query->whereHas('user.room', fn ($q) => $q->where('dormitory_id', $dormitoryId));
+            $paymentQuery->whereHas('user.room', fn ($q) => $q->where('dormitory_id', $dormitoryId));
+            $transactionQuery->whereHas('user.room', fn ($q) => $q->where('dormitory_id', $dormitoryId));
         }
 
-        $totalPayments = $query->count();
-        $totalAmount = $query->sum('amount');
-        // NOTE: The new 'payments' table does not have a status.
-        // We'll count all as "completed" for now.
-        $pendingPayments = 0; // Placeholder
+        $totalPayments = $paymentQuery->count();
+        $totalAmount = $paymentQuery->sum('amount');
+        $pendingPayments = (clone $paymentQuery)->whereIn('status', [
+            PaymentStatus::Pending,
+            PaymentStatus::PartiallyPaid,
+        ])->count();
+        $completedPayments = (clone $paymentQuery)->where('status', PaymentStatus::Completed)->count();
 
-        // This month's payments
-        $thisMonthAmount = (clone $query)
+        $totalCollected = (clone $transactionQuery)->where('status', 'completed')->sum('amount');
+        $pendingTransactions = (clone $transactionQuery)->where('status', 'processing')->count();
+
+        $thisMonthAmount = (clone $transactionQuery)
+            ->where('status', 'completed')
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->sum('amount');
 
         return [
-            'total_payments'     => $totalPayments,
-            'total_amount'       => $totalAmount,
-            'approved_payments'  => $totalPayments, // All are considered approved
-            'completed_payments' => $totalPayments,
-            'pending_payments'   => $pendingPayments,
-            'this_month_amount'  => $thisMonthAmount,
+            'total_payments'       => $totalPayments,
+            'total_amount'         => $totalAmount,
+            'total_collected'      => $totalCollected,
+            'completed_payments'   => $completedPayments,
+            'pending_payments'     => $pendingPayments,
+            'pending_transactions' => $pendingTransactions,
+            'this_month_amount'    => $thisMonthAmount,
         ];
     }
 
@@ -256,7 +266,7 @@ class DashboardService
             'my_messages'           => $messages->count(),
             'unread_messages_count' => $messages->whereNull('read_at')->count(),
             'my_payments'           => $payments->count(),
-            'upcoming_payments'     => 0, // No status in new model
+            'upcoming_payments'     => $payments->whereIn('status', [PaymentStatus::Pending, PaymentStatus::PartiallyPaid])->count(),
             'payment_history'       => $payments->count(), // All payments are history
             'room_info'             => $roomInfo,
         ];
@@ -312,9 +322,11 @@ class DashboardService
         $currentMonth = [
             'total_payments'    => Payment::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)->count(),
-            'total_amount'      => Payment::whereMonth('created_at', now()->month)
+            'total_amount'      => Transaction::where('status', 'completed')
+                ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)->sum('amount'),
-            'approved_payments' => Payment::whereMonth('created_at', now()->month)
+            'approved_payments' => Transaction::where('status', 'completed')
+                ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)->count(),
             'new_students'      => User::whereHas('role', fn ($q) => $q->where('name', 'student'))
                 ->whereMonth('created_at', now()->month)
@@ -326,9 +338,11 @@ class DashboardService
         $lastMonth = [
             'total_payments'    => Payment::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)->count(),
-            'total_amount'      => Payment::whereMonth('created_at', now()->subMonth()->month)
+            'total_amount'      => Transaction::where('status', 'completed')
+                ->whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)->sum('amount'),
-            'approved_payments' => Payment::whereMonth('created_at', now()->subMonth()->month)
+            'approved_payments' => Transaction::where('status', 'completed')
+                ->whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)->count(),
             'new_students'      => User::whereHas('role', fn ($q) => $q->where('name', 'student'))
                 ->whereMonth('created_at', now()->subMonth()->month)
@@ -337,16 +351,18 @@ class DashboardService
                 ->whereYear('created_at', now()->subMonth()->year)->count(),
         ];
 
-        // Get monthly revenue for the last 12 months
+        // Get monthly revenue for the last 12 months (from completed transactions)
         $monthlyRevenue = [];
         for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $monthlyRevenue[] = [
                 'month'         => $date->format('M'),
                 'year'          => $date->year,
-                'total_amount'  => Payment::whereMonth('created_at', $date->month)
+                'total_amount'  => Transaction::where('status', 'completed')
+                    ->whereMonth('created_at', $date->month)
                     ->whereYear('created_at', $date->year)->sum('amount') ?: 0,
-                'payment_count' => Payment::whereMonth('created_at', $date->month)
+                'payment_count' => Transaction::where('status', 'completed')
+                    ->whereMonth('created_at', $date->month)
                     ->whereYear('created_at', $date->year)->count(),
             ];
         }
@@ -363,23 +379,28 @@ class DashboardService
      */
     public function getPaymentAnalytics()
     {
-        // The new 'payments' table does not have 'payment_method' or 'payment_status'
-        // Returning empty arrays or mock data for these.
-        $paymentMethods = [];
-        $paymentStatuses = [];
+        $paymentMethods = Transaction::where('status', 'completed')
+            ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total')
+            ->groupBy('payment_method')
+            ->get();
 
-        // Get daily revenue for the last 30 days
+        $paymentStatuses = Transaction::selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get();
+
+        // Get daily revenue from completed transactions for last 30 days
         $dailyRevenue = [];
         for ($i = 29; $i >= 0; $i--) {
             $date = now()->subDays($i)->format('Y-m-d');
-            $dayData = Payment::whereDate('created_at', $date)
+            $dayData = Transaction::where('status', 'completed')
+                ->whereDate('created_at', $date)
                 ->selectRaw('SUM(amount) as total_amount, COUNT(*) as payment_count')
                 ->first();
 
             $dailyRevenue[] = [
                 'date'          => $date,
                 'total_amount'  => (float) ($dayData?->total_amount ?? 0),
-                'payment_count' => $dayData->payment_count ?? 0,
+                'payment_count' => $dayData?->payment_count ?? 0,
             ];
         }
 

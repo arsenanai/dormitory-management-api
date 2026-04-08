@@ -4,11 +4,10 @@ namespace App\Enums;
 
 enum PaymentStatus: string
 {
-    case Pending    = 'pending';
-    case Processing = 'processing';
-    case Completed  = 'completed';
-    case Failed     = 'failed';
-    case Cancelled  = 'cancelled';
-    case Refunded   = 'refunded';
-    case Expired    = 'expired';
+    case Pending        = 'pending';
+    case PartiallyPaid  = 'partially_paid';  // NEW
+    case Completed      = 'completed';
+    case Cancelled      = 'cancelled';
+    case Expired        = 'expired';
+    // REMOVED: Processing, Failed, Refunded (these are now on Transaction)
 }

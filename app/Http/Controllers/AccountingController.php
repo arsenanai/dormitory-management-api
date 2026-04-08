@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payment; // Changed from SemesterPayment to Payment
+use App\Models\Payment;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 
 class AccountingController extends Controller
@@ -43,11 +44,11 @@ class AccountingController extends Controller
 
         // Calculate summary statistics
         $summary = [
-            'total_payments'  => $payments->total(),
-            'total_amount'    => $payments->sum('amount'),
-            // 'payment_approved' column was dropped. These summaries need re-evaluation.
-            'approved_amount' => 0, // Placeholder
-            'pending_amount'  => 0, // Placeholder
+            'total_debts'          => Payment::sum('amount'),
+            'total_collected'      => Transaction::where('status', 'completed')->sum('amount'),
+            'total_pending'        => Payment::sum('amount') - Payment::sum('paid_amount'),
+            'approved_amount'      => Transaction::where('status', 'completed')->sum('amount'),
+            'pending_transactions' => Transaction::where('status', 'processing')->count(),
         ];
 
         return response()->json([
@@ -72,11 +73,14 @@ class AccountingController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $studentTransactions = Transaction::where('user_id', $studentId);
+
         $summary = [
-            'total_payments'  => $payments->count(),
-            'total_amount'    => $payments->sum('amount'),
-            'approved_amount' => 0, // Placeholder
-            'pending_amount'  => 0, // Placeholder
+            'total_debts'          => $payments->sum('amount'),
+            'total_collected'      => (clone $studentTransactions)->where('status', 'completed')->sum('amount'),
+            'total_pending'        => $payments->sum('amount') - $payments->sum('paid_amount'),
+            'approved_amount'      => (clone $studentTransactions)->where('status', 'completed')->sum('amount'),
+            'pending_transactions' => (clone $studentTransactions)->where('status', 'processing')->count(),
         ];
 
         return response()->json([
@@ -102,14 +106,24 @@ class AccountingController extends Controller
             $query->where('deal_date', '<=', $request->end_date); // Assuming deal_date is the relevant date
         }
 
-        $payments = $query->orderBy('created_at', 'desc') // Order by created_at is fine
+        $payments = $query->orderBy('created_at', 'desc')
             ->paginate($request->get('per_page', 15));
 
+        // Scope transaction queries to same date range
+        $transactionQuery = Transaction::query();
+        if ($request->filled('start_date')) {
+            $transactionQuery->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $transactionQuery->whereDate('created_at', '<=', $request->end_date);
+        }
+
         $summary = [
-            'total_payments'  => $payments->total(),
-            'total_amount'    => $payments->sum('amount'),
-            'approved_amount' => 0, // Placeholder
-            'pending_amount'  => 0, // Placeholder
+            'total_debts'          => $payments->sum('amount'),
+            'total_collected'      => (clone $transactionQuery)->where('status', 'completed')->sum('amount'),
+            'total_pending'        => $payments->sum('amount') - $payments->sum('paid_amount'),
+            'approved_amount'      => (clone $transactionQuery)->where('status', 'completed')->sum('amount'),
+            'pending_transactions' => (clone $transactionQuery)->where('status', 'processing')->count(),
         ];
 
         return response()->json([
@@ -129,36 +143,51 @@ class AccountingController extends Controller
      */
     public function export(Request $request)
     {
-        $query = Payment::with([ 'user' ])
+        $query = Payment::with([ 'user', 'type' ])
             ->select([
-                'payments.*', // Changed table alias
+                'payments.*',
                 'users.name as student_name',
                 'users.email as student_email'
             ])
-            ->join('users', 'payments.user_id', '=', 'users.id'); // Changed table alias
+            ->join('users', 'payments.user_id', '=', 'users.id');
 
-        // Apply filters
         if ($request->filled('student')) {
             $query->where('users.name', 'like', '%' . $request->student . '%');
         }
 
-        // 'semester' column was dropped. Removing filter.
-
         if ($request->filled('start_date')) {
-            $query->where('payments.deal_date', '>=', $request->start_date); // Assuming deal_date is the relevant date
+            $query->where('payments.deal_date', '>=', $request->start_date);
         }
 
         if ($request->filled('end_date')) {
-            $query->where('payments.deal_date', '<=', $request->end_date); // Assuming deal_date is the relevant date
+            $query->where('payments.deal_date', '<=', $request->end_date);
         }
 
-        $payments = $query->orderBy('payments.created_at', 'desc')->get(); // Changed table alias
+        $payments = $query->orderBy('payments.created_at', 'desc')->get();
 
-        // For now, return JSON. In a real implementation, you'd generate an Excel file
-        return response()->json([
-            'message' => 'Export functionality would generate Excel file here',
-            'data'    => $payments,
-        ]);
+        $csvContent = "ID,Student,Email,Type,Deal Number,Amount,Paid Amount,Remaining,Status,Date From,Date To\n";
+        foreach ($payments as $p) {
+            $remaining = $p->amount - ($p->paid_amount ?? 0);
+            $csvContent .= sprintf(
+                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                $p->id,
+                '"' . str_replace('"', '""', $p->student_name ?? '') . '"',
+                $p->student_email ?? '',
+                '"' . str_replace('"', '""', $p->type->name ?? '') . '"',
+                '"' . str_replace('"', '""', $p->deal_number ?? '') . '"',
+                $p->amount,
+                $p->paid_amount ?? 0,
+                $remaining,
+                $p->status?->value ?? '',
+                $p->date_from?->format('Y-m-d') ?? '',
+                $p->date_to?->format('Y-m-d') ?? ''
+            );
+        }
+
+        $filename = 'accounting_export_' . date('Y-m-d_H-i-s') . '.csv';
+        return response($csvContent)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     /**
@@ -169,10 +198,10 @@ class AccountingController extends Controller
         $stats = [
             'total_payments'         => Payment::count(),
             'total_amount'           => Payment::sum('amount'),
-            'approved_payments'      => 0, // 'payment_approved' column was dropped. Placeholder.
-            'approved_amount'        => 0, // Placeholder
-            'pending_payments'       => 0, // Placeholder
-            'pending_amount'         => 0, // Placeholder
+            'total_collected'        => Transaction::where('status', 'completed')->sum('amount'),
+            'total_pending'          => Payment::sum('amount') - Payment::sum('paid_amount'),
+            'approved_transactions'  => Transaction::where('status', 'completed')->count(),
+            'pending_transactions'   => Transaction::where('status', 'processing')->count(),
             'students_with_payments' => Payment::distinct('user_id')->count(),
         ];
 

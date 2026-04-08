@@ -11,22 +11,24 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * @property int $id
  * @property int $user_id
  * @property float $amount
+ * @property float $paid_amount
  * @property int|null $payment_type_id
  * @property \Carbon\Carbon|null $date_from
  * @property \Carbon\Carbon|null $date_to
  * @property string|null $deal_number
  * @property \Carbon\Carbon|null $deal_date
- * @property string|null $payment_check
  * @property PaymentStatus $status
  * @property \Illuminate\Support\Carbon|null $created_at
  * @property \Illuminate\Support\Carbon|null $updated_at
  * @property-read User $user
  * @property-read PaymentType|null $type
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Transaction> $transactions
  */
 class Payment extends Model
 {
@@ -37,21 +39,22 @@ class Payment extends Model
     protected $fillable = [
         'user_id',
         'amount',
+        'paid_amount',
         'payment_type_id',
         'date_from',
         'date_to',
         'deal_number',
         'deal_date',
-        'payment_check',
         'status',
     ];
 
     protected $casts = [
-        'amount'     => 'decimal:2',
-        'date_from'  => 'date',
-        'date_to'    => 'date',
-        'deal_date'  => 'date',
-        'status'     => PaymentStatus::class,
+        'amount'      => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'date_from'   => 'date',
+        'date_to'     => 'date',
+        'deal_date'   => 'date',
+        'status'      => PaymentStatus::class,
     ];
 
     /*
@@ -80,6 +83,18 @@ class Payment extends Model
         return $this->belongsTo(PaymentType::class, 'payment_type_id');
     }
 
+    /**
+     * Get the transactions that cover this payment.
+     *
+     * @return BelongsToMany<Transaction, $this>
+     */
+    public function transactions(): BelongsToMany
+    {
+        return $this->belongsToMany(Transaction::class, 'payment_transaction')
+                     ->withPivot('amount')
+                     ->withTimestamps();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Scopes
@@ -97,7 +112,7 @@ class Payment extends Model
     }
 
     /**
-     * Scope to payments that are paying (pending, processing, or completed).
+     * Scope to payments that are paying (pending, partially_paid, or completed).
      *
      * @param Builder<Payment> $query
      */
@@ -105,7 +120,7 @@ class Payment extends Model
     {
         $query->whereIn('status', [
             PaymentStatus::Pending,
-            PaymentStatus::Processing,
+            PaymentStatus::PartiallyPaid,
             PaymentStatus::Completed,
         ]);
     }
@@ -115,6 +130,16 @@ class Payment extends Model
     | Helpers
     |--------------------------------------------------------------------------
     */
+
+    /**
+     * Get the remaining amount to be paid for this payment.
+     *
+     * @return float
+     */
+    public function remainingAmount(): float
+    {
+        return max(0, (float) $this->amount - (float) $this->paid_amount);
+    }
 
     /**
      * Create a payment for a user based on PaymentType configuration.

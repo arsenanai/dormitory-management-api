@@ -33,15 +33,27 @@ class PaymentResource extends JsonResource
             'id'            => $this->id,
             'userId'        => $this->user_id,
             'amount'        => $this->amount,
+            'paidAmount'    => $this->paid_amount ?? 0,
+            'remainingAmount' => $this->remainingAmount(),
             'paymentType'   => $this->type?->name ?? null,
             'dateFrom'      => $this->date_from,
             'dateTo'        => $this->date_to,
             'dealNumber'    => $this->deal_number,
             'dealDate'      => $this->deal_date,
-            'paymentCheck'  => $this->payment_check ? $this->payment_check : null,
             'status'        => $this->status->value,
             'createdAt'     => $this->created_at, // Payment Date
             'updatedAt'     => $this->updated_at,
+            'transactions'  => $this->whenLoaded('transactions', function () {
+                return $this->transactions->map(function ($transaction) {
+                    return [
+                        'id' => $transaction->id,
+                        'amount' => $transaction->amount,
+                        'pivotAmount' => $transaction->pivot->amount,
+                        'status' => $transaction->status->value,
+                        'paymentMethod' => $transaction->payment_method,
+                    ];
+                });
+            }),
 
             // Include related data
             'user'                 => $this->whenLoaded('user', function () {

@@ -8,6 +8,7 @@ use App\Models\Dormitory;
 use App\Models\GuestProfile;
 use App\Models\Message;
 use App\Models\Payment;
+use App\Models\Transaction;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\User;
@@ -187,6 +188,67 @@ class DevelopmentSeeder extends Seeder
         }
 
         return $avatars;
+    }
+
+    /**
+     * Generate a bank check image using GD library and store it
+     */
+    private function generateBankCheckImage(int $index): string
+    {
+        $directory = 'payment_checks';
+
+        $colors = [
+            [240, 248, 255], // Alice blue
+            [245, 245, 220], // Beige
+            [240, 255, 240], // Honeydew
+            [255, 250, 240], // Floral white
+            [248, 248, 255], // Ghost white
+        ];
+
+        $color = $colors[$index % count($colors)];
+
+        $image = imagecreatetruecolor(800, 400);
+        $bgColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
+        imagefill($image, 0, 0, $bgColor);
+
+        $darkColor = imagecolorallocate($image, 50, 50, 50);
+        $grayColor = imagecolorallocate($image, 150, 150, 150);
+
+        // Draw border
+        imagerectangle($image, 10, 10, 789, 389, $darkColor);
+        imagerectangle($image, 12, 12, 787, 387, $grayColor);
+
+        // Draw header bar
+        $headerColor = imagecolorallocate($image, 30, 52, 89);
+        imagefilledrectangle($image, 10, 10, 789, 70, $headerColor);
+
+        // Add text
+        $whiteColor = imagecolorallocate($image, 255, 255, 255);
+        imagestring($image, 5, 30, 25, 'SDU DORMITORY PAYMENT RECEIPT', $whiteColor);
+        imagestring($image, 3, 30, 45, 'Bank Check #' . str_pad((string)$index, 6, '0', STR_PAD_LEFT), $whiteColor);
+
+        imagestring($image, 4, 30, 100, 'Date: ' . now()->format('Y-m-d'), $darkColor);
+        imagestring($image, 4, 30, 130, 'Amount: ' . number_format(($index % 300000) + 50000, 2) . ' KZT', $darkColor);
+        imagestring($image, 4, 30, 160, 'Payment Method: Bank Transfer', $darkColor);
+        imagestring($image, 4, 30, 190, 'Status: CONFIRMED', $darkColor);
+        imagestring($image, 3, 30, 240, 'Reference: REF-' . str_pad((string)($index * 7), 8, '0', STR_PAD_LEFT), $grayColor);
+
+        // Draw signature line
+        imageline($image, 400, 320, 750, 320, $darkColor);
+        imagestring($image, 2, 450, 325, 'Authorized Signature', $grayColor);
+
+        $filename = 'bank_check_' . $index . '_' . uniqid() . '.png';
+        $path = $directory . '/' . $filename;
+
+        ob_start();
+        imagepng($image);
+        $imageData = ob_get_contents();
+        ob_end_clean();
+        imagedestroy($image);
+
+        Storage::disk('public')->put($path, $imageData);
+
+        return $path;
     }
 
     /**
@@ -774,7 +836,6 @@ class DevelopmentSeeder extends Seeder
                 'deal_date'      => $this->getRandomDate('-30 days', '-1 day', $index + 1000),
                 'date_from'      => $guest->visit_start_date,
                 'date_to'        => $guest->visit_end_date,
-                'payment_check'  => $paymentFilePaths[ $fileIndex++ ],
                 'status'         => PaymentStatus::Completed,
                 'created_at'     => now(),
                 'updated_at'     => now(),
@@ -792,7 +853,6 @@ class DevelopmentSeeder extends Seeder
                 'deal_date'      => $this->getRandomDate('-60 days', '-1 day', $index),
                 'date_from'      => $this->getRandomDate('-90 days', '-30 days', $index),
                 'date_to'        => $this->getRandomDate('+30 days', '+180 days', $index),
-                'payment_check'  => $paymentFilePaths[ $fileIndex++ ] ?? null,
                 'status'         => PaymentStatus::Completed,
                 'created_at'     => now(),
                 'updated_at'     => now(),
@@ -807,7 +867,6 @@ class DevelopmentSeeder extends Seeder
                 'deal_date'      => $this->getRandomDate('-30 days', '-1 day', $index + 100),
                 'date_from'      => now()->startOfMonth()->format('Y-m-d'),
                 'date_to'        => now()->endOfMonth()->format('Y-m-d'),
-                'payment_check'  => $paymentFilePaths[ $fileIndex++ ] ?? null,
                 'status'         => PaymentStatus::Completed,
                 'created_at'     => now(),
                 'updated_at'     => now(),
@@ -819,6 +878,47 @@ class DevelopmentSeeder extends Seeder
         $stepStart = microtime(true);
         Payment::insert($paymentsData);
         $this->command->info('Payments inserted: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
+
+        // Create transactions for all completed payments
+        $stepStart = microtime(true);
+        $completedPayments = Payment::where('status', PaymentStatus::Completed)->get();
+        $transactionPivotData = [];
+        $transactionIndex = 0;
+
+        foreach ($completedPayments as $payment) {
+            $bankCheckPath = $this->generateBankCheckImage($transactionIndex);
+
+            $transaction = Transaction::create([
+                'user_id'        => $payment->user_id,
+                'amount'         => $payment->amount,
+                'payment_method' => 'bank_check',
+                'payment_check'  => $bankCheckPath,
+                'status'         => 'completed',
+                'created_at'     => $payment->updated_at,
+                'updated_at'     => now(),
+            ]);
+
+            $transactionPivotData[] = [
+                'payment_id'     => $payment->id,
+                'transaction_id' => $transaction->id,
+                'amount'         => $payment->amount,
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ];
+
+            $transactionIndex++;
+        }
+
+        if (!empty($transactionPivotData)) {
+            DB::table('payment_transaction')->insert($transactionPivotData);
+        }
+
+        Payment::where('status', PaymentStatus::Completed)
+            ->each(function ($payment) {
+                $payment->update(['paid_amount' => $payment->amount]);
+            });
+
+        $this->command->info('Transactions created for completed payments: ' . round((microtime(true) - $stepStart) * 1000, 2) . 'ms');
 
         $totalTime = round((microtime(true) - $startTime) * 1000, 2);
         $this->command->info("Development data seeded successfully in {$totalTime}ms!");

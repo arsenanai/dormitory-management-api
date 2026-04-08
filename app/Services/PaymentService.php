@@ -5,9 +5,9 @@ namespace App\Services;
 use App\Enums\PaymentStatus;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
+use App\Models\PaymentType;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class PaymentService
 {
@@ -97,19 +97,13 @@ class PaymentService
                 }
             }
 
-            // Handle payment_check file upload (only store if it's an UploadedFile)
-            if (isset($data['payment_check']) && $data['payment_check'] instanceof \Illuminate\Http\UploadedFile) {
-                // Preserve original filename when possible. If a file with the
-                // same name already exists, generate a short unique filename.
-                $original = $data['payment_check']->getClientOriginalName();
-                $storagePath = 'payment_checks/' . $original;
-                if (Storage::disk('public')->exists($storagePath)) {
-                    $ext = $data['payment_check']->getClientOriginalExtension();
-                    $filename = time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $ext;
-                } else {
-                    $filename = $original;
+            // Resolve payment_type name to payment_type_id
+            if (isset($data['payment_type'])) {
+                $paymentType = PaymentType::where('name', $data['payment_type'])->first();
+                if ($paymentType) {
+                    $data['payment_type_id'] = $paymentType->id;
                 }
-                $data['payment_check'] = $data['payment_check']->storeAs('payment_checks', $filename, 'public');
+                unset($data['payment_type']);
             }
 
             // Set initial status for student/guest roles (only if not explicitly set by admin)
@@ -125,56 +119,6 @@ class PaymentService
             return new PaymentResource($payment->load([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ]));
         });
     }
-
-    // public function create( array $data ): Payment {
-    // 	return DB::transaction( function () use ($data) {
-    // 		if ( isset( $data['payment_check'] ) && $data['payment_check'] instanceof \Illuminate\Http\UploadedFile ) {
-    // 			$original = $data['payment_check']->getClientOriginalName();
-    // 			$storagePath = 'payment_checks/' . $original;
-    // 			if ( Storage::disk( 'local' )->exists( $storagePath ) ) {
-    // 				$ext = $data['payment_check']->getClientOriginalExtension();
-    // 				$filename = time() . '_' . \Illuminate\Support\Str::random( 6 ) . '.' . $ext;
-    // 			} else {
-    // 				$filename = $original;
-    // 			}
-    // 			$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
-    // 		}
-    // 		$payment = new Payment( $data );
-    // 		return $payment;
-    // 	} );
-    // }
-
-    // public function update( Payment $payment, array $data ): Payment {
-    // 	return DB::transaction( function () use ($data, $payment) {
-    // 		if ( isset( $data['payment_check'] ) ) {
-    // 			// If a new uploaded file is provided, delete the old file and store the new one.
-    // 			if ( $data['payment_check'] instanceof \Illuminate\Http\UploadedFile ) {
-    // 				if ( $payment->payment_check ) {
-    // 					Storage::disk( 'local' )->delete( $payment->payment_check );
-    // 				}
-    // 				$original = $data['payment_check']->getClientOriginalName();
-    // 				$storagePath = 'payment_checks/' . $original;
-    // 				if ( Storage::disk( 'local' )->exists( $storagePath ) ) {
-    // 					$ext = $data['payment_check']->getClientOriginalExtension();
-    // 					$filename = time() . '_' . \Illuminate\Support\Str::random( 6 ) . '.' . $ext;
-    // 				} else {
-    // 					$filename = $original;
-    // 				}
-    // 				$data['payment_check'] = $data['payment_check']->storeAs( 'payment_checks', $filename, 'local' );
-    // 			}
-    // 			// If an empty string is sent, it's a signal to delete the file.
-    // 			elseif ( $data['payment_check'] === '' ) {
-    // 				if ( $payment->payment_check ) {
-    // 					Storage::disk( 'local' )->delete( $payment->payment_check );
-    // 				}
-    // 				// Set to null to clear the database field.
-    // 				$data['payment_check'] = null;
-    // 			}
-    // 		}
-    // 		$payment->update( $data );
-    // 		return $payment;
-    // 	} );
-    // }
 
     /**
      * Get payment details
@@ -193,175 +137,33 @@ class PaymentService
         return DB::transaction(function () use ($id, $data) {
             $payment = Payment::findOrFail($id);
 
-            // Handle the 3 scenarios for payment_check file
-            if (array_key_exists('payment_check', $data)) { // Use array_key_exists to detect null/empty string
-                // 1. New file is uploaded
-                if ($data['payment_check'] instanceof \Illuminate\Http\UploadedFile) {
-                    // ... (upload logic is correct)
-                    if ($payment->payment_check) {
-                        Storage::disk('local')->delete($payment->payment_check);
-                    }
-                    // ... store new file
-                    $original = $data['payment_check']->getClientOriginalName();
-                    $storagePath = 'payment_checks/' . $original;
-                    $filename = Storage::disk('local')->exists($storagePath)
-                        ? time() . '_' . \Illuminate\Support\Str::random(6) . '.' . $data['payment_check']->getClientOriginalExtension()
-                        : $original;
-                    $data['payment_check'] = $data['payment_check']->storeAs('payment_checks', $filename, 'local');
-
-                    // If payment status is 'pending' and a bank check is uploaded, change status to 'processing'
-                    if ($payment->status === PaymentStatus::Pending && !isset($data['status'])) {
-                        $data['status'] = PaymentStatus::Processing;
-                    }
-
-                }
-                // 2. An empty string or null is sent to signal deletion.
-                elseif ($data['payment_check'] === null || $data['payment_check'] === '') {
-                    //if ( $payment->payment_check ) {
-                    Storage::disk('local')->delete($payment->payment_check);
-                    //}
-                    $data['payment_check'] = null; // Set to null to clear DB field
-                }
-            } else {
-                // 3. If payment_check is not in the request, leave it untouched.
-                // Remove it from data array to prevent updating
-                $data = array_diff_key($data, [ 'payment_check' => null ]);
+            // Remove payment_check handling - moved to TransactionService
+            if (array_key_exists('payment_check', $data)) {
+                unset($data['payment_check']);
             }
 
-            // Sync user status based on payment status changes
-            $oldStatus = $payment->status;
-            $newStatusValue = $data['status'] ?? null;
-            $newStatus = null;
-
-            // Only sync if status is being changed
-            if ($newStatusValue !== null) {
-                // Convert string to enum if needed
-                $newStatus = $newStatusValue instanceof PaymentStatus
-                    ? $newStatusValue
-                    : PaymentStatus::from($newStatusValue);
-
-                if ($oldStatus !== $newStatus) {
-                    $user = $payment->user()->with('role')->first();
-                    $emitUserStatus = $newStatus !== PaymentStatus::Completed;
-
-                    if ($user && $user->hasRole('student')) {
-                        if ($oldStatus === PaymentStatus::Processing && $newStatus === PaymentStatus::Completed) {
-                            $oldUserStatus = $user->status;
-                            $user->status = 'active';
-                            $user->save();
-                            if ($emitUserStatus) {
-                                event(new \App\Events\MailEventOccurred('user.status_changed', [
-                                    'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'active',
-                                ]));
-                            }
-                        } elseif ($oldStatus === PaymentStatus::Completed && $newStatus === PaymentStatus::Pending) {
-                            $oldUserStatus = $user->status;
-                            $user->status = 'pending';
-                            $user->save();
-                            if ($emitUserStatus) {
-                                event(new \App\Events\MailEventOccurred('user.status_changed', [
-                                    'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'pending',
-                                ]));
-                            }
-                        }
-                    } elseif ($user && $user->hasRole('guest')) {
-                        if ($oldStatus === PaymentStatus::Completed && $newStatus === PaymentStatus::Pending) {
-                            $oldUserStatus = $user->status;
-                            $user->status = 'pending';
-                            $user->save();
-                            if ($emitUserStatus) {
-                                event(new \App\Events\MailEventOccurred('user.status_changed', [
-                                    'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'pending',
-                                ]));
-                            }
-                        } elseif ($oldStatus !== PaymentStatus::Completed && $newStatus === PaymentStatus::Completed) {
-                            $hasPendingPayments = $user->payments()
-                                ->whereHas('type', function ($q) {
-                                    $q->where('target_role', 'guest');
-                                })
-                                ->where('status', PaymentStatus::Pending)
-                                ->exists();
-
-                            if (! $hasPendingPayments) {
-                                $oldUserStatus = $user->status;
-                                $user->status = 'active';
-                                $user->save();
-                                if ($emitUserStatus) {
-                                    event(new \App\Events\MailEventOccurred('user.status_changed', [
-                                        'user' => $user, 'old_status' => $oldUserStatus, 'new_status' => 'active',
-                                    ]));
-                                }
-                            }
-                        }
-                    }
+            // Resolve payment_type name to payment_type_id
+            if (isset($data['payment_type'])) {
+                $paymentType = PaymentType::where('name', $data['payment_type'])->first();
+                if ($paymentType) {
+                    $data['payment_type_id'] = $paymentType->id;
                 }
+                unset($data['payment_type']);
             }
+
+            // User status sync logic moved to TransactionService
 
             $payment->update($data);
 
-            // After payment update, sync guest status based on all payments
-            $payment->refresh();
-            $updatedUser = $payment->user()->with('role')->first();
+            // User status sync moved to TransactionService
 
-            if ($updatedUser && $updatedUser->hasRole('guest')) {
-                $skipStatusEmail = $newStatus !== null && $newStatus === PaymentStatus::Completed;
-                $this->syncGuestStatusBasedOnPayments($updatedUser, $skipStatusEmail);
-            }
-
-            $payment->load([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ]);
-            if ($newStatus !== null && $oldStatus !== $newStatus && $newStatus === PaymentStatus::Completed) {
-                event(new \App\Events\MailEventOccurred('payment.status_changed', [
-                    'payment' => $payment, 'old_status' => $oldStatus, 'new_status' => $newStatus,
-                ]));
-            }
+            // Event handling moved to TransactionService
 
             return new PaymentResource($payment);
         });
     }
 
-    /**
-     * Sync guest status based on payment status
-     * - If guest has any incomplete payments (pending or processing) → status = "pending"
-     * - If all guest payments are completed → status = "active"
-     *
-     * @param \App\Models\User $guest
-     * @param bool $skipStatusEmail when true, do not emit user.status_changed (e.g. we send payment email instead)
-     * @return void
-     */
-    private function syncGuestStatusBasedOnPayments(\App\Models\User $guest, bool $skipStatusEmail = false): void
-    {
-        $guestPaymentQuery = fn () => $guest->payments()->whereHas('type', function ($q) {
-            $q->where('target_role', 'guest');
-        });
-
-        $hasAnyIncomplete = $guestPaymentQuery()
-            ->whereIn('status', [ PaymentStatus::Pending, PaymentStatus::Processing ])
-            ->exists();
-
-        $allCompleted = ! $guestPaymentQuery()
-            ->where('status', '!=', PaymentStatus::Completed)
-            ->exists();
-
-        if ($hasAnyIncomplete && $guest->status !== 'pending') {
-            $oldStatus = $guest->status;
-            $guest->status = 'pending';
-            $guest->save();
-            if (! $skipStatusEmail) {
-                event(new \App\Events\MailEventOccurred('user.status_changed', [
-                    'user' => $guest, 'old_status' => $oldStatus, 'new_status' => 'pending',
-                ]));
-            }
-        } elseif ($allCompleted && $guest->status !== 'active') {
-            $oldStatus = $guest->status;
-            $guest->status = 'active';
-            $guest->save();
-            if (! $skipStatusEmail) {
-                event(new \App\Events\MailEventOccurred('user.status_changed', [
-                    'user' => $guest, 'old_status' => $oldStatus, 'new_status' => 'active',
-                ]));
-            }
-        }
-    }
+    // syncGuestStatusBasedOnPayments method removed - logic moved to TransactionService
 
     /**
      * Delete payment
@@ -370,10 +172,7 @@ class PaymentService
     {
         $payment = Payment::findOrFail($id);
 
-        // Delete associated payment_check file
-        if ($payment->payment_check) {
-            Storage::disk('local')->delete($payment->payment_check);
-        }
+        // payment_check file handling moved to TransactionService
 
         $payment->delete();
         return response()->json([ 'message' => 'Payment deleted successfully' ], 200);
@@ -400,7 +199,9 @@ class PaymentService
         }
 
         if (! empty($filters['payment_type'])) {
-            $query->where('payment_type', $filters['payment_type']);
+            $query->whereHas('type', function ($q) use ($filters) {
+                $q->where('name', $filters['payment_type']);
+            });
         }
 
         $payments = $query->orderBy('deal_date', 'desc')->get();
@@ -409,24 +210,28 @@ class PaymentService
         $currencySymbol = $configurationService->getCurrencySymbol();
 
         // Create CSV content
-        $csvContent = "Payment ID,Student Name,Student Email,Payment Type,Deal Number,Deal Date,Amount ({$currencySymbol}),Date From,Date To\n";
+        $csvContent = "Payment ID,Student Name,Student Email,Payment Type,Deal Number,Deal Date,Amount ({$currencySymbol}),Paid Amount ({$currencySymbol}),Remaining Amount ({$currencySymbol}),Date From,Date To,Status\n";
 
         foreach ($payments as $payment) {
             $dealDate = $payment->deal_date ? (new \DateTime($payment->deal_date))->format('Y-m-d') : '';
-            $dateFrom = $payment->date_from ? (new \DateTime($payment->date_from))->format('Y-m-d') : ''; // Assuming date_from is a string or Carbon instance
-            $dateTo = $payment->date_to ? (new \DateTime($payment->date_to))->format('Y-m-d') : ''; // Assuming date_to is a string or Carbon instance
+            $dateFrom = $payment->date_from ? (new \DateTime($payment->date_from))->format('Y-m-d') : '';
+            $dateTo = $payment->date_to ? (new \DateTime($payment->date_to))->format('Y-m-d') : '';
+            $remainingAmount = $payment->amount - ($payment->paid_amount ?? 0);
 
             $csvContent .= sprintf(
-                "%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
                 $payment->id,
                 '"' . str_replace('"', '""', $payment->user->name ?? '') . '"',
-                ($payment->user->email ?? ''), // Null-safe for user->email
-                '"' . str_replace('"', '""', $payment->payment_type ?? '') . '"',
+                ($payment->user->email ?? ''),
+                '"' . str_replace('"', '""', $payment->type->name ?? '') . '"',
                 '"' . str_replace('"', '""', $payment->deal_number ?? '') . '"',
                 $dealDate,
                 $payment->amount,
+                $payment->paid_amount ?? 0,
+                $remainingAmount,
                 $dateFrom,
-                $dateTo
+                $dateTo,
+                $payment->status->value
             );
         }
 
@@ -435,5 +240,32 @@ class PaymentService
         return response($csvContent)
             ->header('Content-Type', 'text/csv')
             ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    }
+
+    /**
+     * Recalculate payment status based on linked transactions
+     * Called by TransactionService when transactions change
+     */
+    public function recalculatePaymentStatus(int $paymentId): void
+    {
+        $payment = Payment::findOrFail($paymentId);
+
+        // Calculate paid_amount from completed transactions
+        $paidAmount = $payment->transactions()
+            ->where('status', \App\Enums\TransactionStatus::Completed)
+            ->sum('payment_transaction.amount');
+
+        $payment->paid_amount = $paidAmount;
+
+        // Determine payment status
+        if ($paidAmount >= $payment->amount) {
+            $payment->status = PaymentStatus::Completed;
+        } elseif ($paidAmount > 0) {
+            $payment->status = PaymentStatus::PartiallyPaid;
+        } else {
+            $payment->status = PaymentStatus::Pending;
+        }
+
+        $payment->save();
     }
 }
