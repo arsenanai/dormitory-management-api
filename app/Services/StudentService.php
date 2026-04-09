@@ -736,10 +736,13 @@ class StudentService
         $profileFillable = (new StudentProfile())->getFillable();
         // Prioritize the nested student_profile object if it exists, otherwise use the flat data array.
         $sourceData = $data['student_profile'] ?? $data;
-        // Start with null for every fillable key, then overlay request data so all keys land.
-        $defaults = array_fill_keys($profileFillable, null);
         $profileData = array_intersect_key($sourceData, array_flip($profileFillable));
-        $profileData = array_merge($defaults, $profileData);
+
+        if (! $isUpdate) {
+            // On create, start with null for every fillable key so all columns are set.
+            $defaults = array_fill_keys($profileFillable, null);
+            $profileData = array_merge($defaults, $profileData);
+        }
 
         // Ensure student_id is correctly handled for both create and update.
         // The `student_id` might be at the root of `$data` or inside `student_profile`.
