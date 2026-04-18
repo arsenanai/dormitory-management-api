@@ -28,7 +28,7 @@ class StudentService
      *
      * @param mixed $file The file to validate
      * @param int $index The file index (0, 1, or 2)
-     * @return array Validation result with 'valid' boolean and 'message' string
+     * @return array{valid: bool, message: string|null}
      */
     public function validateStudentFile($file, int $index): array
     {
@@ -59,7 +59,7 @@ class StudentService
      * Get validation rules for file at specific index
      *
      * @param int $index The file index
-     * @return array Validation rules
+     * @return array<string, mixed>
      */
     private function getFileValidationRules(int $index): array
     {
@@ -84,7 +84,7 @@ class StudentService
     /**
      * Construct full name from first and last name
      *
-     * @param array $data Data containing first_name and last_name
+     * @param array<string, mixed> $data Data containing first_name and last_name
      * @return string The constructed full name
      */
     public function constructFullName(array $data): string
@@ -114,16 +114,21 @@ class StudentService
     }
     /**
      * Get students with filters and pagination
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\User>
      */
-    public function getStudentsWithFilters(User $authUser, array $filters = [])
+    public function getStudentsWithFilters(User $authUser, array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->buildStudentQuery($authUser, $filters, true);
     }
 
     /**
      * Create a new student
+     *
+     * @return array{user: User, warning: string|null}
      */
-    public function updateStudent($id, array $data, User $authUser)
+    public function updateStudent(int|string $id, array $data, User $authUser): array
     {
         return DB::transaction(function () use ($id, $data, $authUser) {
             $warning = null;
@@ -220,8 +225,10 @@ class StudentService
 
     /**
      * Get student details
+     *
+     * @return User
      */
-    public function getStudentDetails($id)
+    public function getStudentDetails(int|string $id): User
     {
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->with([
@@ -237,13 +244,15 @@ class StudentService
             ])
             ->findOrFail($id);
 
-        return $student; // Return User model
+        return $student;
     }
 
     /**
      * Delete student
+     *
+     * @return bool
      */
-    public function deleteStudent($id)
+    public function deleteStudent(int|string $id): bool
     {
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->with('studentProfile', 'studentBed') // Eager load for cleanup
@@ -276,8 +285,10 @@ class StudentService
 
     /**
      * Approve student application
+     *
+     * @return User
      */
-    public function approveStudent($id)
+    public function approveStudent(int|string $id): User
     {
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->findOrFail($id);
@@ -295,8 +306,10 @@ class StudentService
 
     /**
      * Export students to CSV
+     *
+     * @return \Illuminate\Http\Response
      */
-    public function exportStudents(User $authUser, array $filters = [])
+    public function exportStudents(User $authUser, array $filters = []): \Illuminate\Http\Response
     {
         // Use the same query logic as getStudentsWithFilters for consistency, but don't paginate
         $query = $this->buildStudentQuery($authUser, $filters, false);
@@ -370,6 +383,10 @@ class StudentService
             ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\User>|\Illuminate\Database\Eloquent\Builder<\App\Models\User>
+     */
     private function buildStudentQuery(User $authUser, array $filters = [], bool $paginate = true)
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'))->with([ 'role', 'studentProfile', 'room.dormitory', 'room.roomType', 'studentBed' ]);
@@ -429,8 +446,11 @@ class StudentService
 
     /**
      * Get students with filters and pagination
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{user: \App\Models\User, warning: string|null}
      */
-    public function createStudent(array $data, Dormitory $dormitory)
+    public function createStudent(array $data, Dormitory $dormitory): array
     {
         \Log::info('StudentService: createStudent method started.', $data);
 
@@ -500,8 +520,11 @@ class StudentService
 
     /**
      * Get students by dormitory
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\User>
      */
-    public function getStudentsByDormitory(User $authUser, array $filters = [])
+    public function getStudentsByDormitory(User $authUser, array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->with([ 'role', 'studentProfile', 'room', 'room.dormitory' ]);
@@ -533,8 +556,11 @@ class StudentService
 
     /**
      * Get unassigned students
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\User>
      */
-    public function getUnassignedStudents(array $filters = [])
+    public function getUnassignedStudents(array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->whereNull('room_id')
@@ -560,8 +586,12 @@ class StudentService
 
     /**
      * Update student access
+     *
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $data
+     * @return \App\Models\User
      */
-    public function updateStudentAccess($id, array $data)
+    public function updateStudentAccess($id, array $data): \App\Models\User
     {
         $student = User::whereHas('role', fn ($q) => $q->where('name', 'student'))
             ->findOrFail($id);
@@ -583,8 +613,11 @@ class StudentService
 
     /**
      * Get student statistics
+     *
+     * @param  array<string, mixed>  $filters
+     * @return array{total: int, active: int, pending: int, suspended: int}
      */
-    public function getStudentStatistics(User $authUser, array $filters = [])
+    public function getStudentStatistics(User $authUser, array $filters = []): array
     {
         $query = User::whereHas('role', fn ($q) => $q->where('name', 'student'));
 
@@ -628,8 +661,10 @@ class StudentService
 
     /**
      * Delete files from storage
+     *
+     * @param  array<string>  $files
      */
-    private function deleteFiles(array $files)
+    private function deleteFiles(array $files): void
     {
         // Delete up to 3 files
         foreach ($files as $file) {
@@ -693,6 +728,9 @@ class StudentService
 
     /**
      * Prepares the data array for creating or updating a User.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
     private function prepareUserData(array $data, ?User $user = null): array
     {
@@ -730,6 +768,9 @@ class StudentService
     /**
      * Prepares the data array for the StudentProfile.
      * Merges with all fillable keys so optional fields sent by the frontend are never dropped.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
     private function prepareProfileData(array $data, bool $isUpdate): array
     {
@@ -771,6 +812,9 @@ class StudentService
 
     /**
      * Handles file uploads and deletion for a StudentProfile.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string|null>
      */
     private function processFileUploads(array $data, ?StudentProfile $profile): array
     {
@@ -813,8 +857,8 @@ class StudentService
      * Stores an array of new files and returns their paths.
      * This is used during student creation.
      *
-     * @param array $files The array of files from the request.
-     * @return array The array of stored file paths, preserving keys.
+     * @param  array<int, \Illuminate\Http\UploadedFile|string>  $files
+     * @return array<int, string|null>
      */
     private function storeNewFiles(array $files): array
     {
@@ -830,8 +874,12 @@ class StudentService
         return $storedPaths;
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, User>
+     */
     public function listAllStudents(): \Illuminate\Database\Eloquent\Collection
     {
+        /** @var User|null $authUser */
         $authUser = auth()->user();
         if (! $authUser) {
             return User::whereRaw('1 = 0')->get();
@@ -841,7 +889,7 @@ class StudentService
 
         // Sudo can see all students. Admin can only see students from their assigned dormitory.
         if ($authUser->hasRole('admin') && ! $authUser->hasRole('sudo')) {
-            /** @var \App\Models\Dormitory|null $adminDormitory */
+            /** @var Dormitory|null $adminDormitory */
             $adminDormitory = $authUser->adminDormitory()->first();
             if ($adminDormitory) {
                 $query->where('dormitory_id', $adminDormitory->id);

@@ -21,10 +21,17 @@ class GuestService
     }
     /**
      * Get guests with filters and pagination
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Pagination\LengthAwarePaginator
      */
-    public function getGuestsWithFilters(array $filters = [])
+    public function getGuestsWithFilters(array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
     {
-        $guestRoleId = Role::where('name', 'guest')->first()->id;
+        $guestRole = Role::where('name', 'guest')->first();
+        if (! $guestRole) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
+        }
+        $guestRoleId = $guestRole->id;
         $query = User::where('role_id', $guestRoleId)
             ->with([ 'guestProfile', 'room', 'room.dormitory' ]);
 
@@ -73,6 +80,9 @@ class GuestService
         DB::beginTransaction();
         try {
             $guestRole = Role::where('name', 'guest')->first();
+            if (! $guestRole) {
+                throw new \RuntimeException('Guest role not found');
+            }
             $guestRoleId = $guestRole->id;
             $auth = auth()->user();
             if (! isset($data['dormitory_id']) && $auth && $auth->hasRole('admin') && $auth->adminDormitory !== null) {
@@ -185,8 +195,12 @@ class GuestService
 
     /**
      * Update guest
+     *
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $data
+     * @return array{user: \App\Models\User, warning: string|null}
      */
-    public function updateGuest($id, array $data)
+    public function updateGuest($id, array $data): array
     {
         DB::beginTransaction();
 
@@ -374,8 +388,11 @@ class GuestService
 
     /**
      * Delete guest (hard delete so user row is removed and same email can re-register).
+     *
+     * @param  int|string  $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function deleteGuest($id)
+    public function deleteGuest($id): \Illuminate\Http\JsonResponse
     {
         DB::beginTransaction();
 
@@ -419,8 +436,11 @@ class GuestService
 
     /**
      * Get guest by ID
+     *
+     * @param  int|string  $id
+     * @return \App\Models\User
      */
-    public function getGuestById($id)
+    public function getGuestById($id): \App\Models\User
     {
         $guest = User::whereHas('role', fn ($q) => $q->where('name', 'guest'))
             ->with([
@@ -445,8 +465,10 @@ class GuestService
 
     /**
      * Get available rooms for guests
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Room>
      */
-    public function getAvailableRooms()
+    public function getAvailableRooms(): \Illuminate\Database\Eloquent\Collection
     {
         return Room::with([ 'dormitory', 'roomType' ])
             ->where('is_occupied', false)
@@ -455,8 +477,11 @@ class GuestService
 
     /**
      * Check guest out
+     *
+     * @param  int|string  $id
+     * @return \App\Models\User
      */
-    public function checkOutGuest($id)
+    public function checkOutGuest($id): \App\Models\User
     {
         DB::beginTransaction();
 
@@ -495,8 +520,11 @@ class GuestService
 
     /**
      * Export guests to CSV
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Http\Response
      */
-    public function exportGuests(array $filters = [])
+    public function exportGuests(array $filters = []): \Illuminate\Http\Response
     {
         $guestRoleId = Role::where('name', 'guest')->first()->id;
         $query = User::where('role_id', $guestRoleId)

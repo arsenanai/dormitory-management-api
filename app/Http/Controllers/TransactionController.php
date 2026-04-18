@@ -42,7 +42,8 @@ class TransactionController extends Controller
     public function store(TransactionRequest $request): TransactionResource
     {
         $data = $request->validated();
-        $data['user_id'] = $data['user_id'] ?? $request->user()->id;
+        $authUser = $request->user();
+        $data['user_id'] = $data['user_id'] ?? ($authUser !== null ? $authUser->id : null);
 
         return $this->transactionService->create($data);
     }
@@ -85,6 +86,9 @@ class TransactionController extends Controller
 
         return response()->stream(function () use ($csvData) {
             $file = fopen('php://output', 'w');
+            if ($file === false) {
+                return;
+            }
 
             foreach ($csvData as $row) {
                 fputcsv($file, $row);
@@ -103,7 +107,8 @@ class TransactionController extends Controller
     public function myTransactions(Request $request): AnonymousResourceCollection
     {
         $filters = $request->all();
-        $filters['user_id'] = $request->user()->id;
+        $authUser = $request->user();
+        $filters['user_id'] = $authUser?->id;
 
         return $this->transactionService->index($filters);
     }
@@ -114,8 +119,9 @@ class TransactionController extends Controller
     public function myStore(TransactionRequest $request): TransactionResource
     {
         $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
-        $data['status'] = TransactionStatus::Processing; // Auto-set to processing when student uploads check
+        $authUser = $request->user();
+        $data['user_id'] = $authUser?->id;
+        $data['status'] = TransactionStatus::Processing;
 
         return $this->transactionService->create($data);
     }
@@ -129,9 +135,9 @@ class TransactionController extends Controller
             'payment_check' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        // Verify ownership
+        $authUser = $request->user();
         $transaction = Transaction::findOrFail($id);
-        if ($transaction->user_id !== $request->user()->id) {
+        if ($authUser !== null && $transaction->user_id !== $authUser->id) {
             abort(403, 'You can only update your own transactions.');
         }
 

@@ -19,17 +19,12 @@ use function response;
 
 class UserController extends Controller
 {
-    protected $authService;
-    protected $studentService;
-    protected $guestService;
-    protected $sduIntegrationService;
+    protected UserAuthService $authService;
+    protected StudentService $studentService;
+    protected GuestService $guestService;
+    protected SduIntegrationService $sduIntegrationService;
 
-    private array $adminRegisterRules = [
-        'name'     => 'required|string|max:255',
-        'email'    => 'required|email|max:255|unique:users,email',
-        'password' => 'required|string|min:6|confirmed',
-    ];
-
+    /** @var array<string, string> */
     private array $guestRegisterRules = [
         'first_name'               => 'required|string|max:255',
         'last_name'                => 'required|string|max:255',
@@ -72,14 +67,13 @@ class UserController extends Controller
     /**
      * Autocomplete student data from SDU API
      */
-    public function autocompleteStudent(Request $request)
+    public function autocompleteStudent(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'student_id' => 'required|string|max:20',
         ]);
 
-        $studentId = $request->input('student_id');
-        $data = $this->sduIntegrationService->getStudentData($studentId);
+        $data = $this->sduIntegrationService->getStudentData($validated['student_id']);
 
         if (! $data) {
             return response()->json([ 'message' => 'Student not found or API unavailable' ], 404);
@@ -88,17 +82,17 @@ class UserController extends Controller
         return response()->json($data);
     }
 
-    public function login(Request $request)
+    public function login(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'email'    => 'required|email',
             'password' => 'required'
         ]);
 
-        $result = $this->authService->attemptLogin($request->email, $request->password);
+        $result = $this->authService->attemptLogin((string) $validated['email'], (string) $validated['password']);
         // Debug logging
         \Log::info('Login attempt', [
-            'email'        => $request->email,
+            'email'        => $validated['email'],
             'result_type'  => gettype($result),
             'result_value' => $result === 'not_approved' ? 'not_approved' : ($result === null ? 'null' : 'user_object')
         ]);
@@ -115,19 +109,22 @@ class UserController extends Controller
             return response()->json([ 'message' => 'auth.invalid_credentials' ], 401);
         }
 
-        // Load role relationship first to check its name
+        /** @var \App\Models\User $result */
         $result->load('role');
 
+        /** @var \App\Models\Role|null $role */
+        $role = $result->role;
+
         // Load appropriate relationships based on user role
-        if ($result->role && $result->role->name === 'admin') {
+        if ($role && $role->name === 'admin') {
             // Load the correct relationship that already exists on the User model
             $result->load([ 'role', 'adminDormitory' ]);
-        } elseif ($result->role && $result->role->name === 'sudo') {
+        } elseif ($role && $role->name === 'sudo') {
             // Sudo users don't need dormitory assignment - they're super admins
             // Role is already loaded above
-        } elseif ($result->role && $result->role->name === 'student') {
+        } elseif ($role && $role->name === 'student') {
             $result->load([ 'role', 'studentProfile' ]);
-        } elseif ($result->role && $result->role->name === 'guest') {
+        } elseif ($role && $role->name === 'guest') {
             $result->load([ 'role', 'guestProfile' ]);
         }
 
@@ -135,9 +132,9 @@ class UserController extends Controller
 
         // Determine dormitory based on role
         $dormitory = null;
-        if ($result->role->name === 'admin') {
+        if ($role && $role->name === 'admin') {
             $dormitory = $result->adminDormitory;
-        } elseif ($result->role->name === 'sudo') {
+        } elseif ($role && $role->name === 'sudo') {
             // Sudo users don't have a dormitory assignment
             $dormitory = null;
         } else {
@@ -152,7 +149,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function register(Request $request)
+    public function register(Request $request): \Illuminate\Http\JsonResponse
     {
         // if( isset( $request->student_profile )
         // 	&& isset( $request->student_profile['files'] )
@@ -172,7 +169,7 @@ class UserController extends Controller
 
         $userType = $request->input('user_type', 'student');
         if ($userType === 'admin') {
-            $rules = $this->adminRegisterRules;
+            return response()->json([ 'message' => 'Admin registration is not allowed via this endpoint.' ], 403);
         } elseif ($userType === 'guest') {
             $rules = $this->guestRegisterRules;
             $validatedData = $request->validate($rules);
@@ -185,7 +182,7 @@ class UserController extends Controller
                 'message' => 'Registration successful. Please log in and make due payments.',
                 'data'    => $guest->load([ 'guestProfile', 'role', 'room.dormitory' ])
             ], 201);
-        } else {
+        } elseif ($userType === 'student') {
             // Handle nested student_profile payload by merging it into the root request
             // $data = $request->all();
             // if (isset($data['student_profile']) && is_array($data['student_profile'] ) ) {
@@ -194,7 +191,9 @@ class UserController extends Controller
 
             // Manually construct the 'name' field from first_name and last_name before validation.
             if ($request->has('first_name') && $request->has('last_name') && ! $request->has('name')) {
-                $request->merge([ 'name' => trim($request->input('first_name') . ' ' . $request->input('last_name')) ]);
+                $firstName = (string) $request->post('first_name');
+                $lastName = (string) $request->post('last_name');
+                $request->merge([ 'name' => trim($firstName . ' ' . $lastName) ]);
             }
 
             $validatedData = $request->validate([
@@ -267,11 +266,12 @@ class UserController extends Controller
             }
             // Fallback: when only some indices are sent (e.g. only avatar at [2]), dot notation may not find them in some environments; merge from allFiles() preserving keys.
             $allFiles = $request->allFiles();
-            $nestedFiles = $allFiles['student_profile']['files'] ?? [];
-            if (is_array($nestedFiles)) {
+            if (isset($allFiles['student_profile']['files']) && is_array($allFiles['student_profile']['files'])) {
+                /** @var array<int, \Illuminate\Http\UploadedFile> $nestedFiles */
+                $nestedFiles = $allFiles['student_profile']['files'];
                 foreach ($nestedFiles as $idx => $file) {
-                    if ($file instanceof UploadedFile && $file->isValid() && $idx >= 0 && $idx <= 2) {
-                        $profileFiles[ (int) $idx ] = $file;
+                    if ($file instanceof UploadedFile && $file->isValid() && is_int($idx) && $idx >= 0 && $idx <= 2) {
+                        $profileFiles[ $idx ] = $file;
                     }
                 }
             }
@@ -290,21 +290,23 @@ class UserController extends Controller
                 'data'    => $student->load([ 'studentProfile', 'role', 'room.dormitory', 'studentBed' ])
             ], 201);
         }
+
+        return response()->json([ 'message' => 'Invalid user type' ], 400);
     }
 
     /**
      * Search users for autocomplete (admin only)
      */
-    public function searchUsers(Request $request)
+    public function searchUsers(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'q'    => 'required|string|min:1|max:100',
             'role' => 'sometimes|string|in:student,guest',
         ]);
 
-        $limit  = config('app.autocomplete_limit', 20);
-        $q      = $request->input('q');
-        $role   = $request->input('role');
+        $limit = (int) config('app.autocomplete_limit', 20);
+        $q = (string) $request->input('q');
+        $role = $request->input('role');
 
         $query = User::with('role')
             ->where(function ($query) use ($q) {
@@ -334,11 +336,12 @@ class UserController extends Controller
     /**
      * Display a listing of users (admin only)
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $admin */
         $admin = $request->user();
         $query = User::with([ 'role', 'room.dormitory' ])
-            ->when($request->search, function ($query, $search) {
+            ->when($request->search, function ($query, string $search) {
                 return $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
@@ -346,7 +349,7 @@ class UserController extends Controller
                         ->orWhere('student_id', 'like', "%{$search}%");
                 });
             })
-            ->when($request->role, function ($query, $role) {
+            ->when($request->role, function ($query, string $role) {
                 return $query->whereHas('role', function ($q) use ($role) {
                     $q->where('name', $role);
                 });
@@ -364,7 +367,7 @@ class UserController extends Controller
     /**
      * Store a newly created user (admin only)
      */
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $rules = [
             'first_name'        => 'required|string|max:255',
@@ -487,7 +490,7 @@ class UserController extends Controller
     /**
      * Display the specified user (admin only)
      */
-    public function show(User $user)
+    public function show(User $user): \Illuminate\Http\JsonResponse
     {
         return response()->json($user->load([ 'role', 'room.dormitory', 'room' ]));
     }
@@ -495,7 +498,7 @@ class UserController extends Controller
     /**
      * Update the specified user (admin only)
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user): \Illuminate\Http\JsonResponse
     {
         $rules = [
             'first_name'              => 'sometimes|string|max:255',
@@ -652,7 +655,7 @@ class UserController extends Controller
     /**
      * Remove the specified user (soft delete)
      */
-    public function destroy(User $user)
+    public function destroy(User $user): \Illuminate\Http\JsonResponse
     {
         $user->delete();
 
@@ -662,8 +665,9 @@ class UserController extends Controller
     /**
      * Get current user profile
      */
-    public function profile(Request $request)
+    public function profile(Request $request): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
         // Return role-specific profile data
         if ($user->hasRole('student')) {
@@ -694,8 +698,9 @@ class UserController extends Controller
     /**
      * Return full personal data for the authenticated student or guest.
      */
-    public function personalData(Request $request)
+    public function personalData(Request $request): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         if ($user->hasRole('student')) {
@@ -714,8 +719,9 @@ class UserController extends Controller
     /**
      * Update personal data for the authenticated student or guest.
      */
-    public function updatePersonalData(Request $request)
+    public function updatePersonalData(Request $request): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         if ($user->hasRole('student')) {
@@ -830,8 +836,9 @@ class UserController extends Controller
     /**
      * Update current user profile
      */
-    public function updateProfile(Request $request)
+    public function updateProfile(Request $request): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
         $rules = [
             'first_name'              => 'sometimes|string|max:255',
@@ -970,8 +977,9 @@ class UserController extends Controller
     /**
      * Change user password
      */
-    public function changePassword(Request $request)
+    public function changePassword(Request $request): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
 
         $validated = $request->validate([
@@ -996,9 +1004,11 @@ class UserController extends Controller
     /**
      * Logout user (revoke current token)
      */
-    public function logout(Request $request)
+    public function logout(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        $user->tokens()->where('id', $user->id)->delete();
 
         return response()->json([ 'message' => 'Logged out successfully' ]);
     }
@@ -1006,7 +1016,7 @@ class UserController extends Controller
     /**
      * Send password reset link to user's email
      */
-    public function sendPasswordResetLink(Request $request)
+    public function sendPasswordResetLink(Request $request): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'email' => 'required|email'
@@ -1046,19 +1056,19 @@ class UserController extends Controller
     /**
      * Reset password using token
      */
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'email'    => 'required|email',
             'token'    => 'required|string',
             'password' => 'required|string|min:6|confirmed'
         ]);
 
         $passwordReset = \DB::table('password_resets')
-            ->where('email', $request->email)
+            ->where('email', $validated['email'])
             ->first();
 
-        if (! $passwordReset || ! Hash::check($request->token, $passwordReset->token)) {
+        if (! $passwordReset || ! Hash::check($validated['token'], (string) $passwordReset->token)) {
             return response()->json([
                 'message' => 'Invalid or expired password reset token.'
             ], 422);
@@ -1081,37 +1091,43 @@ class UserController extends Controller
 
         // Update password
         $user->update([
-            'password' => Hash::make($request->password)
+            'password' => Hash::make($validated['password'])
         ]);
 
         // Delete the used token
-        \DB::table('password_resets')->where('email', $request->email)->delete();
+        \DB::table('password_resets')->where('email', $validated['email'])->delete();
 
         return response()->json([
             'message' => 'Password has been reset successfully.'
         ]);
     }
 
-    public function checkEmailAvailability(Request $request)
+    public function checkEmailAvailability(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'email'          => 'required|email|max:255',
-            'ignore_user_id' => 'sometimes|integer|exists:users,id', // Optional: for editing profile
+            'ignore_user_id' => 'sometimes|integer|exists:users,id',
         ]);
 
-        $isAvailable = $this->studentService->checkEmailAvailability($request->email, $request->ignore_user_id);
+        $isAvailable = $this->studentService->checkEmailAvailability(
+            (string) $validated['email'],
+            isset($validated['ignore_user_id']) ? (int) $validated['ignore_user_id'] : null
+        );
 
         return response()->json([ 'is_available' => $isAvailable ]);
     }
 
-    public function checkIinAvailability(Request $request)
+    public function checkIinAvailability(Request $request): \Illuminate\Http\JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'iin'            => 'required|digits:12',
             'ignore_user_id' => 'sometimes|integer|exists:users,id',
         ]);
 
-        $isAvailable = $this->studentService->checkIinAvailability($request->iin, $request->ignore_user_id);
+        $isAvailable = $this->studentService->checkIinAvailability(
+            (string) $validated['iin'],
+            isset($validated['ignore_user_id']) ? (int) $validated['ignore_user_id'] : null
+        );
 
         return response()->json([ 'is_available' => $isAvailable ]);
     }
@@ -1120,8 +1136,9 @@ class UserController extends Controller
      * API endpoint: GET /users/{id}/can-access-dormitory or /me/can-access-dormitory
      * Returns: { can_access: boolean, reason: string }
      */
-    public function canAccessDormitory(Request $request, $id = null)
+    public function canAccessDormitory(Request $request, ?int $id = null): \Illuminate\Http\JsonResponse
     {
+        /** @var \App\Models\User $user */
         $user = $id ? User::findOrFail($id) : $request->user();
         $canAccess = $user->canAccessDormitory();
         $reason = $canAccess ? 'Access granted' : 'Access denied: payment or dormitory approval missing';

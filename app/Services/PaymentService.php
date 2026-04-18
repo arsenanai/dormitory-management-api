@@ -11,13 +11,15 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
-    public function __construct()
+    public function __construct(private UserStatusService $userStatusService)
     {
     }
     /**
      * Get payments with filters and pagination
+     *
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
-    public function index(array $filters = [])
+    public function index(array $filters = []): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
         $query = Payment::with([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ]);
 
@@ -75,6 +77,8 @@ class PaymentService
 
     /**
      * Create a new payment
+     *
+     * @return PaymentResource
      */
     public function create(array $data): PaymentResource
     {
@@ -116,14 +120,21 @@ class PaymentService
 
             $payment = Payment::create($data);
 
+            // Sync user status if payment was created with Completed status
+            if (isset($data['status']) && $data['status'] === PaymentStatus::Completed) {
+                $this->userStatusService->syncUserStatus($data['user_id']);
+            }
+
             return new PaymentResource($payment->load([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ]));
         });
     }
 
     /**
      * Get payment details
+     *
+     * @return PaymentResource
      */
-    public function getPaymentDetails($id)
+    public function getPaymentDetails(int|string $id): PaymentResource
     {
         $payment = Payment::with([ 'user', 'user.role', 'user.studentProfile', 'user.guestProfile', 'user.room', 'user.room.roomType', 'type' ])->findOrFail($id);
         return new PaymentResource($payment);
@@ -131,8 +142,10 @@ class PaymentService
 
     /**
      * Update payment
+     *
+     * @return PaymentResource
      */
-    public function update($id, array $data)
+    public function update(int|string $id, array $data): PaymentResource
     {
         return DB::transaction(function () use ($id, $data) {
             $payment = Payment::findOrFail($id);
@@ -151,11 +164,13 @@ class PaymentService
                 unset($data['payment_type']);
             }
 
-            // User status sync logic moved to TransactionService
-
+            $oldStatus = $payment->status;
             $payment->update($data);
 
-            // User status sync moved to TransactionService
+            // Sync user status if payment status changed
+            if (isset($data['status']) && $oldStatus !== $payment->status) {
+                $this->userStatusService->syncUserStatus($payment->user_id);
+            }
 
             // Event handling moved to TransactionService
 
@@ -167,8 +182,10 @@ class PaymentService
 
     /**
      * Delete payment
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function delete($id)
+    public function delete(int|string $id): \Illuminate\Http\JsonResponse
     {
         $payment = Payment::findOrFail($id);
 
@@ -255,7 +272,7 @@ class PaymentService
             ->where('status', \App\Enums\TransactionStatus::Completed)
             ->sum('payment_transaction.amount');
 
-        $payment->paid_amount = $paidAmount;
+        $payment->paid_amount = (float) $paidAmount;
 
         // Determine payment status
         if ($paidAmount >= $payment->amount) {

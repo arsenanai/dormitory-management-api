@@ -2,26 +2,29 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    /**
+     * @param \Closure $next
+     * @param string ...$roles
+     * @return Response
+     */
+    public function handle(Request $request, \Closure $next, string ...$roles): Response
     {
+        /** @var \App\Models\User|null $user */
         $user = $request->user();
 
         if (! $user) {
             return response()->json([ 'message' => 'Unauthenticated' ], 401);
         }
 
-        // Load the role relationship if not already loaded
         if (!$user->relationLoaded('role')) {
             $user->load('role');
         }
 
-        // Handle both comma-separated and multiple arguments
         $allowedRoles = [];
         foreach ($roles as $roleParam) {
             $allowedRoles = array_merge($allowedRoles, explode(',', $roleParam));
@@ -38,9 +41,9 @@ class RoleMiddleware
         }
 
         if (! $hasRole) {
-            // Log for debugging (only in debug mode)
             if (config('app.debug')) {
-                \Log::debug('RoleMiddleware: User ' . $user->id . ' with role ' . ($user->role?->name ?? 'none') . ' denied access. Allowed roles: ' . implode(', ', $allowedRoles));
+                $roleName = $user->role?->name;
+                \Log::debug('RoleMiddleware: User ' . $user->id . ' with role ' . ($roleName ?? 'none') . ' denied access. Allowed roles: ' . implode(', ', $allowedRoles));
             }
             return response()->json([ 'message' => 'Forbidden' ], 403);
         }

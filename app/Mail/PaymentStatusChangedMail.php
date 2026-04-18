@@ -57,9 +57,10 @@ final class PaymentStatusChangedMail extends Mailable implements ShouldQueue
                 $adminEmail,
             );
             $subject = $service->resolvePlaceholders($template['subject'], $context);
-            return new Envelope(subject: $subject);
+            return new Envelope(subject: (string) $subject);
         }
-        return new Envelope(subject: 'Payment Status Update – ' . config('app.name'));
+        $appName = (string) config('app.name');
+        return new Envelope(subject: 'Payment Status Update – ' . $appName);
     }
 
     public function content(): Content
@@ -83,10 +84,13 @@ final class PaymentStatusChangedMail extends Mailable implements ShouldQueue
         $currencyCode = $this->getCurrencyCode();
         $symbol = self::CURRENCY_SYMBOLS[ $currencyCode ] ?? $currencyCode;
         $amountFormatted = number_format((float) $this->payment->amount, 2) . ' ' . $symbol;
-        $dormitory = $this->user->dormitory_id
-            ? $this->user->dormitory ?? \App\Models\Dormitory::with('admin')->find($this->user->dormitory_id)
+        $userDormitoryId = $this->user->dormitory_id;
+        $dormitory = $userDormitoryId !== null
+            ? ($this->user->dormitory ?? \App\Models\Dormitory::with('admin')->find($userDormitoryId))
             : null;
-        $adminEmail = $dormitory?->admin?->email;
+        /** @var \App\Models\User|null $adminUser */
+        $adminUser = $dormitory instanceof \App\Models\Dormitory ? $dormitory->admin : null;
+        $adminEmail = $adminUser?->email;
 
         return new Content(
             view: 'emails.payment-status-changed',
@@ -120,9 +124,12 @@ final class PaymentStatusChangedMail extends Mailable implements ShouldQueue
 
     private function resolveAdminEmail(): ?string
     {
-        $dormitory = $this->user->dormitory_id
-            ? $this->user->dormitory ?? \App\Models\Dormitory::with('admin')->find($this->user->dormitory_id)
+        $userDormitoryId = $this->user->dormitory_id;
+        $dormitory = $userDormitoryId !== null
+            ? ($this->user->dormitory ?? \App\Models\Dormitory::with('admin')->find($userDormitoryId))
             : null;
-        return $dormitory?->admin?->email;
+        /** @var \App\Models\User|null $adminUser */
+        $adminUser = $dormitory instanceof \App\Models\Dormitory ? $dormitory->admin : null;
+        return $adminUser?->email;
     }
 }

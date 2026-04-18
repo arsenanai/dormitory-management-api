@@ -13,8 +13,9 @@ class GuestController extends Controller
 
     /**
      * Display a listing of guests
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\GuestProfile>
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse|\Illuminate\Pagination\LengthAwarePaginator
     {
         $filters = $request->validate([
             'room_id'        => 'sometimes|integer|exists:rooms,id',
@@ -31,7 +32,7 @@ class GuestController extends Controller
     /**
      * Store a newly created guest
      */
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'first_name'     => 'required|string|max:255',
@@ -65,7 +66,7 @@ class GuestController extends Controller
     /**
      * Display the specified guest
      */
-    public function show($id)
+    public function show(int $id): \Illuminate\Http\JsonResponse
     {
         $guest = $this->guestService->getGuestById($id);
         return response()->json($guest);
@@ -74,7 +75,7 @@ class GuestController extends Controller
     /**
      * Update the specified guest
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'first_name'     => 'sometimes|string|max:255',
@@ -109,7 +110,7 @@ class GuestController extends Controller
     /**
      * Remove the specified guest
      */
-    public function destroy($id)
+    public function destroy(int $id): \Illuminate\Http\JsonResponse
     {
         return $this->guestService->deleteGuest($id);
     }
@@ -117,7 +118,7 @@ class GuestController extends Controller
     /**
      * Get available rooms for guests
      */
-    public function availableRooms()
+    public function availableRooms(): \Illuminate\Http\JsonResponse
     {
         $rooms = $this->guestService->getAvailableRooms();
         return response()->json($rooms);
@@ -126,7 +127,7 @@ class GuestController extends Controller
     /**
      * Check out a guest
      */
-    public function checkOut($id)
+    public function checkOut(int $id): \Illuminate\Http\JsonResponse
     {
         $guest = $this->guestService->checkOutGuest($id);
         return response()->json($guest);
@@ -135,7 +136,7 @@ class GuestController extends Controller
     /**
      * Export guests to CSV
      */
-    public function export(Request $request)
+    public function export(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse|\Illuminate\Http\Response
     {
         $filters = $request->validate([
             'room_id'        => 'sometimes|integer|exists:rooms,id',
@@ -155,6 +156,9 @@ class GuestController extends Controller
     }
     */
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\User>
+     */
     public function listAll(): \Illuminate\Database\Eloquent\Collection
     {
         return $this->guestService->listAll();

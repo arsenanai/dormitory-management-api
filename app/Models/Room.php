@@ -28,16 +28,25 @@ class Room extends Model
         'is_maintenance' => 'boolean',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Dormitory, $this>
+     */
     public function dormitory(): BelongsTo
     {
         return $this->belongsTo(Dormitory::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<RoomType, $this>
+     */
     public function roomType(): BelongsTo
     {
         return $this->belongsTo(RoomType::class, 'room_type_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Bed>
+     */
     public function beds(): HasMany
     {
         return $this->hasMany(Bed::class);

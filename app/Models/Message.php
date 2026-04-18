@@ -32,22 +32,34 @@ class Message extends Model
         'recipient_ids' => 'array',
     ];
 
-    public function sender()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
+    public function sender(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
 
-    public function receiver()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
+    public function receiver(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'receiver_id');
     }
 
-    public function dormitory()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Dormitory, $this>
+     */
+    public function dormitory(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Dormitory::class);
     }
 
-    public function room()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Room, $this>
+     */
+    public function room(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Room::class);
     }

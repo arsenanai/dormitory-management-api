@@ -14,7 +14,7 @@ class CardReaderController extends Controller
     /**
      * Log a card reader entry/exit
      */
-    public function logEntry(Request $request)
+    public function logEntry(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'card_number' => 'required|string|max:50',
@@ -27,8 +27,9 @@ class CardReaderController extends Controller
 
     /**
      * Get user presence status
+     * @return array<string, mixed>
      */
-    public function getUserPresence($userId)
+    public function getUserPresence(int $userId): array
     {
         return $this->cardReaderService->getUserPresenceStatus($userId);
     }
@@ -36,7 +37,7 @@ class CardReaderController extends Controller
     /**
      * Get users currently inside
      */
-    public function getUsersInside(Request $request)
+    public function getUsersInside(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'location' => 'sometimes|string|max:100',
@@ -49,7 +50,7 @@ class CardReaderController extends Controller
     /**
      * Get card reader logs
      */
-    public function getLogs(Request $request)
+    public function getLogs(Request $request): \Illuminate\Http\JsonResponse
     {
         $filters = $request->validate([
             'user_id'   => 'sometimes|integer|exists:users,id',
@@ -66,7 +67,7 @@ class CardReaderController extends Controller
     /**
      * Get daily attendance report
      */
-    public function getDailyReport(Request $request)
+    public function getDailyReport(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'date' => 'sometimes|date',
@@ -79,7 +80,7 @@ class CardReaderController extends Controller
     /**
      * Get monthly attendance statistics
      */
-    public function getMonthlyStats(Request $request)
+    public function getMonthlyStats(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'month' => 'sometimes|integer|min:1|max:12',
@@ -97,7 +98,7 @@ class CardReaderController extends Controller
     /**
      * Export attendance report
      */
-    public function exportReport(Request $request)
+    public function exportReport(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\JsonResponse
     {
         $filters = $request->validate([
             'date_from' => 'sometimes|date',
@@ -111,7 +112,7 @@ class CardReaderController extends Controller
     /**
      * Sync card reader
      */
-    public function syncCardReader()
+    public function syncCardReader(): \Illuminate\Http\JsonResponse
     {
         $result = $this->cardReaderService->syncCardReader();
         return response()->json($result);

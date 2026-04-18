@@ -18,7 +18,7 @@ class ConfigurationController extends Controller
     /**
      * Get all configurations
      */
-    public function index()
+    public function index(): \Illuminate\Http\JsonResponse
     {
         $configurations = $this->configurationService->getAllConfigurations();
         return response()->json($configurations);
@@ -27,7 +27,7 @@ class ConfigurationController extends Controller
     /**
      * Update multiple configurations
      */
-    public function update(Request $request)
+    public function update(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'configurations'               => 'required|array',
@@ -43,7 +43,7 @@ class ConfigurationController extends Controller
     /**
      * Get SMTP settings
      */
-    public function getSmtpSettings()
+    public function getSmtpSettings(): \Illuminate\Http\JsonResponse
     {
         $settings = $this->configurationService->getSMTPSettings();
         return response()->json($settings);
@@ -52,7 +52,7 @@ class ConfigurationController extends Controller
     /**
      * Update SMTP settings
      */
-    public function updateSmtpSettings(Request $request)
+    public function updateSmtpSettings(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'smtp_host'         => 'required|string|max:255',
@@ -167,7 +167,7 @@ class ConfigurationController extends Controller
     /**
      * Get IIN integration settings
      */
-    public function getIinSettings()
+    public function getIinSettings(): \Illuminate\Http\JsonResponse
     {
         $settings = $this->configurationService->getIinSettings();
         return response()->json($settings);
@@ -176,7 +176,7 @@ class ConfigurationController extends Controller
     /**
      * Update IIN integration settings
      */
-    public function updateIinSettings(Request $request)
+    public function updateIinSettings(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'iin_integration_enabled' => 'required|boolean',
@@ -191,7 +191,7 @@ class ConfigurationController extends Controller
     /**
      * Upload language file
      */
-    public function uploadLanguageFile(Request $request)
+    public function uploadLanguageFile(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'language' => 'required|string|max:10',
@@ -205,7 +205,7 @@ class ConfigurationController extends Controller
     /**
      * Get installed languages
      */
-    public function getInstalledLanguages()
+    public function getInstalledLanguages(): \Illuminate\Http\JsonResponse
     {
         $languages = $this->configurationService->getInstalledLanguages();
         return response()->json($languages);
@@ -214,7 +214,7 @@ class ConfigurationController extends Controller
     /**
      * Get system logs
      */
-    public function getSystemLogs(Request $request)
+    public function getSystemLogs(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'type'  => 'sometimes|in:all,error,info,warning',
@@ -232,7 +232,7 @@ class ConfigurationController extends Controller
     /**
      * Clear system logs
      */
-    public function clearSystemLogs()
+    public function clearSystemLogs(): \Illuminate\Http\JsonResponse
     {
         $result = $this->configurationService->clearSystemLogs();
         return response()->json($result);
@@ -241,7 +241,7 @@ class ConfigurationController extends Controller
     /**
      * Get dormitory settings
      */
-    public function getDormitorySettings()
+    public function getDormitorySettings(): \Illuminate\Http\JsonResponse
     {
         $settings = $this->configurationService->getDormitorySettings();
         return response()->json($settings);
@@ -267,7 +267,7 @@ class ConfigurationController extends Controller
     /**
      * Get all public settings
      */
-    public function getPublicSettings()
+    public function getPublicSettings(): \Illuminate\Http\JsonResponse
     {
         $settings = [
             'dormitory_rules'         => $this->dormitoryRulesService->getLocales(),
@@ -281,7 +281,7 @@ class ConfigurationController extends Controller
     /**
      * Initialize default configurations
      */
-    public function initializeDefaults()
+    public function initializeDefaults(): \Illuminate\Http\JsonResponse
     {
         $configurations = $this->configurationService->initializeDefaults();
         return response()->json($configurations);
@@ -290,7 +290,7 @@ class ConfigurationController extends Controller
     /**
      * Update currency setting
      */
-    public function updateCurrencySetting(Request $request)
+    public function updateCurrencySetting(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'currency_symbol' => 'required|string|max:10',
@@ -307,7 +307,7 @@ class ConfigurationController extends Controller
     /**
      * Update bank requisites setting
      */
-    public function updateBankRequisites(Request $request)
+    public function updateBankRequisites(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'bank_requisites' => 'nullable|string',
@@ -360,5 +360,21 @@ class ConfigurationController extends Controller
         $settings = $this->configurationService->updatePaymentSettings($validated);
 
         return response()->json($settings);
+    }
+
+    /**
+     * Get available payment gateways
+     */
+    public function getPaymentGateways(): \Illuminate\Http\JsonResponse
+    {
+        /** @var array<string, array{name: string}> $gatewayConfig */
+        $gatewayConfig = config('payment.gateways', []);
+        $gateways = collect($gatewayConfig)
+            ->map(fn(array $cfg, string $key) => ['value' => $key, 'label' => $cfg['name']])
+            ->values();
+        return response()->json([
+            'data'    => $gateways,
+            'default' => config('payment.default_gateway', 'bank_check'),
+        ]);
     }
 }

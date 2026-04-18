@@ -11,8 +11,11 @@ class CardReaderService
 {
     /**
      * Log a card reader entry/exit
+     *
+     * @param  array<string, mixed>  $data
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function logCardReaderEntry(array $data)
+    public function logCardReaderEntry(array $data): \Illuminate\Http\JsonResponse
     {
         $user = User::where('card_number', $data['card_number'])->first();
 
@@ -55,9 +58,12 @@ class CardReaderService
     }
 
     /**
-     * Get current presence status for a user
-     */
-    public function getUserPresenceStatus($userId)
+         * Get user presence status
+         *
+         * @param  int|string  $userId
+         * @return array{inside: bool, last_entry: string|null, last_exit: string|null}
+         */
+    public function getUserPresenceStatus($userId): array
     {
         $user = User::findOrFail($userId);
         $latestLog = CardReaderLog::where('user_id', $userId)
@@ -88,8 +94,11 @@ class CardReaderService
 
     /**
      * Get all users currently inside
+     *
+     * @param  string|null  $location
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\User>
      */
-    public function getUsersCurrentlyInside($location = null)
+    public function getUsersCurrentlyInside(?string $location = null): \Illuminate\Database\Eloquent\Collection
     {
         $query = CardReaderLog::with('user')
             ->where('action', 'entry')
@@ -104,8 +113,11 @@ class CardReaderService
 
     /**
      * Get card reader logs with filters
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Pagination\LengthAwarePaginator
      */
-    public function getCardReaderLogs(array $filters = [])
+    public function getCardReaderLogs(array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
     {
         $query = CardReaderLog::with('user');
 
@@ -135,8 +147,11 @@ class CardReaderService
 
     /**
      * Get daily attendance report
+     *
+     * @param  string|null  $date
+     * @return array{total_entries: int, total_exits: int, currently_inside: int}
      */
-    public function getDailyAttendanceReport($date = null)
+    public function getDailyAttendanceReport(?string $date = null): array
     {
         $date = $date ? Carbon::parse($date) : now();
 
@@ -192,9 +207,13 @@ class CardReaderService
     }
 
     /**
-     * Get monthly attendance statistics
-     */
-    public function getMonthlyAttendanceStats($month = null, $year = null)
+         * Get monthly attendance stats
+         *
+         * @param  int|null  $month
+         * @param  int|null  $year
+         * @return array{total_entries: int, total_exits: int, unique_users: int, average_daily: float}
+         */
+    public function getMonthlyAttendanceStats(?int $month = null, ?int $year = null): array
     {
         $month = $month ?? now()->month;
         $year = $year ?? now()->year;
@@ -229,9 +248,12 @@ class CardReaderService
     }
 
     /**
-     * Export attendance report to CSV
-     */
-    public function exportAttendanceReport(array $filters = [])
+         * Export attendance report
+         *
+         * @param  array<string, mixed>  $filters
+         * @return \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
+         */
+    public function exportAttendanceReport(array $filters = []): \Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
     {
         $logs = CardReaderLog::with('user');
 
@@ -276,8 +298,10 @@ class CardReaderService
 
     /**
      * Sync card reader with external system
+     *
+     * @return array{success: bool, message: string, timestamp: string, devices_synced: int, records_processed: int}
      */
-    public function syncCardReader()
+    public function syncCardReader(): array
     {
         // This would integrate with actual card reader hardware/software
         // For now, return a mock response

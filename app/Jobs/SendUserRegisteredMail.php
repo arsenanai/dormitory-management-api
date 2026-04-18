@@ -37,7 +37,7 @@ final class SendUserRegisteredMail implements ShouldQueue
         }
 
         $email = $this->user->email;
-        if ($email === null || $email === '' || ! filter_var(trim($email), FILTER_VALIDATE_EMAIL)) {
+        if ($email === '' || ! filter_var(trim($email), FILTER_VALIDATE_EMAIL)) {
             Log::info('Mail skipped: no valid recipient', [ 'event' => 'user.registered', 'user_id' => $this->user->id ]);
             return;
         }

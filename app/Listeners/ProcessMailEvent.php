@@ -72,8 +72,8 @@ final class ProcessMailEvent
         ) {
             return [ [], [] ];
         }
-        $user = $payment->user;
-        if (! $user instanceof \App\Models\User) {
+        $user = $payment->user ?? null;
+        if ($user === null) {
             return [ [], [] ];
         }
 

@@ -200,9 +200,10 @@ final class MailTemplateService
     /**
      * Build context for message.sent.
      *
+     * @param  \App\Models\Message  $message
      * @return array<string, string|null>
      */
-    public function contextForMessageSent(User $recipient, $message, ?string $adminEmail = null): array
+    public function contextForMessageSent(User $recipient, \App\Models\Message $message, ?string $adminEmail = null): array
     {
         $name = $recipient->first_name
             ? trim($recipient->first_name . ' ' . ($recipient->last_name ?? ''))

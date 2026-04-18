@@ -12,6 +12,8 @@ class ConfigurationService
 {
     /**
      * Get all configurations
+     *
+     * @return array<string, Configuration>
      */
     public function getAllConfigurations(): array
     {
@@ -20,8 +22,10 @@ class ConfigurationService
 
     /**
      * Get configuration by key
+     *
+     * @return mixed
      */
-    public function getConfiguration($key): mixed
+    public function getConfiguration(string $key): mixed
     {
         $config = Configuration::where('key', $key)
             ->first();
@@ -30,8 +34,10 @@ class ConfigurationService
 
     /**
      * Set configuration value
+     *
+     * @return Configuration
      */
-    public function setConfiguration($key, $value, $type = 'string', $description = null): Configuration
+    public function setConfiguration(string $key, mixed $value, string $type = 'string', ?string $description = null): Configuration
     {
         $config = Configuration::updateOrCreate(
             [ 'key' => $key ],
@@ -49,6 +55,9 @@ class ConfigurationService
 
     /**
      * Update multiple configurations
+     *
+     * @param  array<string, array{value: mixed, type?: string, description?: string}>  $configurations
+     * @return array<string, mixed>
      */
     public function updateConfigurations(array $configurations): array
     {
@@ -66,6 +75,8 @@ class ConfigurationService
 
     /**
      * Get SMTP settings
+     *
+     * @return array{smtp_host: mixed, smtp_port: mixed, smtp_username: mixed, smtp_password: mixed, smtp_encryption: mixed, smtp_from_address: mixed, smtp_from_name: mixed}
      */
     public function getSMTPSettings(): array
     {

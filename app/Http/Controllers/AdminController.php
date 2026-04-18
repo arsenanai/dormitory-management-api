@@ -11,9 +11,11 @@ use function response;
 class AdminController extends Controller
 {
     private int $adminRoleId;
+    /** @var array<string, string> */
     private array $rules;
 
     // admin not need student-related fields, but we set defaults for consistency
+    /** @var array<string, mixed> */
     private array $defaults = [
         'iin'             => null,
         'faculty'         => 'N/A',
@@ -35,19 +37,19 @@ class AdminController extends Controller
         ];
     }
 
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $admins = $this->service->listAdmins();
         return response()->json($admins, 200);
     }
 
-    public function show($id)
+    public function show(int $id): \Illuminate\Http\JsonResponse
     {
         $admin = $this->service->getAdminById($id);
         return response()->json($admin, 200);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         // Validate using the rules only (don't merge data defaults into rules)
         $validated = $request->validate($this->rules);
@@ -76,7 +78,7 @@ class AdminController extends Controller
         return response()->json($admin, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
 
         // For updates require essential fields as well
@@ -123,7 +125,7 @@ class AdminController extends Controller
         return response()->json($admin, 200);
     }
 
-    public function destroy($id)
+    public function destroy(int $id): \Illuminate\Http\JsonResponse
     {
         $this->service->deleteAdmin($id);
         return response()->json([ 'message' => 'success.admin_deleted' ], 200);

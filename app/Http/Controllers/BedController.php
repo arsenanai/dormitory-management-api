@@ -18,9 +18,13 @@ class BedController extends Controller
         // Check if user has permission to access this bed's room
         /** @var User $user */
         $user = Auth::user();
-        if ($user && $user->role && $user->role->name === 'admin') {
-            $userDormitoryId = $user->adminProfile?->dormitory_id;
-            if ($userDormitoryId && $bed->room && $bed->room->dormitory_id !== $userDormitoryId) {
+        /** @var \App\Models\Role|null $role */
+        $role = $user->role;
+        if ($role && $role->name === 'admin') {
+            $userDormitoryId = $user->adminProfile?->dormitory_id; // @phpstan-ignore-line
+            /** @var \App\Models\Room|null $room */
+            $room = $bed->room;
+            if ($userDormitoryId && $room && $room->dormitory_id !== $userDormitoryId) {
                 return response()->json(['error' => 'Access denied: You can only modify beds in your assigned dormitory'], 403);
             }
         }

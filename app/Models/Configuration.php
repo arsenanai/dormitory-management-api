@@ -17,8 +17,10 @@ class Configuration extends Model
 
     /**
      * Get the typed value based on the type field
+     *
+     * @return mixed
      */
-    public function getTypedValue()
+    public function getTypedValue(): mixed
     {
         if (! $this->type || $this->type === 'string') {
             return $this->value;
@@ -39,8 +41,10 @@ class Configuration extends Model
 
     /**
      * Set the typed value and automatically determine the type
+     *
+     * @param mixed $value
      */
-    public function setTypedValue($value)
+    public function setTypedValue(mixed $value): void
     {
         if (is_bool($value)) {
             $this->type = 'boolean';

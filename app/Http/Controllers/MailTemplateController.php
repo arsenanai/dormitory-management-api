@@ -15,27 +15,23 @@ final class MailTemplateController extends Controller
     ) {
     }
 
-    /**
-     * List all mail types with their templates (for index page).
-     */
     public function index(): JsonResponse
     {
         $list = $this->mailTemplateService->listAll();
         return response()->json($list);
     }
 
-    /**
-     * Get one mail type with locales and placeholders (for edit page).
-     */
     public function show(string $type): JsonResponse
     {
-        $types = array_keys(config('mail_templates.types', []));
+        $config = config('mail_templates.types', []);
+        $types = is_array($config) ? array_keys($config) : [];
         if (! in_array($type, $types, true)) {
             return response()->json([ 'message' => 'Mail type not found.' ], 404);
         }
         $locales = $this->mailTemplateService->getTemplateByType($type);
         $placeholders = $this->mailTemplateService->getPlaceholdersForType($type);
-        $name = (string) (config("mail_templates.types.{$type}") ?? $type);
+        $configValue = config("mail_templates.types.{$type}");
+        $name = is_string($configValue) ? $configValue : $type;
         return response()->json([
             'type'        => $type,
             'name'        => $name,
@@ -44,12 +40,10 @@ final class MailTemplateController extends Controller
         ]);
     }
 
-    /**
-     * Update one mail type (all locales).
-     */
     public function update(Request $request, string $type): JsonResponse
     {
-        $types = array_keys(config('mail_templates.types', []));
+        $config = config('mail_templates.types', []);
+        $types = is_array($config) ? array_keys($config) : [];
         if (! in_array($type, $types, true)) {
             return response()->json([ 'message' => 'Mail type not found.' ], 404);
         }

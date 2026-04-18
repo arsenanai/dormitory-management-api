@@ -7,7 +7,7 @@ use App\Models\BloodType;
 
 class BloodTypeController extends Controller
 {
-    public function index()
+    public function index(): \Illuminate\Http\JsonResponse
     {
         $bloodTypes = BloodType::all();
 

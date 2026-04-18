@@ -13,8 +13,9 @@ class MessageController extends Controller
 
     /**
      * Display a listing of messages
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\Message>
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse|\Illuminate\Pagination\LengthAwarePaginator
     {
         $filters = $request->validate([
             'recipient_type' => 'sometimes|in:all,dormitory,room,individual',
@@ -30,7 +31,7 @@ class MessageController extends Controller
     /**
      * Store a newly created message
      */
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'receiver_id'      => 'required|integer|exists:users,id',
@@ -56,7 +57,7 @@ class MessageController extends Controller
     /**
      * Display the specified message
      */
-    public function show($id)
+    public function show(int $id): \Illuminate\Http\JsonResponse
     {
         return $this->messageService->getMessageDetails($id);
     }
@@ -64,7 +65,7 @@ class MessageController extends Controller
     /**
      * Update the specified message
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'receiver_id'     => 'sometimes|integer|exists:users,id',
@@ -84,7 +85,7 @@ class MessageController extends Controller
     /**
      * Remove the specified message
      */
-    public function destroy($id)
+    public function destroy(int $id): \Illuminate\Http\JsonResponse
     {
         $this->messageService->deleteMessage($id);
         return response()->json([ 'message' => 'Message deleted successfully' ], 200);
@@ -93,15 +94,16 @@ class MessageController extends Controller
     /**
      * Send a message
      */
-    public function send($id)
+    public function send(int $id): \Illuminate\Http\JsonResponse
     {
         return $this->messageService->sendMessage($id);
     }
 
     /**
      * Get messages for the authenticated user (students)
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\Message>
      */
-    public function myMessages(Request $request)
+    public function myMessages(Request $request): \Illuminate\Http\JsonResponse|\Illuminate\Pagination\LengthAwarePaginator
     {
         $perPage = $request->get('per_page', 20);
         $result = $this->messageService->getUserMessages($perPage, $request->get('query'));
@@ -111,7 +113,7 @@ class MessageController extends Controller
     /**
      * Mark message as read
      */
-    public function markAsRead($id)
+    public function markAsRead(int $id): \Illuminate\Http\JsonResponse
     {
         return $this->messageService->markAsRead($id);
     }
@@ -119,7 +121,7 @@ class MessageController extends Controller
     /**
      * Get unread messages count for the authenticated user
      */
-    public function unreadCount()
+    public function unreadCount(): \Illuminate\Http\JsonResponse
     {
         return $this->messageService->getUnreadCount();
     }

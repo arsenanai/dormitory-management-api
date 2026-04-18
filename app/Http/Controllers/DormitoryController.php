@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 
 class DormitoryController extends Controller
 {
+    /** @var array<string, string> */
     private array $rules = [
         'name'            => 'required|string|max:255',
         'capacity'        => 'required|integer|min:1',
@@ -24,7 +25,7 @@ class DormitoryController extends Controller
     {
     }
 
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         // Get authenticated user for role-based filtering
         $user = auth()->user();
@@ -41,7 +42,7 @@ class DormitoryController extends Controller
      * Get all dormitories for public access (student registration, etc.)
      * This endpoint bypasses role-based filtering
      */
-    public function getAllForPublic()
+    public function getAllForPublic(): \Illuminate\Http\JsonResponse
     {
         $dorms = $this->service->getAllDormitoriesForPublic('student');
         return response()->json($dorms, 200)
@@ -50,7 +51,7 @@ class DormitoryController extends Controller
             ->header('Expires', '0');
     }
 
-    public function show($id)
+    public function show(int $id): \Illuminate\Http\JsonResponse
     {
         $dorm = $this->service->getById($id);
         return response()->json($dorm, 200)
@@ -59,14 +60,14 @@ class DormitoryController extends Controller
             ->header('Expires', '0');
     }
 
-    public function store(Request $request)
+    public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate($this->rules);
         $dorm = $this->service->createDormitory($validated);
         return response()->json($dorm, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         \Log::info('Dormitory update called', [ 'id' => $id, 'request_data' => $request->all() ]);
 
@@ -86,13 +87,13 @@ class DormitoryController extends Controller
             ->header('Expires', '0');
     }
 
-    public function destroy($id)
+    public function destroy(int $id): \Illuminate\Http\JsonResponse
     {
         $this->service->deleteDormitory($id);
         return response()->json([ 'message' => 'Dormitory deleted successfully' ], 200);
     }
 
-    public function assignAdmin(Request $request, $id)
+    public function assignAdmin(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $dorm = \App\Models\Dormitory::findOrFail($id);
         $admin = \App\Models\User::findOrFail($request->input('admin_id'));
@@ -100,7 +101,7 @@ class DormitoryController extends Controller
         return response()->json($dorm, 200);
     }
 
-    public function rooms(Request $request, $id)
+    public function rooms(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
         $rooms = $this->service->getRoomsForDormitory($id);
         return response()->json($rooms, 200);
@@ -109,7 +110,7 @@ class DormitoryController extends Controller
     /**
      * Get dormitory quota information for admin management
      */
-    public function getQuotaInfo(Request $request, $dormitory)
+    public function getQuotaInfo(Request $request, int $dormitory): \Illuminate\Http\JsonResponse
     {
         try {
             $user = auth()->user();
@@ -123,7 +124,7 @@ class DormitoryController extends Controller
     /**
      * Update room quota (admin only)
      */
-    public function updateRoomQuota(Request $request, $dormitory, $room)
+    public function updateRoomQuota(Request $request, int $dormitory, int $room): \Illuminate\Http\JsonResponse
     {
         $request->validate([
             'quota' => 'required|integer|min:1'
@@ -137,7 +138,7 @@ class DormitoryController extends Controller
     /**
      * Get dormitory details with rooms for registration form (public access)
      */
-    public function getForRegistration($id)
+    public function getForRegistration(int $id): \Illuminate\Http\JsonResponse
     {
         try {
             // Load dormitory and admin only, rooms will be replaced anyway

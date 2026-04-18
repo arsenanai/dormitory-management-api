@@ -12,30 +12,49 @@ class RoomTypeService
     {
         $this->fileService = $fileService;
     }
-    public function listRoomTypes()
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\RoomType>
+     */
+    public function listRoomTypes(): \Illuminate\Database\Eloquent\Collection
     {
         return RoomType::all();
     }
 
-    public function createRoomType(array $data)
+    /**
+     * @param  array<string, mixed>  $data
+     * @return \App\Models\RoomType
+     */
+    public function createRoomType(array $data): \App\Models\RoomType
     {
         $data['photos'] = $this->handlePhotoUploads($data);
         return RoomType::create($data);
     }
 
-    public function findRoomType($id)
+    /**
+     * @param  int|string  $id
+     * @return \App\Models\RoomType
+     */
+    public function findRoomType($id): \App\Models\RoomType
     {
         return RoomType::findOrFail($id);
     }
 
-    public function updateRoomType(RoomType $roomType, array $data)
+    /**
+     * @param  array<string, mixed>  $data
+     * @return \App\Models\RoomType
+     */
+    public function updateRoomType(\App\Models\RoomType $roomType, array $data): \App\Models\RoomType
     {
         $data['photos'] = $this->handlePhotoUploads($data, $roomType);
         $roomType->update($data);
         return $roomType;
     }
 
-    public function deleteRoomType($id)
+    /**
+     * @param  int|string  $id
+     */
+    public function deleteRoomType($id): void
     {
         $roomType = RoomType::findOrFail($id);
 

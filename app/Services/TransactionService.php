@@ -14,10 +14,17 @@ use Illuminate\Support\Facades\Storage;
 
 class TransactionService
 {
+    public function __construct(private UserStatusService $userStatusService)
+    {
+    }
+
     /**
      * Get transactions with filters and pagination
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
-    public function index(array $filters = [])
+    public function index(array $filters = []): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
     {
         $query = Transaction::with(['user', 'user.role', 'payments']);
 
@@ -65,8 +72,11 @@ class TransactionService
 
     /**
      * Create a new transaction and link it to payments
+     *
+     * @param  array<string, mixed>  $data
+     * @return \App\Http\Resources\TransactionResource
      */
-    public function create(array $data): TransactionResource
+    public function create(array $data): \App\Http\Resources\TransactionResource
     {
         return DB::transaction(function () use ($data) {
             // Handle payment_check file upload
@@ -109,8 +119,11 @@ class TransactionService
 
     /**
      * Get transaction details
+     *
+     * @param  int|string  $id
+     * @return \App\Http\Resources\TransactionResource
      */
-    public function show($id): TransactionResource
+    public function show($id): \App\Http\Resources\TransactionResource
     {
         $transaction = Transaction::with(['user', 'user.role', 'payments'])->findOrFail($id);
         return new TransactionResource($transaction);
@@ -118,8 +131,12 @@ class TransactionService
 
     /**
      * Update transaction (admin approval/rejection)
+     *
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $data
+     * @return \App\Http\Resources\TransactionResource
      */
-    public function update($id, array $data): TransactionResource
+    public function update($id, array $data): \App\Http\Resources\TransactionResource
     {
         return DB::transaction(function () use ($id, $data) {
             $transaction = Transaction::findOrFail($id);
@@ -166,6 +183,8 @@ class TransactionService
 
     /**
      * Delete a transaction
+     *
+     * @param  int|string  $id
      */
     public function delete($id): void
     {
@@ -192,8 +211,12 @@ class TransactionService
 
     /**
      * Upload bank check for an existing transaction
+     *
+     * @param  int|string  $transactionId
+     * @param  \Illuminate\Http\UploadedFile  $file
+     * @return \App\Http\Resources\TransactionResource
      */
-    public function uploadBankCheck($transactionId, $file): TransactionResource
+    public function uploadBankCheck($transactionId, \Illuminate\Http\UploadedFile $file): \App\Http\Resources\TransactionResource
     {
         return DB::transaction(function () use ($transactionId, $file) {
             $transaction = Transaction::findOrFail($transactionId);
@@ -221,8 +244,11 @@ class TransactionService
 
     /**
      * Export transactions to CSV
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Http\Response
      */
-    public function exportTransactions(array $filters = [])
+    public function exportTransactions(array $filters = []): \Illuminate\Http\Response
     {
         $query = Transaction::with(['user', 'payments']);
 
@@ -262,7 +288,17 @@ class TransactionService
             ];
         }
 
-        return $csvData;
+        $csvContent = collect($csvData)->map(function ($row) {
+            return implode(',', array_map(function ($cell) {
+                return '"' . str_replace('"', '""', (string) $cell) . '"';
+            }, $row));
+        })->implode("\n");
+
+        $filename = 'transactions_' . now()->format('Y_m_d_H_i_s') . '.csv';
+
+        return response($csvContent)
+            ->header('Content-Type', 'text/csv')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 
     /**
@@ -321,40 +357,6 @@ class TransactionService
      */
     private function syncUserStatus(int $userId): void
     {
-        $user = User::findOrFail($userId);
-        $oldStatus = $user->status;
-
-        // Get user's active payments (eager-load type for semester_rent check)
-        $payments = $user->payments()->paying()->with('type')->get();
-
-        if ($payments->isEmpty()) {
-            return; // No active payments to evaluate
-        }
-
-        // Check if user is student or guest for different logic
-        if ($user->hasRole('student')) {
-            // Students: active if semester rent payment is completed
-            $semesterPayment = $payments->firstWhere('type.name', 'semester_rent');
-            if ($semesterPayment && $semesterPayment->status === PaymentStatus::Completed) {
-                $user->status = 'active';
-            } else {
-                $user->status = 'pending';
-            }
-        } elseif ($user->hasRole('guest')) {
-            // Guests: active if ALL payments are completed
-            $allCompleted = $payments->every(fn ($payment) => $payment->status === PaymentStatus::Completed);
-            $user->status = $allCompleted ? 'active' : 'pending';
-        }
-
-        if ($oldStatus !== $user->status) {
-            $user->save();
-
-            // Fire event for user status change
-            event(new MailEventOccurred('user_status_changed', [
-                'user' => $user,
-                'old_status' => $oldStatus,
-                'new_status' => $user->status,
-            ]));
-        }
+        $this->userStatusService->syncUserStatus($userId);
     }
 }

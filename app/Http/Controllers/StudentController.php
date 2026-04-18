@@ -61,10 +61,18 @@ class StudentController extends Controller
             'status'       => 'sometimes|in:pending,active,suspended',
             'per_page'     => 'sometimes|integer|min:1|max:1000',
             'page'         => 'sometimes|integer|min:1',
-            'fields'       => 'sometimes|string', // Comma-separated list of fields to select
+            'fields'       => 'sometimes|string',
         ]);
 
-        return response()->json($this->studentService->getStudentsWithFilters(Auth::user()->load('adminDormitory'), $filters));
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        $dormitory = $user?->adminDormitory;
+
+        if (! $user) {
+            return response()->json([ 'message' => 'Unauthorized' ], 401);
+        }
+
+        return response()->json($this->studentService->getStudentsWithFilters($user, $filters));
     }
 
     /**
@@ -176,7 +184,10 @@ class StudentController extends Controller
             'student_profile.violations'                     => 'nullable|string|max:1000',
         ]);
 
-        $student = $this->studentService->createStudent($validated, Auth::user()->adminDormitory);
+        $user = Auth::user();
+        $dormitory = $user?->adminDormitory;
+
+        $student = $this->studentService->createStudent($validated, $dormitory);
         return response()->json(
             $student->load([ 'studentProfile', 'role', 'room.dormitory', 'studentBed' ]),
             201
@@ -345,9 +356,10 @@ class StudentController extends Controller
     public function export(Request $request): \Illuminate\Http\Response
     {
         $filters = $request->all();
-        $user = Auth::user()->load('adminDormitory');
+        $user = Auth::user();
+        $userWithDormitory = $user?->load('adminDormitory');
 
-        return $this->studentService->exportStudents($user, $filters);
+        return $this->studentService->exportStudents($userWithDormitory, $filters);
     }
 
     /**
@@ -395,7 +407,15 @@ class StudentController extends Controller
             'per_page'     => 'sometimes|integer|min:1|max:100',
         ]);
 
-        return response()->json($this->studentService->getStudentsByDormitory($filters, Auth::user()->load('adminDormitory')));
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json([ 'message' => 'Unauthorized' ], 401);
+        }
+
+        $userWithDormitory = $user->load('adminDormitory');
+
+        return response()->json($this->studentService->getStudentsByDormitory($userWithDormitory, $filters));
     }
 
     /**
@@ -486,7 +506,13 @@ class StudentController extends Controller
             'year'         => 'sometimes|integer',
         ]);
 
-        return response()->json($this->studentService->getStudentStatistics($filters, Auth::user()));
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json([ 'message' => 'Unauthorized' ], 401);
+        }
+
+        return response()->json($this->studentService->getStudentStatistics($user, $filters));
     }
 
     /**

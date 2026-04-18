@@ -16,7 +16,7 @@ class IinIntegrationController extends Controller
     /**
      * Send OTP to student
      */
-    public function sendOtp(Request $request)
+    public function sendOtp(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'student_id' => 'required|string',
@@ -44,7 +44,7 @@ class IinIntegrationController extends Controller
     /**
      * Verify OTP and return decrypted data
      */
-    public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([
             'student_id' => 'required|string',

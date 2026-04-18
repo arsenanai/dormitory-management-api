@@ -13,7 +13,15 @@ class Role extends Model
         'name',
     ];
 
-    public function users()
+    protected $casts = [
+        'id'   => 'int',
+        'name' => 'string',
+    ];
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<User>
+     */
+    public function users(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(User::class);
     }

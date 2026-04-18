@@ -16,8 +16,10 @@ class DashboardService
 {
     /**
      * Get overall dashboard statistics
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getDashboardStats()
+    public function getDashboardStats(): \Illuminate\Http\JsonResponse
     {
         $user = Auth::user();
 
@@ -62,9 +64,46 @@ class DashboardService
     }
 
     /**
-     * Get student statistics
+     * Get dashboard statistics for a specific dormitory
+     *
+     * @param  int|null  $dormitoryId
+     * @return \Illuminate\Http\JsonResponse
      */
-    private function getStudentStats($dormitoryId = null)
+    public function getDormitoryStats(?int $dormitoryId): \Illuminate\Http\JsonResponse
+    {
+        $studentStats = $this->getStudentStats($dormitoryId);
+        $roomStats = $this->getRoomStats($dormitoryId);
+        $paymentStats = $this->getPaymentStats($dormitoryId);
+        $messageStats = $this->getMessageStats($dormitoryId);
+
+        $stats = [
+            'total_rooms'            => $roomStats['total_rooms'],
+            'total_beds'             => $roomStats['total_beds'],
+            'available_rooms'        => $roomStats['available_rooms'],
+            'occupied_rooms'         => $roomStats['occupied_rooms'],
+            'available_beds'         => $roomStats['available_beds'],
+            'occupied_beds'          => $roomStats['occupied_beds'],
+            'total_students'         => $studentStats['total'],
+            'students_with_meals'    => $studentStats['with_meals'],
+            'students_without_meals' => $studentStats['without_meals'],
+            'current_presence'       => $roomStats['occupied_beds'],
+            'total_payments'         => $paymentStats['total_payments'],
+            'pending_payments'       => $paymentStats['pending_payments'],
+            'recent_payments'        => $paymentStats['this_month_amount'],
+            'recent_messages'        => $messageStats['recent_messages'],
+            'occupancy_rate'         => $roomStats['occupancy_rate'],
+        ];
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Get student statistics
+     *
+     * @param  int|null  $dormitoryId
+     * @return array{total: int, with_meals: int, without_meals: int}
+     */
+    private function getStudentStats(?int $dormitoryId = null): array
     {
         $query = User::with('studentProfile')->whereHas('role', fn ($q) => $q->where('name', 'student'));
 
@@ -92,8 +131,11 @@ class DashboardService
 
     /**
      * Get room statistics
+     *
+     * @param  int|null  $dormitoryId
+     * @return array{total_rooms: int, total_beds: int, available_rooms: int, occupied_rooms: int, available_beds: int, occupied_beds: int, occupancy_rate: float}
      */
-    private function getRoomStats($dormitoryId = null)
+    private function getRoomStats(?int $dormitoryId = null): array
     {
         $query = Room::query();
 
@@ -138,8 +180,11 @@ class DashboardService
 
     /**
      * Get payment statistics
+     *
+     * @param  int|null  $dormitoryId
+     * @return array{total_payments: int, pending_payments: int, completed_payments: int, this_month_amount: float, pending_transactions: int}
      */
-    private function getPaymentStats($dormitoryId = null)
+    private function getPaymentStats(?int $dormitoryId = null): array
     {
         $paymentQuery = Payment::query();
         $transactionQuery = Transaction::query();
@@ -179,8 +224,11 @@ class DashboardService
 
     /**
      * Get message statistics
+     *
+     * @param  int|null  $dormitoryId
+     * @return array{total_messages: int, sent_messages: int, draft_messages: int, recent_messages: int}
      */
-    private function getMessageStats($dormitoryId = null)
+    private function getMessageStats(?int $dormitoryId = null): array
     {
         $query = Message::query();
 
@@ -213,8 +261,10 @@ class DashboardService
 
     /**
      * Get guard dashboard stats
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getGuardStats()
+    public function getGuardStats(): \Illuminate\Http\JsonResponse
     {
         $totalRooms = Room::count();
         $occupiedRooms = Room::where('is_occupied', true)->count();
@@ -234,8 +284,10 @@ class DashboardService
 
     /**
      * Get student dashboard statistics
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getStudentDashboardStats()
+    public function getStudentDashboardStats(): \Illuminate\Http\JsonResponse
     {
         $user = Auth::user();
 
@@ -276,8 +328,10 @@ class DashboardService
 
     /**
      * Get guest dashboard statistics
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getGuestDashboardStats()
+    public function getGuestDashboardStats(): \Illuminate\Http\JsonResponse
     {
         $user = Auth::user();
 
@@ -316,8 +370,10 @@ class DashboardService
 
     /**
      * Get monthly statistics
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getMonthlyStats()
+    public function getMonthlyStats(): \Illuminate\Http\JsonResponse
     {
         $currentMonth = [
             'total_payments'    => Payment::whereMonth('created_at', now()->month)
@@ -376,8 +432,10 @@ class DashboardService
 
     /**
      * Get payment analytics
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getPaymentAnalytics()
+    public function getPaymentAnalytics(): \Illuminate\Http\JsonResponse
     {
         $paymentMethods = Transaction::where('status', 'completed')
             ->selectRaw('payment_method, COUNT(*) as count, SUM(amount) as total')

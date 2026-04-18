@@ -12,7 +12,12 @@ use Illuminate\Support\Facades\DB;
 
 class RoomService
 {
-    public function listRooms(array $filters = [], int $perPage = 15, $user = null)
+    /**
+     * @param  array<string, mixed>  $filters
+     * @param  \App\Models\User|null  $user
+     * @return \Illuminate\Pagination\LengthAwarePaginator<int, \App\Models\Room>
+     */
+    public function listRooms(array $filters = [], int $perPage = 15, ?\App\Models\User $user = null): \Illuminate\Pagination\LengthAwarePaginator
     {
         $query = Room::query();
 
@@ -81,7 +86,12 @@ class RoomService
         return $query->with([ 'beds', 'dormitory', 'roomType' ])->paginate($perPage);
     }
 
-    public function createRoom(array $data, $user = null)
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  \App\Models\User|null  $user
+     * @return \App\Models\Room
+     */
+    public function createRoom(array $data, ?\App\Models\User $user = null): \App\Models\Room
     {
         return DB::transaction(function () use ($data) {
             $room = Room::create($data);
@@ -92,19 +102,33 @@ class RoomService
         });
     }
 
-    public function findRoom($id, $admin = null)
+    /**
+     * @param  int|string  $id
+     * @param  \App\Models\User|null  $admin
+     * @return \App\Models\Room
+     */
+    public function findRoom($id, ?\App\Models\User $admin = null): ?\App\Models\Room
     {
         try {
-            $userDormitoryId = $admin->adminDormitory->id;
+            $userDormitoryId = $admin?->adminDormitory?->id;
+            if (! $userDormitoryId) {
+                return null;
+            }
             $room = Room::where('dormitory_id', $userDormitoryId)
                 ->with([ 'dormitory', 'roomType', 'beds.user' ])->findOrFail($id);
             return $room;
         } catch (\Throwable $e) {
-            return;
+            return null;
         }
     }
 
-    public function updateRoom(array $data, $roomId, $user = null)
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  int|string  $roomId
+     * @param  \App\Models\User|null  $user
+     * @return \App\Models\Room
+     */
+    public function updateRoom(array $data, $roomId, ?\App\Models\User $user = null): \App\Models\Room
     {
         return DB::transaction(function () use ($data, $roomId, $user) {
             $room = Room::with([ 'beds', 'dormitory', 'roomType' ])->findOrFail($roomId);
@@ -121,8 +145,10 @@ class RoomService
 
     /**
      * Ensure the room has the correct number of beds based on its quota
+     *
+     * @param  array<string, mixed>  $data
      */
-    private function syncBeds(Room $room, array $data)
+    private function syncBeds(Room $room, array $data): void
     {
         foreach ($room->beds as $index => $bed) {
             if (isset($data['beds'][ $index ])) {
@@ -144,14 +170,25 @@ class RoomService
         }
     }
 
-    public function deleteRoom($id, $user = null)
+    /**
+     * @param  int|string  $id
+     * @param  \App\Models\User|null  $user
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteRoom($id, ?\App\Models\User $user = null): \Illuminate\Http\JsonResponse
     {
         $room = $this->findRoom($id, $user);
         $room->delete();
         return response()->json([ 'message' => 'Room deleted successfully' ], 200);
     }
 
-    public function available($dormitoryId, $occupantType = 'student', array $params = [])
+    /**
+     * @param  int|string|null  $dormitoryId
+     * @param  string  $occupantType
+     * @param  array<string, mixed>  $params
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Room>
+     */
+    public function available($dormitoryId, string $occupantType = 'student', array $params = []): \Illuminate\Database\Eloquent\Collection
     {
         $query = Room::with([ 'dormitory', 'roomType' ]);
 

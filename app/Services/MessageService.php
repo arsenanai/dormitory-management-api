@@ -14,8 +14,11 @@ class MessageService
 {
     /**
      * Get messages with filters and pagination
+     *
+     * @param  array<string, mixed>  $filters
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getMessagesWithFilters(array $filters = [])
+    public function getMessagesWithFilters(array $filters = []): \Illuminate\Http\JsonResponse
     {
         $query = Message::with([ 'sender', 'receiver', 'dormitory', 'room' ]);
 
@@ -50,8 +53,11 @@ class MessageService
 
     /**
      * Create a new message
+     *
+     * @param  array<string, mixed>  $data
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function createMessage(array $data)
+    public function createMessage(array $data): \Illuminate\Http\JsonResponse
     {
         $data['sender_id'] = Auth::id();
         $data['status'] = 'draft';
@@ -74,8 +80,11 @@ class MessageService
 
     /**
      * Get message details
+     *
+     * @param  int|string  $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getMessageDetails($id)
+    public function getMessageDetails($id): \Illuminate\Http\JsonResponse
     {
         $message = Message::with([ 'sender', 'receiver', 'dormitory', 'room' ])->findOrFail($id);
 
@@ -87,8 +96,10 @@ class MessageService
         }
 
         // Decode recipient_ids if it exists
-        if ($message->recipient_ids) {
-            $message->recipient_ids = json_decode($message->recipient_ids, true);
+        /** @var string|null $recipientIds */
+        $recipientIds = $message->recipient_ids;
+        if ($recipientIds) {
+            $message->recipient_ids = json_decode($recipientIds, true);
         }
 
         return response()->json($message);
@@ -96,8 +107,12 @@ class MessageService
 
     /**
      * Update message
+     *
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $data
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function updateMessage($id, array $data)
+    public function updateMessage($id, array $data): \Illuminate\Http\JsonResponse
     {
         $message = Message::findOrFail($id);
 
@@ -119,8 +134,11 @@ class MessageService
 
     /**
      * Delete message
+     *
+     * @param  int|string  $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function deleteMessage($id)
+    public function deleteMessage($id): \Illuminate\Http\JsonResponse
     {
         $message = Message::findOrFail($id);
 
@@ -135,8 +153,11 @@ class MessageService
 
     /**
      * Send a message
+     *
+     * @param  int|string  $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function sendMessage($id)
+    public function sendMessage($id): \Illuminate\Http\JsonResponse
     {
         $message = Message::findOrFail($id);
 
@@ -164,8 +185,12 @@ class MessageService
 
     /**
      * Get messages for the authenticated user
+     *
+     * @param  int|null  $perPage
+     * @param  string|null  $searchQuery
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getUserMessages($perPage = 20, $searchQuery = null)
+    public function getUserMessages(?int $perPage = 20, ?string $searchQuery = null): \Illuminate\Http\JsonResponse
     {
         $user = Auth::user();
 
@@ -241,8 +266,11 @@ class MessageService
 
     /**
      * Mark message as read
+     *
+     * @param  int|string  $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function markAsRead($id)
+    public function markAsRead($id): \Illuminate\Http\JsonResponse
     {
         $message = Message::findOrFail($id);
         $message->update([ 'read_at' => now() ]);
@@ -251,8 +279,10 @@ class MessageService
 
     /**
      * Get unread messages count for the authenticated user
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getUnreadCount()
+    public function getUnreadCount(): \Illuminate\Http\JsonResponse
     {
         $user = Auth::user();
 

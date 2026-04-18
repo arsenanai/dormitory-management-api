@@ -8,9 +8,9 @@ use App\Models\Dormitory;
 use App\Models\GuestProfile;
 use App\Models\Message;
 use App\Models\Payment;
-use App\Models\Transaction;
 use App\Models\Room;
 use App\Models\RoomType;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +85,8 @@ class DevelopmentSeeder extends Seeder
 
     /**
      * Get deterministic random element from array
+     *
+     * @param array<string> $array
      */
     private function getRandomElement(array $array, int $index): string
     {
@@ -97,14 +99,6 @@ class DevelopmentSeeder extends Seeder
     private function getRandomNumber(int $min, int $max, int $index): int
     {
         return $min + ($index % ($max - $min + 1));
-    }
-
-    /**
-     * Get deterministic boolean
-     */
-    private function getRandomBoolean(int $index): bool
-    {
-        return ($index % 2) === 0;
     }
 
     /**
@@ -133,6 +127,10 @@ class DevelopmentSeeder extends Seeder
 
     /**
      * Batch store base64 images for better performance
+     *
+     * @param array<string> $base64Images
+     * @param array<string> $filenames
+     * @return array<string>
      */
     private function batchStoreImages(array $base64Images, string $directory, array $filenames): array
     {
@@ -148,6 +146,8 @@ class DevelopmentSeeder extends Seeder
 
     /**
      * Generate real avatar images using GD library
+     *
+     * @return array<string>
      */
     private function generateAvatarImages(): array
     {
@@ -164,10 +164,16 @@ class DevelopmentSeeder extends Seeder
             // Create a 100x100 image
             $image = imagecreatetruecolor(100, 100);
             $bgColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
+            if ($bgColor === false) {
+                $bgColor = 0;
+            }
             imagefill($image, 0, 0, $bgColor);
 
             // Add a simple circle or pattern for visual interest
             $white = imagecolorallocate($image, 255, 255, 255);
+            if ($white === false) {
+                $white = 0;
+            }
             $centerX = 50;
             $centerY = 50;
             $radius = 35;
@@ -175,12 +181,18 @@ class DevelopmentSeeder extends Seeder
 
             // Add a smaller circle inside
             $innerColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
+            if ($innerColor === false) {
+                $innerColor = 0;
+            }
             imagefilledellipse($image, $centerX, $centerY, $radius, $radius, $innerColor);
 
             // Capture output
             ob_start();
             imagepng($image);
             $imageData = ob_get_contents();
+            if ($imageData === false) {
+                $imageData = '';
+            }
             ob_end_clean();
             imagedestroy($image);
 
@@ -209,10 +221,19 @@ class DevelopmentSeeder extends Seeder
 
         $image = imagecreatetruecolor(800, 400);
         $bgColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
+        if ($bgColor === false) {
+            $bgColor = 0;
+        }
         imagefill($image, 0, 0, $bgColor);
 
         $darkColor = imagecolorallocate($image, 50, 50, 50);
+        if ($darkColor === false) {
+            $darkColor = 0;
+        }
         $grayColor = imagecolorallocate($image, 150, 150, 150);
+        if ($grayColor === false) {
+            $grayColor = 0;
+        }
 
         // Draw border
         imagerectangle($image, 10, 10, 789, 389, $darkColor);
@@ -220,10 +241,16 @@ class DevelopmentSeeder extends Seeder
 
         // Draw header bar
         $headerColor = imagecolorallocate($image, 30, 52, 89);
+        if ($headerColor === false) {
+            $headerColor = 0;
+        }
         imagefilledrectangle($image, 10, 10, 789, 70, $headerColor);
 
         // Add text
         $whiteColor = imagecolorallocate($image, 255, 255, 255);
+        if ($whiteColor === false) {
+            $whiteColor = 0;
+        }
         imagestring($image, 5, 30, 25, 'SDU DORMITORY PAYMENT RECEIPT', $whiteColor);
         imagestring($image, 3, 30, 45, 'Bank Check #' . str_pad((string)$index, 6, '0', STR_PAD_LEFT), $whiteColor);
 
@@ -243,6 +270,9 @@ class DevelopmentSeeder extends Seeder
         ob_start();
         imagepng($image);
         $imageData = ob_get_contents();
+        if ($imageData === false) {
+            $imageData = '';
+        }
         ob_end_clean();
         imagedestroy($image);
 
@@ -256,7 +286,7 @@ class DevelopmentSeeder extends Seeder
      *
      * @param string $roomTypeName Name of the room type (e.g., 'standard', 'lux')
      * @param int $count Number of photos to generate
-     * @return array Array of file paths
+     * @return array<string> Array of file paths
      */
     private function generateRoomTypePhotos(string $roomTypeName, int $count): array
     {
@@ -285,6 +315,9 @@ class DevelopmentSeeder extends Seeder
             // Create a 800x600 image (room photo size)
             $image = imagecreatetruecolor(800, 600);
             $bgColor = imagecolorallocate($image, $color[0], $color[1], $color[2]);
+            if ($bgColor === false) {
+                $bgColor = 0;
+            }
             imagefill($image, 0, 0, $bgColor);
 
             // Add some visual elements to make it look like a room
@@ -294,6 +327,9 @@ class DevelopmentSeeder extends Seeder
                 max(0, $color[1] - 30),
                 max(0, $color[2] - 30)
             );
+            if ($darkerColor === false) {
+                $darkerColor = 0;
+            }
 
             // Draw a "window" rectangle
             $windowX = 150;
@@ -311,6 +347,9 @@ class DevelopmentSeeder extends Seeder
 
             // Add text label
             $textColor = imagecolorallocate($image, 100, 100, 100);
+            if ($textColor === false) {
+                $textColor = 0;
+            }
             imagestring($image, 5, 50, 50, ucfirst($roomTypeName) . ' Room Photo ' . ($i + 1), $textColor);
 
             // Generate filename
@@ -321,6 +360,9 @@ class DevelopmentSeeder extends Seeder
             ob_start();
             imagepng($image);
             $imageData = ob_get_contents();
+            if ($imageData === false) {
+                $imageData = '';
+            }
             ob_end_clean();
             imagedestroy($image);
 
@@ -371,7 +413,7 @@ class DevelopmentSeeder extends Seeder
             [ 'email' => config('app.admin_email', 'admin@email.com') ],
             [
                 'name'     => 'Main Admin',
-                'password' => Hash::make(config('app.admin_password', 'supersecret') . ''),
+                'password' => Hash::make(is_string(config('app.admin_password', 'supersecret')) ? config('app.admin_password', 'supersecret') : 'supersecret'),
                 'role_id'  => $adminRole->id,
                 'status'   => 'active',
             ]
@@ -444,7 +486,7 @@ class DevelopmentSeeder extends Seeder
             }
             $roomType = $roomWithRoomType->roomType;
             /** @var int $capacity */
-            $capacity = $roomType?->capacity ?? 0;
+            $capacity = $roomType->capacity ?? 0;
             for ($j = 1; $j <= $capacity; $j++) {
                 $bedsData[] = [
                     'bed_number' => $j,
@@ -466,6 +508,7 @@ class DevelopmentSeeder extends Seeder
         // Create 500 students using optimized bulk operations
         $studentsData = [];
         $studentProfilesData = [];
+        /** @var array<int, string> $bedAssignments */
         $bedAssignments = []; // Will store: bedId => email
 
         // Pre-generate all filenames for batch processing
@@ -522,13 +565,14 @@ class DevelopmentSeeder extends Seeder
         $hashedPassword = Hash::make('password');
 
         // Pre-fetch bed room mappings to avoid individual queries
+        /** @var array<int, int> $bedRoomMappings */
         $bedRoomMappings = [];
         if (! empty($availableBeds)) {
             $bedsWithRooms = \App\Models\Bed::whereIn('id', $availableBeds)
                 ->with('room')
                 ->get([ 'id', 'room_id' ]);
             foreach ($bedsWithRooms as $bed) {
-                $bedRoomMappings[ $bed->id ] = $bed->room_id;
+                $bedRoomMappings[ $bed->id ] = (int) $bed->room_id;
             }
         }
 
@@ -540,9 +584,11 @@ class DevelopmentSeeder extends Seeder
 
             // Assign a bed if available
             $bedId = $availableBeds[ $i - 1 ] ?? null;
-            $roomId = $bedId ? ($bedRoomMappings[ $bedId ] ?? null) : null;
-            if ($bedId) {
+            if (is_int($bedId)) {
+                $roomId = $bedRoomMappings[ $bedId ] ?? null;
                 $bedAssignments[ $bedId ] = $email; // Store email instead of index for reliable mapping
+            } else {
+                $roomId = null;
             }
 
             $studentsData[] = [
@@ -687,7 +733,6 @@ class DevelopmentSeeder extends Seeder
         foreach ($guestRooms as $index => $guestRoom) {
             $availableBed = $guestRoom->beds()->whereNull('user_id')->first();
             if ($availableBed) {
-                assert($availableBed instanceof \App\Models\Bed);
                 $firstName = $this->getFirstName(1000 + $index);
                 $lastName = $this->getLastName(1000 + $index);
                 $email = $this->generateUniqueEmail(1000 + $index, 'guest.com');

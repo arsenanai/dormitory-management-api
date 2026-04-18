@@ -7,7 +7,11 @@ use App\Models\User;
 
 class DormitoryService
 {
-    public function createDormitory(array $data)
+    /**
+     * @param  array<string, mixed>  $data
+     * @return \App\Models\Dormitory
+     */
+    public function createDormitory(array $data): \App\Models\Dormitory
     {
         $dorm = Dormitory::create($data);
         $admin = User::findOrFail($data['admin_id']);
@@ -15,12 +19,21 @@ class DormitoryService
         return $dorm;
     }
 
-    public function getById($id)
+    /**
+     * @param  int|string  $id
+     * @return \App\Models\Dormitory
+     */
+    public function getById($id): \App\Models\Dormitory
     {
         return Dormitory::with([ 'admin', 'rooms.beds' ])->findOrFail($id);
     }
 
-    public function updateDormitory($id, array $data)
+    /**
+     * @param  int|string  $id
+     * @param  array<string, mixed>  $data
+     * @return \App\Models\Dormitory
+     */
+    public function updateDormitory($id, array $data): \App\Models\Dormitory
     {
         $dorm = Dormitory::findOrFail($id);
         $dorm->update($data);
@@ -31,7 +44,12 @@ class DormitoryService
         return $dorm->fresh()->load('admin');
     }
 
-    public function listDormitories($user = null, ?string $occupantType = null)
+    /**
+     * @param  \App\Models\User|null  $user
+     * @param  string|null  $occupantType
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Dormitory>
+     */
+    public function listDormitories(?User $user = null, ?string $occupantType = null): \Illuminate\Database\Eloquent\Collection
     {
         // Start with base query
         $query = Dormitory::with([ 'admin' ]);
@@ -93,8 +111,11 @@ class DormitoryService
     /**
      * Get all dormitories for public access (student registration, etc.)
      * This method bypasses role-based filtering
+     *
+     * @param  string|null  $occupantType
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Dormitory>
      */
-    public function getAllDormitoriesForPublic(?string $occupantType = null)
+    public function getAllDormitoriesForPublic(?string $occupantType = null): \Illuminate\Database\Eloquent\Collection
     {
         $query = Dormitory::with([ 'admin' ]);
 
@@ -132,21 +153,33 @@ class DormitoryService
         return $dormitories;
     }
 
-    public function deleteDormitory($id)
+    /**
+     * @param  int|string  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function deleteDormitory($id): \Illuminate\Http\JsonResponse
     {
         $dorm = Dormitory::findOrFail($id);
         $dorm->delete();
         return response()->json([ 'message' => 'Dormitory deleted successfully' ], 200);
     }
 
-    public function assignAdmin($dormitory, $admin)
+    /**
+     * @param  \App\Models\Dormitory  $dormitory
+     * @param  \App\Models\User  $admin
+     */
+    public function assignAdmin(\App\Models\Dormitory $dormitory, \App\Models\User $admin): void
     {
         // The 'dormitories' table has the 'admin_id'.
         // So, we associate the admin with the dormitory model and save it.
         $dormitory->admin()->associate($admin)->save();
     }
 
-    public function getRoomsForDormitory($dormitoryId)
+    /**
+     * @param  int|string  $dormitoryId
+     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Room>
+     */
+    public function getRoomsForDormitory($dormitoryId): \Illuminate\Database\Eloquent\Collection
     {
         $dorm = Dormitory::findOrFail($dormitoryId);
         return $dorm->rooms()->with([ 'roomType', 'beds' ])->get();
@@ -154,8 +187,12 @@ class DormitoryService
 
     /**
      * Get dormitory quota information for admin management
+     *
+     * @param  int|string  $dormitoryId
+     * @param  \App\Models\User|null  $user
+     * @return array{dormitory: \App\Models\Dormitory, quota_info: array{total_capacity: int, total_quota: int, occupied_beds: int, available_beds: int, utilization_percentage: float}}
      */
-    public function getDormitoryQuotaInfo($dormitoryId, $user = null)
+    public function getDormitoryQuotaInfo($dormitoryId, ?User $user = null): array
     {
         $dorm = Dormitory::with([ 'rooms.beds', 'admin' ])->findOrFail($dormitoryId);
 
@@ -185,8 +222,14 @@ class DormitoryService
 
     /**
      * Update room quota (only for dormitory admin)
+     *
+     * @param  int|string  $dormitoryId
+     * @param  int|string  $roomId
+     * @param  int  $quota
+     * @param  \App\Models\User  $user
+     * @return \App\Models\Room
      */
-    public function updateRoomQuota($dormitoryId, $roomId, $quota, $user)
+    public function updateRoomQuota($dormitoryId, $roomId, int $quota, User $user): \App\Models\Room
     {
         // Check if user has access to this dormitory
         if ($user && $user->role && $user->role->name === 'admin' && $user->adminDormitory->id !== (int) $dormitoryId) {

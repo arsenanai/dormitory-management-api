@@ -41,6 +41,9 @@ class User extends Authenticatable
 
     protected $with = [];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Role, $this>
+     */
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
@@ -51,56 +54,89 @@ class User extends Authenticatable
         return $this->role !== null && $this->role->name === $roleName;
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<Dormitory>
+     */
     public function adminDormitory(): HasOne
     {
         return $this->hasOne(Dormitory::class, 'admin_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Room, $this>
+     */
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<Bed>
+     */
     public function studentBed(): HasOne
     {
         return $this->hasOne(Bed::class, 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<Bed>
+     */
     public function bed(): HasOne
     {
         return $this->hasOne(Bed::class, 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Dormitory, $this>
+     */
     public function dormitory(): BelongsTo
     {
         return $this->belongsTo(Dormitory::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<StudentProfile>
+     */
     public function studentProfile(): HasOne
     {
         return $this->hasOne(StudentProfile::class, 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<GuestProfile>
+     */
     public function guestProfile(): HasOne
     {
         return $this->hasOne(GuestProfile::class, 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<AdminProfile>
+     */
     public function adminProfile(): HasOne
     {
         return $this->hasOne(AdminProfile::class, 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Payment>
+     */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class, 'user_id');
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Transaction>
+     */
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<Payment>
+     */
     public function currentSemesterPayment(): HasOne
     {
         return $this->hasOne(Payment::class, 'user_id')->latestOfMany();
@@ -285,5 +321,36 @@ class User extends Authenticatable
                   });
             })
             ->exists();
+    }
+
+    public function canAccessDormitory(): bool
+    {
+        $this->load(['role', 'studentProfile', 'guestProfile', 'adminDormitory', 'room']);
+
+        if ($this->hasRole('admin') || $this->hasRole('sudo')) {
+            return true;
+        }
+
+        if ($this->hasRole('student')) {
+            if ($this->status !== 'approved') {
+                return false;
+            }
+            $hasCompletedPayment = $this->payments()
+                ->where('status', PaymentStatus::Completed)
+                ->exists();
+            return $hasCompletedPayment && $this->room_id !== null;
+        }
+
+        if ($this->hasRole('guest')) {
+            if ($this->status !== 'approved') {
+                return false;
+            }
+            if (!$this->guestProfile?->is_approved) {
+                return false;
+            }
+            return $this->room_id !== null;
+        }
+
+        return false;
     }
 }

@@ -26,12 +26,18 @@ class Dormitory extends Model
         'admin_id' => 'integer',
     ];
 
-    public function admin()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
+    public function admin(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'admin_id');
     }
 
-    public function rooms()
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Room>
+     */
+    public function rooms(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Room::class, 'dormitory_id');
     }

@@ -6,17 +6,12 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class TransactionRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, \Illuminate\Contracts\Validation\Rule|array|string>
      */
     public function rules(): array
@@ -34,21 +29,19 @@ class TransactionRequest extends FormRequest
             'payment_check'   => 'sometimes|nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ];
 
-        $userRole = $this->user()->role?->name;
+        $user = $this->user();
+        $userRole = $user?->role?->name;
 
-        // For admin creation, require user_id and allow status
-        if ($isPost && in_array($userRole, ['admin', 'sudo'])) {
+        if ($isPost && in_array($userRole, ['admin', 'sudo'], true)) {
             $rules['user_id'] = 'required|exists:users,id';
             $rules['status'] = 'sometimes|string|in:pending,processing,completed,failed,cancelled,refunded';
         }
 
-        // For admin updates, allow status changes
-        if ($isPut && in_array($userRole, ['admin', 'sudo'])) {
+        if ($isPut && in_array($userRole, ['admin', 'sudo'], true)) {
             $rules['status'] = 'sometimes|string|in:pending,processing,completed,failed,cancelled,refunded';
         }
 
-        // For student/guest creation, require payment_check for bank_check method
-        if ($isPost && in_array($userRole, ['student', 'guest'])) {
+        if ($isPost && in_array($userRole, ['student', 'guest'], true)) {
             $rules['payment_method'] = 'required|string|in:bank_check';
             $rules['payment_check'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:2048';
         }
@@ -57,8 +50,6 @@ class TransactionRequest extends FormRequest
     }
 
     /**
-     * Get custom messages for validator errors.
-     *
      * @return array<string, string>
      */
     public function messages(): array

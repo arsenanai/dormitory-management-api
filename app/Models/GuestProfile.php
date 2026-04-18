@@ -33,11 +33,17 @@ class GuestProfile extends Model
         'is_approved' => 'boolean',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Bed, $this>
+     */
     public function bed(): BelongsTo
     {
         return $this->belongsTo(Bed::class);

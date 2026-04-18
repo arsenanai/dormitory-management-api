@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Services\RoomTypeService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class RoomTypeController extends Controller
 {
+    /** @var array<string, string> */
     private array $rules = [
         'name'            => 'sometimes|string|max:255',
         'capacity'        => 'sometimes|integer|min:1',
@@ -21,13 +23,13 @@ class RoomTypeController extends Controller
     {
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $roomTypes = $this->service->listRoomTypes();
         return response()->json($roomTypes, 200);
     }
 
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
         $roomType = $this->service->findRoomType($id);
 
@@ -38,9 +40,8 @@ class RoomTypeController extends Controller
         return response()->json($roomType, 200);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        // For creation, name, capacity, and price are required
         $rules = $this->rules;
         $rules['name'] = 'required|string|max:255';
         $rules['capacity'] = 'required|integer|min:1';
@@ -54,7 +55,7 @@ class RoomTypeController extends Controller
         return response()->json($roomType, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
         $roomType = $this->service->findRoomType($id);
         $validated = $request->validate($this->rules);
@@ -62,7 +63,7 @@ class RoomTypeController extends Controller
         return response()->json($roomType, 200);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $this->service->deleteRoomType($id);
         return response()->json(['message' => 'Room type deleted successfully'], 200);

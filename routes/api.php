@@ -152,6 +152,7 @@ Route::middleware([ 'auth:sanctum' ])->group(function () {
     // Payment types - accessible to all authenticated users (students need this to see payment type in forms)
     Route::middleware([ 'role:sudo,admin,student,guest' ])->group(function () {
         Route::get('/payment-types', [ PaymentTypeController::class, 'index' ]);
+        Route::get('/configurations/payment-gateways', [ ConfigurationController::class, 'getPaymentGateways' ]);
     });
     Route::post('/logout', [ UserController::class, 'logout' ]);
 

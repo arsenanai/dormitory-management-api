@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PaymentStatus;
+use App\Http\Resources\PaymentResource;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rules\Enum;
 
 class PaymentController extends Controller
@@ -17,14 +19,14 @@ class PaymentController extends Controller
     /**
      * Display a listing of payments
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
             'user_id'   => 'sometimes|integer|exists:users,id',
             'date_from' => 'sometimes|date',
             'date_to'   => 'sometimes|date',
-            'search'    => 'sometimes|nullable|string|max:255', // Searches IIN, user name, email, or amount
-            'role'      => 'sometimes|nullable|string|max:50', // Add role filter
+            'search'    => 'sometimes|nullable|string|max:255',
+            'role'      => 'sometimes|nullable|string|max:50',
             'per_page'  => 'sometimes|integer|min:1|max:1000',
             'status'    => ['sometimes', new Enum(PaymentStatus::class)],
             'payment_type' => 'sometimes|nullable|string|max:255',
@@ -37,7 +39,7 @@ class PaymentController extends Controller
     /**
      * Store a newly created payment
      */
-    public function store(Request $request)
+    public function store(Request $request): PaymentResource
     {
         $validated = $request->validate([
             'user_id'       => 'required|integer|exists:users,id',
@@ -56,7 +58,7 @@ class PaymentController extends Controller
     /**
      * Display the specified payment
      */
-    public function show($id)
+    public function show(int $id): PaymentResource
     {
         return $this->paymentService->getPaymentDetails($id);
     }
@@ -65,12 +67,12 @@ class PaymentController extends Controller
      * Update the specified payment
      * Only admins and sudo can update payments (students use updateMyPayment instead)
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): \Illuminate\Http\JsonResponse|PaymentResource
     {
-        $user = auth()->user();
-        $userRole = $user->role->name ?? null;
+        $user = $request->user();
+        $role = $user?->role;
+        $userRole = $role instanceof \App\Models\Role ? $role->name : null;
 
-        // Only admins and sudo can update payments
         if (!in_array($userRole, ['admin', 'sudo'])) {
             return response()->json(['message' => 'Unauthorized. Only admins can edit payments.'], 403);
         }
@@ -92,12 +94,12 @@ class PaymentController extends Controller
      * Remove the specified payment
      * Only admins and sudo can delete payments
      */
-    public function destroy($id)
+    public function destroy(Request $request, int $id): \Illuminate\Http\JsonResponse
     {
-        $user = auth()->user();
-        $userRole = $user->role->name ?? null;
+        $user = $request->user();
+        $role = $user?->role;
+        $userRole = $role instanceof \App\Models\Role ? $role->name : null;
 
-        // Only admins and sudo can delete payments
         if (!in_array($userRole, ['admin', 'sudo'])) {
             return response()->json(['message' => 'Unauthorized. Only admins can delete payments.'], 403);
         }
@@ -109,7 +111,7 @@ class PaymentController extends Controller
     /**
      * Export payments to CSV
      */
-    public function export(Request $request)
+    public function export(Request $request): \Illuminate\Http\Response
     {
         $filters = $request->validate([
             'user_id'   => 'sometimes|integer|exists:users,id',
@@ -122,17 +124,18 @@ class PaymentController extends Controller
         return $this->paymentService->exportPayments($filters);
     }
 
-    public function myPayments(Request $request)
+    public function myPayments(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
             'date_from' => 'sometimes|date',
             'date_to'   => 'sometimes|date',
-            'search'    => 'sometimes|nullable|string|max:255', // Searches IIN, user name, email, or amount
+            'search'    => 'sometimes|nullable|string|max:255',
             'per_page'  => 'sometimes|integer|min:1|max:1000',
             'status'    => ['sometimes', new Enum(PaymentStatus::class)],
             'payment_type' => 'sometimes|nullable|string|max:255',
         ]);
-        $filters['user_id'] = auth()->user()->id;
+        $user = $request->user();
+        $filters['user_id'] = $user?->id;
 
         $payments = $this->paymentService->index($filters);
         return $payments;

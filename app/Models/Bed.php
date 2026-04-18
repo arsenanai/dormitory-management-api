@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-// use App\Models\BedHistoryEntry;
-
+/** @use HasFactory<\Database\Factories\BedFactory> */
 class Bed extends Model
 {
     use HasFactory;
@@ -28,16 +27,25 @@ class Bed extends Model
         'is_occupied'        => 'boolean',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Room, $this>
+     */
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<GuestProfile, $this>
+     */
     public function guestProfiles(): HasMany
     {
         return $this->hasMany(GuestProfile::class);

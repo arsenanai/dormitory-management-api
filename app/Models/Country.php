@@ -21,11 +21,17 @@ class Country extends Model
         'id' => 'int',
     ];
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<Region>
+     */
     public function regions(): HasMany
     {
         return $this->hasMany(Region::class);
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<City>
+     */
     public function cities(): HasMany
     {
         return $this->hasMany(City::class);

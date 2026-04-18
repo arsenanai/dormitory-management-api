@@ -9,9 +9,17 @@ use Illuminate\Http\Request;
 class AccountingController extends Controller
 {
     /**
+     * Safely cast value to float
+     */
+    private function toFloat(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.0;
+    }
+
+    /**
      * Get accounting overview data
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $query = Payment::with([ 'user' ])
             ->select([
@@ -23,7 +31,8 @@ class AccountingController extends Controller
 
         // Apply filters
         if ($request->filled('student')) {
-            $query->where('users.name', 'like', '%' . $request->student . '%');
+            $student = is_string($request->student) ? $request->student : '';
+            $query->where('users.name', 'like', '%' . $student . '%');
         }
 
         // 'semester' column was dropped. Filtering by date range is more appropriate now.
@@ -39,8 +48,9 @@ class AccountingController extends Controller
         }
 
         // Get paginated results
+        $perPage = is_int($request->get('per_page')) ? $request->get('per_page') : 15;
         $payments = $query->orderBy('payments.created_at', 'desc')
-            ->paginate($request->get('per_page', 15));
+            ->paginate($perPage);
 
         // Calculate summary statistics
         $summary = [
@@ -66,7 +76,7 @@ class AccountingController extends Controller
     /**
      * Get accounting data for a specific student
      */
-    public function studentAccounting($studentId, Request $request)
+    public function studentAccounting(int $studentId, Request $request): \Illuminate\Http\JsonResponse
     {
         $payments = Payment::where('user_id', $studentId)
             ->with([ 'user' ])
@@ -78,7 +88,7 @@ class AccountingController extends Controller
         $summary = [
             'total_debts'          => $payments->sum('amount'),
             'total_collected'      => (clone $studentTransactions)->where('status', 'completed')->sum('amount'),
-            'total_pending'        => $payments->sum('amount') - $payments->sum('paid_amount'),
+            'total_pending'        => $this->toFloat($payments->sum('amount')) - $this->toFloat($payments->sum('paid_amount')),
             'approved_amount'      => (clone $studentTransactions)->where('status', 'completed')->sum('amount'),
             'pending_transactions' => (clone $studentTransactions)->where('status', 'processing')->count(),
         ];
@@ -92,7 +102,7 @@ class AccountingController extends Controller
     /**
      * Get accounting data for a specific semester
      */
-    public function semesterAccounting($semester, Request $request)
+    public function semesterAccounting(string $semester, Request $request): \Illuminate\Http\JsonResponse
     {
         $query = Payment::with([ 'user' ]);
         // 'semester' column was dropped. This method needs re-implementation based on date ranges.
@@ -106,22 +116,25 @@ class AccountingController extends Controller
             $query->where('deal_date', '<=', $request->end_date); // Assuming deal_date is the relevant date
         }
 
+        $perPage = is_int($request->get('per_page')) ? $request->get('per_page') : 15;
         $payments = $query->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 15));
+            ->paginate($perPage);
 
         // Scope transaction queries to same date range
         $transactionQuery = Transaction::query();
         if ($request->filled('start_date')) {
-            $transactionQuery->whereDate('created_at', '>=', $request->start_date);
+            $startDate = is_string($request->start_date) ? $request->start_date : '';
+            $transactionQuery->whereDate('created_at', '>=', $startDate);
         }
         if ($request->filled('end_date')) {
-            $transactionQuery->whereDate('created_at', '<=', $request->end_date);
+            $endDate = is_string($request->end_date) ? $request->end_date : '';
+            $transactionQuery->whereDate('created_at', '<=', $endDate);
         }
 
         $summary = [
             'total_debts'          => $payments->sum('amount'),
             'total_collected'      => (clone $transactionQuery)->where('status', 'completed')->sum('amount'),
-            'total_pending'        => $payments->sum('amount') - $payments->sum('paid_amount'),
+            'total_pending'        => $this->toFloat($payments->sum('amount')) - $this->toFloat($payments->sum('paid_amount')),
             'approved_amount'      => (clone $transactionQuery)->where('status', 'completed')->sum('amount'),
             'pending_transactions' => (clone $transactionQuery)->where('status', 'processing')->count(),
         ];
@@ -141,7 +154,7 @@ class AccountingController extends Controller
     /**
      * Export accounting data
      */
-    public function export(Request $request)
+    public function export(Request $request): \Illuminate\Http\Response
     {
         $query = Payment::with([ 'user', 'type' ])
             ->select([
@@ -152,7 +165,8 @@ class AccountingController extends Controller
             ->join('users', 'payments.user_id', '=', 'users.id');
 
         if ($request->filled('student')) {
-            $query->where('users.name', 'like', '%' . $request->student . '%');
+            $student = is_string($request->student) ? $request->student : '';
+            $query->where('users.name', 'like', '%' . $student . '%');
         }
 
         if ($request->filled('start_date')) {
@@ -178,7 +192,7 @@ class AccountingController extends Controller
                 $p->amount,
                 $p->paid_amount ?? 0,
                 $remaining,
-                $p->status?->value ?? '',
+                $p->status->value,
                 $p->date_from?->format('Y-m-d') ?? '',
                 $p->date_to?->format('Y-m-d') ?? ''
             );
@@ -193,7 +207,7 @@ class AccountingController extends Controller
     /**
      * Get accounting statistics
      */
-    public function stats(Request $request)
+    public function stats(Request $request): \Illuminate\Http\JsonResponse
     {
         $stats = [
             'total_payments'         => Payment::count(),

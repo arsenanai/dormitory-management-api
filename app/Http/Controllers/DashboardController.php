@@ -14,7 +14,7 @@ class DashboardController extends Controller
     /**
      * Get dashboard statistics
      */
-    public function index(Request $request)
+    public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getDashboardStats();
     }
@@ -22,7 +22,7 @@ class DashboardController extends Controller
     /**
      * Get dashboard statistics for a specific dormitory (for admins)
      */
-    public function dormitoryStats($dormitoryId)
+    public function dormitoryStats(int $dormitoryId): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getDormitoryStats($dormitoryId);
     }
@@ -30,7 +30,7 @@ class DashboardController extends Controller
     /**
      * Get guard dashboard
      */
-    public function guardDashboard(Request $request)
+    public function guardDashboard(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getGuardStats();
     }
@@ -38,7 +38,7 @@ class DashboardController extends Controller
     /**
      * Get student dashboard
      */
-    public function studentDashboard(Request $request)
+    public function studentDashboard(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getStudentDashboardStats();
     }
@@ -46,7 +46,7 @@ class DashboardController extends Controller
     /**
      * Get guest dashboard
      */
-    public function guestDashboard(Request $request)
+    public function guestDashboard(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getGuestDashboardStats();
     }
@@ -54,7 +54,7 @@ class DashboardController extends Controller
     /**
      * Get monthly stats
      */
-    public function monthlyStats(Request $request)
+    public function monthlyStats(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getMonthlyStats();
     }
@@ -62,7 +62,7 @@ class DashboardController extends Controller
     /**
      * Get payment analytics
      */
-    public function paymentAnalytics(Request $request)
+    public function paymentAnalytics(Request $request): \Illuminate\Http\JsonResponse
     {
         return $this->dashboardService->getPaymentAnalytics();
     }

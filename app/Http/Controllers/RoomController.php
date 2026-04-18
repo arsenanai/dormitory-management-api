@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Bed;
-use App\Models\Room;
+use App\Models\Dormitory;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\RoomService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -15,55 +17,52 @@ class RoomController extends Controller
     {
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $filters = $request->only([ 'dormitory_id', 'room_type_id', 'floor', 'number', 'occupant_type', 'status' ]);
-        $perPage = $request->input('per_page', 15);
+        $perPageValue = $request->input('per_page');
+        $perPage = $perPageValue !== null && is_numeric($perPageValue) ? (int) $perPageValue : 15;
 
-        // Get authenticated user for role-based filtering
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
 
-        // Load adminProfile relationship for admin users
-        if ($user && $user->role && $user->role->name === 'admin') {
-            $user->load('adminProfile');
+        if ($this->isAdminUser($user)) {
+            $user?->load('adminProfile');
         }
-
-        // Note: Dormitory-based filtering is now handled in RoomService
-        // No need to set filters['dormitory_id'] here
 
         $rooms = $this->service->listRooms($filters, $perPage, $user);
         return response()->json($rooms, 200);
     }
 
-    public function show($id)
+    public function show(int $id): JsonResponse
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
-
-        // Load adminProfile relationship for admin users
 
         $room = $this->service->findRoom($id, $user);
 
         return response()->json($room, 200);
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
 
-        // Check if admin user has permission to create room in specified dormitory
         $user = Auth::user();
-        if ($user && $user->role && $user->role->name === 'admin') {
-            $userDormitoryId = $user->adminDormitory->id ?? null;
+        if ($this->isAdminUser($user)) {
+            $adminDormitory = $this->getAdminDormitory($user);
+            $userDormitoryId = $adminDormitory?->id;
 
-            // Force dormitory_id to user's assigned dormitory
-            if ($userDormitoryId) {
+            if ($userDormitoryId !== null) {
                 $request->merge([ 'dormitory_id' => $userDormitoryId ]);
             }
         }
         try {
+            $dormitoryIdValue = $request->input('dormitory_id');
+            $dormitoryId = $dormitoryIdValue !== null ? (int) $dormitoryIdValue : 0;
             $rules = [
                 'number'         => [
                     'required', 'string', 'max:10',
-                    Rule::unique('rooms')->where('dormitory_id', $request->input('dormitory_id'))
+                    Rule::unique('rooms')->where('dormitory_id', $dormitoryId)
                 ],
                 'floor'          => 'nullable|integer',
                 'notes'          => 'nullable|string',
@@ -77,7 +76,6 @@ class RoomController extends Controller
             throw $e;
         }
 
-        // Manually add the 'beds' data to the validated array to pass to the service
         if ($request->has('beds')) {
             $validated['beds'] = $request->input('beds');
         }
@@ -88,12 +86,14 @@ class RoomController extends Controller
         return response()->json($room, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id): JsonResponse
     {
+        $dormitoryIdValue = $request->input('dormitory_id');
+        $dormitoryId = $dormitoryIdValue !== null ? (int) $dormitoryIdValue : 0;
         $rules = [
             'number'         => [
                 'required', 'string', 'max:10',
-                Rule::unique('rooms')->where('dormitory_id', $request->input('dormitory_id'))->ignore($id)
+                Rule::unique('rooms')->where('dormitory_id', $dormitoryId)->ignore($id)
             ],
             'floor'          => 'nullable|integer',
             'notes'          => 'nullable|string',
@@ -104,7 +104,6 @@ class RoomController extends Controller
         ];
         $validated = $request->validate($rules);
 
-        // Manually add the 'beds' data to the validated array to pass to the service
         if ($request->has('beds')) {
             $validated['beds'] = $request->input('beds');
         }
@@ -113,29 +112,27 @@ class RoomController extends Controller
         return response()->json($room, 200);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $user = Auth::user();
+        $user = $request->user();
         $room = $this->service->findRoom($id, $user);
 
         $this->service->deleteRoom($id, $user);
         return response()->json([ 'message' => 'Room deleted successfully' ], 200);
     }
 
-    /**
-     * GET /rooms/available
-     * Returns rooms with at least one available bed, and only available beds per room.
-     */
-    public function available(Request $request)
+    public function available(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $isStaff = $user && ($user->hasRole('admin') || $user->hasRole('user'));
+        $isStaff = $user !== null && ($user->hasRole('admin') || $user->hasRole('user'));
         $dormitoryId = null;
 
         if ($request->has('dormitory_id')) {
-            $dormitoryId = $request->input('dormitory_id');
+            $dormitoryIdValue = $request->input('dormitory_id');
+            $dormitoryId = $dormitoryIdValue !== null ? (int) $dormitoryIdValue : null;
         } elseif ($isStaff) {
-            $dormitoryId = $user->adminDormitory->id ?? null;
+            $adminDormitory = $this->getAdminDormitory($user);
+            $dormitoryId = $adminDormitory?->id;
         }
 
         $params = $request->only([ 'start_date', 'end_date', 'guest_id' ]);
@@ -148,16 +145,32 @@ class RoomController extends Controller
         return response()->json($rooms);
     }
 
-    public function listAll()
+    public function listAll(): JsonResponse
     {
         $user = Auth::user();
-        $dormitory = $user->adminDormitory;
-        if (! $dormitory) {
-            // use keyword in message, frontend will translate
+        $adminDormitory = $this->getAdminDormitory($user);
+        if ($adminDormitory === null) {
             return response()->json([ 'message' => 'no_dormitory_assigned'
             ], 403);
         }
-        $rooms = $this->service->listAllRoomsInDormitory($dormitory->id);
+        $rooms = $this->service->listAllRoomsInDormitory($adminDormitory->id);
         return response()->json($rooms, 200);
+    }
+
+    private function isAdminUser(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+        $role = $user->role;
+        return $role instanceof Role && $role->name === 'admin';
+    }
+
+    private function getAdminDormitory(?User $user): ?Dormitory
+    {
+        if ($user === null) {
+            return null;
+        }
+        return $user->adminDormitory;
     }
 }

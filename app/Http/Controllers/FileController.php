@@ -8,20 +8,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileController extends Controller
 {
-    private $fileService;
-
-    public function __construct(FileService $fileService)
-    {
-        $this->fileService = $fileService;
+    public function __construct(
+        private readonly FileService $fileService,
+    ) {
     }
 
-    /**
-     * Handle a request to download a file (public access).
-     *
-     * @param string $path The path to file within storage disk.
-     * @return StreamedResponse|JsonResponse
-     */
-    public function download(string $path)
+    public function download(string $path): StreamedResponse|JsonResponse
     {
         return $this->fileService->downloadFile($path);
     }
